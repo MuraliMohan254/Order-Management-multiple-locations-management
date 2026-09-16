@@ -1,0 +1,203 @@
+<div class="h-full flex flex-col lg:flex-row gap-6 p-4 sm:p-6 lg:p-8 bg-slate-50 min-h-screen">
+  
+  <!-- Left Column: Categories Pane -->
+  <div class="w-full lg:w-1/3 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-[400px] lg:h-[calc(100vh-64px)]">
+    
+    <!-- Header, Search & Tabs -->
+    <div class="pt-4 px-4 border-b border-slate-100 shrink-0 flex flex-col">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold text-slate-800">Categories</h2>
+        <button (click)="openCategoryModal()" class="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        </button>
+      </div>
+      
+      <div class="relative mb-4">
+        <svg class="absolute left-3 top-2.5 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input type="text" [formControl]="categorySearchCtrl" placeholder="Search categories..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+      </div>
+
+      <div class="flex">
+        <button (click)="switchCategoryTab('ACTIVE')" 
+                class="flex-1 py-2 text-sm font-semibold border-b-2 transition-all outline-none"
+                [ngClass]="categoryFilter() === 'ACTIVE' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'">
+          Active
+        </button>
+        <button (click)="switchCategoryTab('INACTIVE')" 
+                class="flex-1 py-2 text-sm font-semibold border-b-2 transition-all outline-none"
+                [ngClass]="categoryFilter() === 'INACTIVE' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'">
+          Inactive
+        </button>
+      </div>
+    </div>
+
+    <!-- Category List -->
+    <div class="flex-1 overflow-y-auto p-2 space-y-1 bg-slate-50/30">
+      @if (isLoadingCategories()) {
+        <div class="flex justify-center py-8"><div class="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>
+      } @else if (categories().length === 0) {
+        <p class="text-center text-sm text-slate-500 py-8">No {{ categoryFilter() | lowercase }} categories found.</p>
+      } @else {
+        @for (cat of categories(); track cat.id) {
+          <div (click)="selectCategory(cat)"
+               class="group flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all"
+               [ngClass]="{
+                 'bg-blue-600 text-white shadow-md': selectedCategory()?.id === cat.id, 
+                 'hover:bg-slate-100 text-slate-700': selectedCategory()?.id !== cat.id
+               }">
+            <div class="flex items-center gap-2 truncate pr-4">
+              <span class="font-medium text-sm">{{ cat.name }}</span>
+            </div>
+            <!-- Edit & Delete Buttons -->
+            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" [ngClass]="{'opacity-100': selectedCategory()?.id === cat.id}">
+              <button (click)="openCategoryModal(cat); $event.stopPropagation()" class="p-1.5 rounded-md hover:bg-black/10 transition-colors" title="Edit Category">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+              </button>
+              <button (click)="deleteCategory(cat.id, $event)" class="p-1.5 rounded-md hover:bg-red-500/20 text-white hover:text-red-100 transition-colors" [ngClass]="{'text-red-500 hover:text-red-600': selectedCategory()?.id !== cat.id}" title="Delete Category">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  </div>
+
+  <!-- Right Column: Items Pane -->
+  <div class="w-full lg:w-2/3 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-[500px] lg:h-[calc(100vh-64px)]">
+    @if (selectedCategory(); as activeCat) {
+      <div class="p-4 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-slate-800">{{ activeCat.name }} Items</h2>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="relative w-full sm:w-64">
+            <svg class="absolute left-3 top-2.5 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <input type="text" [formControl]="itemSearchCtrl" placeholder="Search items..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+          </div>
+          <button (click)="openItemModal()" class="shrink-0 flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <span class="hidden sm:inline">Add Item</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Item Grid -->
+      <div class="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50/50">
+        @if (isLoadingItems()) {
+          <div class="flex justify-center py-12"><div class="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>
+        } @else if (items().length === 0) {
+          <div class="flex flex-col items-center justify-center py-16 text-slate-400">
+            <p class="text-sm font-medium">No items found.</p>
+          </div>
+        } @else {
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            @for (item of items(); track item.id) {
+              <div class="bg-white p-4 rounded-xl border transition-all group relative"
+                   [ngClass]="item.available ? 'border-slate-200 shadow-sm hover:shadow-md' : 'border-dashed border-slate-300 opacity-70 bg-slate-50'">
+                <div class="flex justify-between items-start mb-2">
+                  <h3 class="font-bold text-slate-800 line-clamp-1 pr-16" [title]="item.name">{{ item.name }}</h3>
+                  
+                  <!-- Floating Edit & Delete Buttons -->
+                  <div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                    <button (click)="openItemModal(item); $event.stopPropagation()" class="p-1.5 bg-white border border-slate-200 rounded text-slate-500 hover:text-blue-600 shadow-sm transition-colors" title="Edit Item">
+                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                    </button>
+                    <button (click)="deleteItem(item.id, $event)" class="p-1.5 bg-white border border-slate-200 rounded text-slate-500 hover:text-red-600 hover:border-red-200 shadow-sm transition-colors" title="Delete Item">
+                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  </div>
+                </div>
+                
+                <div class="flex items-end justify-between mt-4">
+                  <span class="text-lg font-black" [ngClass]="item.available ? 'text-blue-600' : 'text-slate-500'">₹{{ item.price | number:'1.2-2' }}</span>
+                  <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md" 
+                        [ngClass]="item.available ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-200 text-slate-600'">
+                    {{ item.available ? 'Available' : 'Out of Stock' }}
+                  </span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="flex-1 flex flex-col items-center justify-center text-slate-400 p-8">
+        <p class="font-medium text-slate-500">Select a category to view and manage its items.</p>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Category Modal -->
+@if (showCategoryModal()) {
+  <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+      <!-- ... (Category Modal Header) ... -->
+      <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <h3 class="font-bold text-slate-800">{{ editingCategoryId() ? 'Edit' : 'New' }} Category</h3>
+        <button (click)="showCategoryModal.set(false)" class="text-slate-400 hover:text-slate-600"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>
+      <form [formGroup]="categoryForm" (ngSubmit)="saveCategory()" class="p-4 space-y-5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wide">Category Name</label>
+          <input type="text" formControlName="name" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none text-sm">
+        </div>
+        
+        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+          <label class="text-sm font-medium text-slate-700 cursor-pointer">Active (Visible in POS)</label>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" formControlName="active" class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+          </label>
+        </div>
+        <button type="submit" [disabled]="categoryForm.invalid" class="w-full py-2.5 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors">Save Category</button>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Item Modal -->
+@if (showItemModal()) {
+  <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+      <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <h3 class="font-bold text-slate-800">{{ editingItemId() ? 'Edit' : 'New' }} Item</h3>
+        <button (click)="showItemModal.set(false)" class="text-slate-400 hover:text-slate-600"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>
+      <form [formGroup]="itemForm" (ngSubmit)="saveItem()" class="p-4 space-y-5">
+        
+        <!-- Dropdown to Change Category -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wide">Category</label>
+          <select formControlName="categoryId" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none text-sm bg-white cursor-pointer">
+            <!-- Iterates over the active/inactive fetched categories list -->
+            @for (cat of categories(); track cat.id) {
+              <option [value]="cat.id">{{ cat.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wide">Item Name</label>
+          <input type="text" formControlName="name" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none text-sm">
+        </div>
+        
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wide">Price (₹)</label>
+          <input type="number" formControlName="price" step="0.01" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none text-sm">
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+          <label class="text-sm font-medium text-slate-700 cursor-pointer">In Stock (Available)</label>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" formControlName="available" class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+          </label>
+        </div>
+
+        <button type="submit" [disabled]="itemForm.invalid" class="w-full py-2.5 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors">Save Item</button>
+      </form>
+    </div>
+  </div>
+}

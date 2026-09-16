@@ -3,6 +3,7 @@ import { LoginComponent } from './components/login/login';
 import { LayoutComponent } from './layout/layout/layout';
 import { Dashboard } from './components/dashboard/dashboard';
 import { authGuard, publicGuard } from './guards/auth.guard';
+import { MenuManagementComponent } from './components/menu-management/menu-management';
 
 export const routes: Routes = [
   { 
@@ -23,6 +24,10 @@ export const routes: Routes = [
       {
         path: 'dashboard',
         component: Dashboard
+      },
+       {
+        path: 'menu-management',
+        component: MenuManagementComponent
       }
       // Future routes like 'pos', 'menu' go here
     ]

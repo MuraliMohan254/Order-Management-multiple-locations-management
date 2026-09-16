@@ -15,10 +15,10 @@ import { SharedService } from '../../services/shared';
 export class LoginComponent {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
-  private sharedService = inject(SharedService);
+  public sharedService = inject(SharedService);
   private router = inject(Router);
   private toastr = inject(ToastrService);
-
+  
   isLoading = signal(false);
   showPassword = signal(false);
   errorMessage = signal<string | null>(null);
