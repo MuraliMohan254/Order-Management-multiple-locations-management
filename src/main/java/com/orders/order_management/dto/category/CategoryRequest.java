@@ -13,4 +13,5 @@ import jakarta.validation.constraints.*;
 public class CategoryRequest {
     @NotBlank(message = "Category name is required")
     private String name;
+    private Boolean active;
 }

@@ -11,4 +11,6 @@ public interface CategoryRepository extends JpaRepository<Category, UUID> {
 
     // Fetches only active categories, supporting the soft-delete pattern
     List<Category> findAllByIsActiveTrue();
+    List<Category> findAllByIsActive(boolean isActive);
+    List<Category> findByNameContainingIgnoreCaseAndIsActive(String name, boolean isActive);
 }

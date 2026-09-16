@@ -21,4 +21,5 @@ public class ItemRequest {
     @NotNull(message = "Price is required")
     @DecimalMin(value = "0.01", message = "Price must be greater than zero")
     private BigDecimal price;
+    private boolean available;
 }

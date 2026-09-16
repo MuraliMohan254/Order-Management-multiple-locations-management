@@ -53,6 +53,7 @@ public class MenuService {
                 .orElseThrow(() -> new IllegalArgumentException("Category not found"));
 
         category.setName(request.getName());
+        category.setActive(request.getActive());
         return mapToCategoryResponse(categoryRepository.save(category));
     }
 
@@ -65,6 +66,25 @@ public class MenuService {
         categoryRepository.save(category);
     }
 
+    @Transactional(readOnly = true)
+    public List<CategoryResponse> getActiveCategories(String search) {
+        if (search != null && !search.trim().isEmpty()) {
+            return categoryRepository.findByNameContainingIgnoreCaseAndIsActive(search.trim(), true).stream()
+                    .map(this::mapToCategoryResponse).toList();
+        }
+        return categoryRepository.findAllByIsActiveTrue().stream()
+                .map(this::mapToCategoryResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CategoryResponse> getCategories(String search, boolean active) {
+        if (search != null && !search.trim().isEmpty()) {
+            return categoryRepository.findByNameContainingIgnoreCaseAndIsActive(search.trim(), active).stream()
+                    .map(this::mapToCategoryResponse).toList();
+        }
+        return categoryRepository.findAllByIsActive(active).stream()
+                .map(this::mapToCategoryResponse).toList();
+    }
     // ==========================================
     // ITEM CRUD OPERATIONS
     // ==========================================
@@ -110,7 +130,7 @@ public class MenuService {
 
         item.setName(request.getName());
         item.setPrice(request.getPrice());
-
+        item.setAvailable(request.isAvailable());
         return mapToItemResponse(itemRepository.save(item));
     }
 
@@ -144,5 +164,28 @@ public class MenuService {
                 .price(item.getPrice())
                 .isAvailable(item.isAvailable())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ItemResponse> getItemsByCategory(UUID categoryId, String search) {
+        if (search != null && !search.trim().isEmpty()) {
+            return itemRepository.findByCategoryIdAndNameContainingIgnoreCaseAndIsAvailableTrue(categoryId, search.trim()).stream()
+                    .map(this::mapToItemResponse).toList();
+        }
+        return itemRepository.findByCategoryId(categoryId).stream()
+                .map(this::mapToItemResponse).toList();
+    }
+
+    // New (Highly Recommended for POS Systems): Global item search
+    @Transactional(readOnly = true)
+    public List<ItemResponse> getAllAvailableItems(String search) {
+        if (search != null && !search.trim().isEmpty()) {
+            return itemRepository.findByNameContainingIgnoreCaseAndIsAvailableTrue(search.trim()).stream()
+                    .map(this::mapToItemResponse).toList();
+        }
+
+        // If no search term is provided, you might want to return all items or limit it.
+        // For now, assuming you have a findAllByIsAvailableTrue() in repository, or just return empty.
+        throw new IllegalArgumentException("Search term is required for global item search");
     }
 }

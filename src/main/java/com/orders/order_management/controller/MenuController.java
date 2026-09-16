@@ -30,11 +30,6 @@ public class MenuController {
         return ResponseEntity.status(HttpStatus.CREATED).body(menuService.createCategory(request));
     }
 
-    @GetMapping("/categories")
-    public ResponseEntity<List<CategoryResponse>> getAllCategories() {
-        return ResponseEntity.ok(menuService.getActiveCategories());
-    }
-
     @GetMapping("/categories/{id}")
     public ResponseEntity<CategoryResponse> getCategoryById(@PathVariable UUID id) {
         return ResponseEntity.ok(menuService.getCategoryById(id));
@@ -52,6 +47,19 @@ public class MenuController {
         menuService.deleteCategory(id);
         return ResponseEntity.noContent().build();
     }
+    @GetMapping("/categories")
+    public ResponseEntity<List<CategoryResponse>> getAllCategories(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "true") boolean active) {
+        return ResponseEntity.ok(menuService.getCategories(search, active));
+    }
+
+    @GetMapping("/categories/{categoryId}/items")
+    public ResponseEntity<List<ItemResponse>> getItemsByCategory(
+            @PathVariable UUID categoryId,
+            @RequestParam(required = false) String search) {
+        return ResponseEntity.ok(menuService.getItemsByCategory(categoryId, search));
+    }
 
     // ==========================================
     // ITEM ENDPOINTS
@@ -67,11 +75,6 @@ public class MenuController {
         return ResponseEntity.ok(menuService.getItemById(id));
     }
 
-    @GetMapping("/categories/{categoryId}/items")
-    public ResponseEntity<List<ItemResponse>> getItemsByCategory(@PathVariable UUID categoryId) {
-        return ResponseEntity.ok(menuService.getItemsByCategory(categoryId));
-    }
-
     @PutMapping("/items/{id}")
     public ResponseEntity<ItemResponse> updateItem(
             @PathVariable UUID id,
@@ -83,5 +86,12 @@ public class MenuController {
     public ResponseEntity<Void> deleteItem(@PathVariable UUID id) {
         menuService.deleteItem(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // New: Global item search endpoint (e.g., /api/v1/menu/items?search=burger)
+    @GetMapping("/items")
+    public ResponseEntity<List<ItemResponse>> searchAllItems(
+            @RequestParam String search) {
+        return ResponseEntity.ok(menuService.getAllAvailableItems(search));
     }
 }

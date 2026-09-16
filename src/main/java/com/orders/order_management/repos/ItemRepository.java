@@ -10,4 +10,10 @@ public interface ItemRepository extends JpaRepository<Item, UUID> {
 
     // Fetches only available items for a specific category
     List<Item> findByCategoryIdAndIsAvailableTrue(UUID categoryId);
+    List<Item> findByCategoryId(UUID categoryId);
+    // New: Search items within a specific category
+    List<Item> findByCategoryIdAndNameContainingIgnoreCaseAndIsAvailableTrue(UUID categoryId, String name);
+
+    // New (Highly Recommended): Global search across all available items
+    List<Item> findByNameContainingIgnoreCaseAndIsAvailableTrue(String name);
 }
