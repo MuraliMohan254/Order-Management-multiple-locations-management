@@ -16,4 +16,5 @@ public interface ItemRepository extends JpaRepository<Item, UUID> {
 
     // New (Highly Recommended): Global search across all available items
     List<Item> findByNameContainingIgnoreCaseAndIsAvailableTrue(String name);
+    List<Item> findByIsAvailableTrue();
 }

@@ -176,16 +176,14 @@ public class MenuService {
                 .map(this::mapToItemResponse).toList();
     }
 
-    // New (Highly Recommended for POS Systems): Global item search
+    // Global item search (returns all available items if search is empty)
     @Transactional(readOnly = true)
     public List<ItemResponse> getAllAvailableItems(String search) {
         if (search != null && !search.trim().isEmpty()) {
             return itemRepository.findByNameContainingIgnoreCaseAndIsAvailableTrue(search.trim()).stream()
                     .map(this::mapToItemResponse).toList();
         }
-
-        // If no search term is provided, you might want to return all items or limit it.
-        // For now, assuming you have a findAllByIsAvailableTrue() in repository, or just return empty.
-        throw new IllegalArgumentException("Search term is required for global item search");
+        return itemRepository.findByIsAvailableTrue().stream()
+                .map(this::mapToItemResponse).toList();
     }
 }

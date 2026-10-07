@@ -8,7 +8,14 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 @Entity
-@Table(name = "orders")
+@Table(name = "orders", indexes = {
+        @Index(name = "idx_orders_status", columnList = "status"),
+        @Index(name = "idx_orders_created_at", columnList = "created_at"),
+        @Index(name = "idx_orders_status_created_at", columnList = "status, created_at"),
+        @Index(name = "idx_orders_order_number", columnList = "order_number"),
+        @Index(name = "idx_orders_table_id", columnList = "table_id"),
+        @Index(name = "idx_orders_order_type", columnList = "order_type")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -26,6 +33,10 @@ public class Order extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private OrderStatus status;
+
+    @Builder.Default
+    @Column(name = "kitchen_status", length = 20)
+    private String kitchenStatus = "PENDING";
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "table_id")
@@ -48,6 +59,7 @@ public class Order extends BaseEntity {
     private BigDecimal grandTotal = BigDecimal.ZERO;
 
     @Builder.Default
+    @org.hibernate.annotations.BatchSize(size = 50)
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
 

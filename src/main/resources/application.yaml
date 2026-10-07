@@ -14,6 +14,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        default_batch_fetch_size: 64
     open-in-view: false
 
 api:
@@ -23,6 +24,9 @@ jwt:
   secret: ${JWT_SECRET:yAhmxRTWRPeFvmZhr2hcd6om8rOm+5n3REZgiKt4EJY=}
   expirationMillis: 3600000  # 1hr
 app:
+  tax:
+    rate: ${APP_TAX_RATE:0.05}
+    name: ${APP_TAX_NAME:GST}
   subscription:
     url: https://7yhnrcm91a.execute-api.us-east-1.amazonaws.com/bkp-prod/bkp-subscription
   cors:

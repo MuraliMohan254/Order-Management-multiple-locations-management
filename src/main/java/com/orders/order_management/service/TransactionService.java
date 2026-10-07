@@ -5,16 +5,31 @@ import com.orders.order_management.entity.*;
 import com.orders.order_management.enums.*;
 import com.orders.order_management.repos.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class TransactionService {
+
+    @Value("${app.tax.rate:0.05}")
+    private BigDecimal taxRate;
+
+    @Value("${app.tax.name:GST}")
+    private String taxName;
 
     private final RestaurantTableRepository tableRepository;
     private final OrderRepository orderRepository;
@@ -36,17 +51,20 @@ public class TransactionService {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid QR Token"));
 
         Order order = orderRepository.findByTableIdAndStatusIn(
-                table.getId(), List.of(OrderStatus.SOFT_ORDER, OrderStatus.CONFIRMED)).orElse(null);
+                table.getId(), List.of(OrderStatus.SOFT_ORDER, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.SERVED)).orElse(null);
 
         if (order == null) {
             order = Order.builder()
                     .orderNumber("ORD-" + System.currentTimeMillis())
                     .orderType(OrderType.DINE_IN)
-                    .status(OrderStatus.SOFT_ORDER)
+                    .status(OrderStatus.CONFIRMED)
+                    .kitchenStatus(OrderStatus.CONFIRMED.name())
                     .table(table)
+                    .subTotal(BigDecimal.ZERO)
                     .build();
             table.setStatus(TableStatus.OCCUPIED);
             tableRepository.save(table);
+            order = orderRepository.save(order);
         }
 
         appendItemsToOrder(order, itemRequests);
@@ -86,14 +104,20 @@ public class TransactionService {
             order.addOrderItem(orderItem);
         }
         order.setSubTotal(runningSubTotal);
+
+        // If order was already completed or served, reset back to CONFIRMED so newly appended items route to the kitchen
+        if (order.getStatus() == OrderStatus.SERVED || order.getStatus() == OrderStatus.READY) {
+            order.setStatus(OrderStatus.CONFIRMED);
+            order.setKitchenStatus(OrderStatus.CONFIRMED.name());
+        }
     }
 
     public OrderResponse generateFinalBill(UUID orderId, BigDecimal discount) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
-        BigDecimal taxRate = new BigDecimal("0.05"); // 5% configurable tax
-        BigDecimal taxAmount = order.getSubTotal().multiply(taxRate);
+        BigDecimal effectiveTaxRate = taxRate != null ? taxRate : new BigDecimal("0.05");
+        BigDecimal taxAmount = order.getSubTotal().multiply(effectiveTaxRate).setScale(2, RoundingMode.HALF_UP);
         BigDecimal finalDiscount = discount != null ? discount : BigDecimal.ZERO;
 
         BigDecimal grandTotal = order.getSubTotal()
@@ -103,6 +127,10 @@ public class TransactionService {
         order.setTaxAmount(taxAmount);
         order.setDiscountAmount(finalDiscount);
         order.setGrandTotal(grandTotal);
+        // Ensure kitchenStatus is set so KDS knows the kitchen preparation phase
+        if (order.getKitchenStatus() == null || "PENDING".equalsIgnoreCase(order.getKitchenStatus())) {
+            order.setKitchenStatus(order.getStatus() != null && order.getStatus() != OrderStatus.SOFT_ORDER ? order.getStatus().name() : OrderStatus.CONFIRMED.name());
+        }
         order.setStatus(OrderStatus.BILLED);
 
         return mapToOrderResponse(orderRepository.save(order));
@@ -135,11 +163,33 @@ public class TransactionService {
     }
 
     private OrderResponse mapToOrderResponse(Order order) {
-        return new OrderResponse(
-                order.getId(), order.getOrderNumber(), order.getOrderType().name(),
-                order.getStatus().name(), order.getSubTotal(), order.getTaxAmount(),
-                order.getDiscountAmount(), order.getGrandTotal()
-        );
+        List<OrderItemDetailResponse> itemResponses = order.getItems() != null
+                ? order.getItems().stream().map(oi -> OrderItemDetailResponse.builder()
+                        .id(oi.getId())
+                        .itemId(oi.getItem() != null ? oi.getItem().getId() : null)
+                        .itemName(oi.getItem() != null ? oi.getItem().getName() : "Unknown Item")
+                        .quantity(oi.getQuantity())
+                        .unitPrice(oi.getUnitPrice())
+                        .totalPrice(oi.getTotalPrice())
+                        .notes(oi.getNotes())
+                        .build()).toList()
+                : Collections.emptyList();
+
+        return OrderResponse.builder()
+                .id(order.getId())
+                .orderNumber(order.getOrderNumber())
+                .orderType(order.getOrderType() != null ? order.getOrderType().name() : null)
+                .status(order.getStatus() != null ? order.getStatus().name() : null)
+                .kitchenStatus(order.getKitchenStatus() != null ? order.getKitchenStatus() : (order.getStatus() != null ? order.getStatus().name() : "PENDING"))
+                .tableId(order.getTable() != null ? order.getTable().getId() : null)
+                .tableNumber(order.getTable() != null ? order.getTable().getTableNumber() : null)
+                .subTotal(order.getSubTotal())
+                .taxAmount(order.getTaxAmount())
+                .discountAmount(order.getDiscountAmount())
+                .grandTotal(order.getGrandTotal())
+                .createdAt(order.getCreatedAt())
+                .items(itemResponses)
+                .build();
     }
 
     public OrderResponse createTakeAwayOrder(List<OrderItemRequest> itemRequests) {
@@ -147,7 +197,9 @@ public class TransactionService {
                 .orderNumber("TA-" + System.currentTimeMillis())
                 .orderType(OrderType.TAKE_AWAY)
                 .status(OrderStatus.CONFIRMED) // Take-aways usually go straight to kitchen
+                .kitchenStatus(OrderStatus.CONFIRMED.name())
                 .table(null) // No table required
+                .subTotal(BigDecimal.ZERO)
                 .build();
 
         order = orderRepository.save(order);
@@ -160,11 +212,18 @@ public class TransactionService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
-        if (order.getStatus() == OrderStatus.BILLED || order.getStatus() == OrderStatus.CANCELLED) {
-            throw new IllegalStateException("Cannot change status of a finalized order.");
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new IllegalStateException("Cannot change status of a cancelled order.");
+        }
+
+        // If the order is already BILLED, kitchen operations (PREPARING, READY, SERVED) update kitchenStatus
+        if (order.getStatus() == OrderStatus.BILLED) {
+            order.setKitchenStatus(newStatus.name());
+            return mapToOrderResponse(orderRepository.save(order));
         }
 
         order.setStatus(newStatus);
+        order.setKitchenStatus(newStatus.name());
         return mapToOrderResponse(orderRepository.save(order));
     }
 
@@ -210,6 +269,16 @@ public class TransactionService {
         BigDecimal updatedSubTotal = order.getSubTotal().subtract(itemToRemove.getTotalPrice());
         order.setSubTotal(updatedSubTotal.max(BigDecimal.ZERO)); // Prevent negative subtotals
 
+        if (order.getItems().isEmpty()) {
+            order.setStatus(OrderStatus.CANCELLED);
+            order.setKitchenStatus(OrderStatus.CANCELLED.name());
+            if (order.getTable() != null) {
+                RestaurantTable table = order.getTable();
+                table.setStatus(TableStatus.AVAILABLE);
+                tableRepository.save(table);
+            }
+        }
+
         return mapToOrderResponse(orderRepository.save(order));
     }
 
@@ -217,12 +286,14 @@ public class TransactionService {
         return orderItemRepository.findActiveKitchenTickets().stream()
                 .map(oi -> KitchenTicketResponse.builder()
                         .orderItemId(oi.getId())
-                        .orderNumber(oi.getOrder().getOrderNumber())
-                        .tableName(oi.getOrder().getTable() != null ? oi.getOrder().getTable().getTableNumber() : "Take-Away")
-                        .itemName(oi.getItem().getName())
+                        .orderId(oi.getOrder() != null ? oi.getOrder().getId() : null)
+                        .orderNumber(oi.getOrder() != null ? oi.getOrder().getOrderNumber() : "")
+                        .tableName(oi.getOrder() != null && oi.getOrder().getTable() != null ? oi.getOrder().getTable().getTableNumber() : "Take-Away")
+                        .itemName(oi.getItem() != null ? oi.getItem().getName() : "")
                         .quantity(oi.getQuantity())
                         .notes(oi.getNotes())
                         .orderTime(oi.getCreatedAt())
+                        .status(oi.getOrder() != null && oi.getOrder().getKitchenStatus() != null ? oi.getOrder().getKitchenStatus() : (oi.getOrder() != null && oi.getOrder().getStatus() != null ? oi.getOrder().getStatus().name() : ""))
                         .build())
                 .toList();
     }
@@ -233,6 +304,21 @@ public class TransactionService {
                 .toList();
     }
 
+    public TableResponse getTableByQrToken(UUID qrToken) {
+        RestaurantTable table = tableRepository.findByQrToken(qrToken)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid QR Token"));
+        return mapToTableResponse(table);
+    }
+
+    public OrderResponse getActiveOrderByQrToken(UUID qrToken) {
+        RestaurantTable table = tableRepository.findByQrToken(qrToken)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid QR Token"));
+        return orderRepository.findByTableIdAndStatusIn(
+                table.getId(), List.of(OrderStatus.SOFT_ORDER, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.SERVED))
+                .map(this::mapToOrderResponse)
+                .orElse(null);
+    }
+
     // --- 2. Process Cashier Dine-In Order ---
     public OrderResponse createPosDineInOrder(UUID tableId, List<OrderItemRequest> itemRequests) {
         RestaurantTable table = tableRepository.findById(tableId)
@@ -240,7 +326,7 @@ public class TransactionService {
 
         // Check if there is already an active order for this table
         Order order = orderRepository.findByTableIdAndStatusIn(
-                table.getId(), List.of(OrderStatus.SOFT_ORDER, OrderStatus.CONFIRMED)).orElse(null);
+                table.getId(), List.of(OrderStatus.SOFT_ORDER, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.SERVED)).orElse(null);
 
         // If no active order exists, create a new one and occupy the table
         if (order == null) {
@@ -248,11 +334,13 @@ public class TransactionService {
                     .orderNumber("POS-" + System.currentTimeMillis())
                     .orderType(OrderType.DINE_IN)
                     .status(OrderStatus.CONFIRMED) // Cashier orders bypass SOFT_ORDER directly to CONFIRMED
+                    .kitchenStatus(OrderStatus.CONFIRMED.name())
                     .table(table)
                     .subTotal(BigDecimal.ZERO)
                     .build();
             table.setStatus(TableStatus.OCCUPIED);
             tableRepository.save(table);
+            order = orderRepository.save(order);
         }
 
         // Append the new items to the order
@@ -265,14 +353,110 @@ public class TransactionService {
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
         return mapToOrderResponse(order);
     }
+
     public List<OrderResponse> getOrders(List<OrderStatus> statuses) {
         // If no status is provided, default to active restaurant workflows
         if (statuses == null || statuses.isEmpty()) {
-            statuses = List.of(OrderStatus.SOFT_ORDER, OrderStatus.CONFIRMED, OrderStatus.BILLED);
+            statuses = List.of(OrderStatus.SOFT_ORDER, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.SERVED, OrderStatus.BILLED);
         }
 
         return orderRepository.findByStatusIn(statuses).stream()
                 .map(this::mapToOrderResponse)
                 .toList();
+    }
+
+    public PagedResponse<OrderResponse> getPagedOrders(
+            List<OrderStatus> statuses,
+            OrderType orderType,
+            String search,
+            int page,
+            int size,
+            String sortBy,
+            String sortDirection) {
+
+        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        String property = sanitizeSortProperty(sortBy);
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size), Sort.by(direction, property));
+
+        Specification<Order> spec = OrderSpecification.filter(statuses, orderType, search);
+        Page<Order> orderPage = orderRepository.findAll(spec, pageable);
+
+        Page<OrderResponse> responsePage = orderPage.map(this::mapToOrderResponse);
+        return PagedResponse.of(responsePage);
+    }
+
+    private String sanitizeSortProperty(String sortBy) {
+        if (sortBy == null || sortBy.isBlank()) return "createdAt";
+        return switch (sortBy.trim()) {
+            case "created_at", "createdAt" -> "createdAt";
+            case "order_number", "orderNumber" -> "orderNumber";
+            case "grand_total", "grandTotal" -> "grandTotal";
+            case "sub_total", "subTotal" -> "subTotal";
+            case "status" -> "status";
+            case "updated_at", "updatedAt" -> "updatedAt";
+            default -> "createdAt";
+        };
+    }
+
+    public OrderResponse mergeOrders(UUID targetOrderId, UUID sourceOrderId) {
+        if (targetOrderId.equals(sourceOrderId)) {
+            throw new IllegalArgumentException("Cannot merge an order with itself");
+        }
+
+        Order targetOrder = orderRepository.findById(targetOrderId)
+                .orElseThrow(() -> new IllegalArgumentException("Target order not found"));
+        Order sourceOrder = orderRepository.findById(sourceOrderId)
+                .orElseThrow(() -> new IllegalArgumentException("Source order not found"));
+
+        if (targetOrder.getStatus() == OrderStatus.BILLED || targetOrder.getStatus() == OrderStatus.CANCELLED) {
+            throw new IllegalStateException("Target order is finalized and cannot accept merged items.");
+        }
+        if (sourceOrder.getStatus() == OrderStatus.BILLED || sourceOrder.getStatus() == OrderStatus.CANCELLED) {
+            throw new IllegalStateException("Source order is finalized and cannot be merged.");
+        }
+
+        // Copy all items from sourceOrder into targetOrder
+        for (OrderItem sourceItem : sourceOrder.getItems()) {
+            OrderItem newItem = OrderItem.builder()
+                    .item(sourceItem.getItem())
+                    .quantity(sourceItem.getQuantity())
+                    .unitPrice(sourceItem.getUnitPrice())
+                    .totalPrice(sourceItem.getTotalPrice())
+                    .notes(sourceItem.getNotes())
+                    .build();
+            targetOrder.addOrderItem(newItem);
+        }
+
+        // Update target subtotal
+        BigDecimal newSubtotal = targetOrder.getItems().stream()
+                .map(OrderItem::getTotalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        targetOrder.setSubTotal(newSubtotal);
+
+        // If target order was already marked served/ready, reset to CONFIRMED for newly merged items to be visible in kitchen
+        if (targetOrder.getStatus() == OrderStatus.SERVED || targetOrder.getStatus() == OrderStatus.READY) {
+            targetOrder.setStatus(OrderStatus.CONFIRMED);
+            targetOrder.setKitchenStatus(OrderStatus.CONFIRMED.name());
+        }
+
+        // Cancel the source order so it is not double-billed
+        sourceOrder.setStatus(OrderStatus.CANCELLED);
+        sourceOrder.setKitchenStatus(OrderStatus.CANCELLED.name());
+        if (sourceOrder.getTable() != null && (targetOrder.getTable() == null || !sourceOrder.getTable().getId().equals(targetOrder.getTable().getId()))) {
+            RestaurantTable sourceTable = sourceOrder.getTable();
+            sourceTable.setStatus(TableStatus.AVAILABLE);
+            tableRepository.save(sourceTable);
+        }
+
+        orderRepository.save(sourceOrder);
+        return mapToOrderResponse(orderRepository.save(targetOrder));
+    }
+
+    public Map<String, Object> getAppConfig() {
+        return Map.of(
+                "taxRate", taxRate != null ? taxRate : new BigDecimal("0.05"),
+                "taxName", taxName != null ? taxName : "GST",
+                "restaurantName", "WildBar"
+        );
     }
 }

@@ -91,7 +91,7 @@ public class MenuController {
     // New: Global item search endpoint (e.g., /api/v1/menu/items?search=burger)
     @GetMapping("/items")
     public ResponseEntity<List<ItemResponse>> searchAllItems(
-            @RequestParam String search) {
+            @RequestParam(required = false) String search) {
         return ResponseEntity.ok(menuService.getAllAvailableItems(search));
     }
 }

@@ -2,6 +2,7 @@ package com.orders.order_management.controller;
 
 import com.orders.order_management.dto.*;
 import com.orders.order_management.enums.OrderStatus;
+import com.orders.order_management.enums.OrderType;
 import com.orders.order_management.enums.PaymentMethod;
 import com.orders.order_management.service.TransactionService;
 import jakarta.validation.Valid;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -30,6 +32,27 @@ public class TransactionController {
             @PathVariable UUID qrToken,
             @Valid @RequestBody List<OrderItemRequest> items) {
         return ResponseEntity.ok(transactionService.processQrOrder(qrToken, items));
+    }
+
+    @GetMapping("/public/table/{qrToken}")
+    public ResponseEntity<TableResponse> getTableByQrToken(@PathVariable UUID qrToken) {
+        return ResponseEntity.ok(transactionService.getTableByQrToken(qrToken));
+    }
+
+    @GetMapping("/public/table/{qrToken}/active-order")
+    public ResponseEntity<OrderResponse> getActiveOrderByQrToken(@PathVariable UUID qrToken) {
+        OrderResponse activeOrder = transactionService.getActiveOrderByQrToken(qrToken);
+        return activeOrder != null ? ResponseEntity.ok(activeOrder) : ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/public/orders/{orderId}")
+    public ResponseEntity<OrderResponse> getPublicOrderById(@PathVariable UUID orderId) {
+        return ResponseEntity.ok(transactionService.getOrderById(orderId));
+    }
+
+    @GetMapping("/public/config")
+    public ResponseEntity<java.util.Map<String, Object>> getAppConfig() {
+        return ResponseEntity.ok(transactionService.getAppConfig());
     }
 
     @PostMapping("/orders/{orderId}/items")
@@ -67,13 +90,30 @@ public class TransactionController {
     @PutMapping("/orders/{orderId}/status")
     public ResponseEntity<OrderResponse> updateOrderStatus(
             @PathVariable UUID orderId,
-            @RequestParam OrderStatus status) {
-        return ResponseEntity.ok(transactionService.updateOrderStatus(orderId, status));
+            @RequestParam(required = false) OrderStatus status,
+            @RequestBody(required = false) Map<String, String> body) {
+        OrderStatus effectiveStatus = status;
+        if (effectiveStatus == null && body != null && body.containsKey("status")) {
+            try {
+                effectiveStatus = OrderStatus.valueOf(body.get("status").trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) {}
+        }
+        if (effectiveStatus == null) {
+            throw new IllegalArgumentException("Status is required via query param or JSON body");
+        }
+        return ResponseEntity.ok(transactionService.updateOrderStatus(orderId, effectiveStatus));
     }
 
     @GetMapping("/orders/kitchen/active")
     public ResponseEntity<List<KitchenTicketResponse>> getActiveKitchenTickets() {
         return ResponseEntity.ok(transactionService.getActiveKitchenTickets());
+    }
+
+    @PostMapping("/orders/{targetOrderId}/merge")
+    public ResponseEntity<OrderResponse> mergeOrders(
+            @PathVariable UUID targetOrderId,
+            @RequestParam UUID sourceOrderId) {
+        return ResponseEntity.ok(transactionService.mergeOrders(targetOrderId, sourceOrderId));
     }
 
     // ==========================================
@@ -117,5 +157,37 @@ public class TransactionController {
     public ResponseEntity<List<OrderResponse>> getOrders(
             @RequestParam(required = false) List<OrderStatus> statuses) {
         return ResponseEntity.ok(transactionService.getOrders(statuses));
+    }
+
+    @GetMapping("/orders/paged")
+    public ResponseEntity<PagedResponse<OrderResponse>> getPagedOrders(
+            @RequestParam(required = false) List<String> statuses,
+            @RequestParam(required = false) String orderType,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDirection) {
+
+        List<OrderStatus> statusEnums = null;
+        if (statuses != null && !statuses.isEmpty()) {
+            statusEnums = statuses.stream()
+                    .filter(s -> s != null && !s.isBlank())
+                    .map(s -> {
+                        try { return OrderStatus.valueOf(s.trim().toUpperCase()); }
+                        catch (IllegalArgumentException e) { return null; }
+                    })
+                    .filter(java.util.Objects::nonNull)
+                    .toList();
+        }
+
+        OrderType orderTypeEnum = null;
+        if (orderType != null && !orderType.isBlank()) {
+            try {
+                orderTypeEnum = OrderType.valueOf(orderType.trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) {}
+        }
+
+        return ResponseEntity.ok(transactionService.getPagedOrders(statusEnums, orderTypeEnum, search, page, size, sortBy, sortDirection));
     }
 }

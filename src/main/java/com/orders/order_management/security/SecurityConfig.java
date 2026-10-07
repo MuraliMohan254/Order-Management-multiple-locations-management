@@ -128,9 +128,11 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/error",
                                 "/api/v1/login",
+                                "/api/v1/public/**",
                                 "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
                                 "/uploads/**", "/api/auth/**"
                         ).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/menu/**").permitAll()
                         .anyRequest().authenticated()
                 )
 
