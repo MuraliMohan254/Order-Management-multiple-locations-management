@@ -1,165 +1,782 @@
-<div class="h-screen w-full flex bg-slate-100 overflow-hidden font-sans">
+<div class="h-[calc(100vh-6.5rem)] w-full flex flex-col lg:flex-row gap-4 overflow-hidden font-sans text-slate-800 dark:text-slate-100 transition-colors duration-200">
   
-  <!-- Left Side: Menu Selection -->
-  <div class="flex-1 flex flex-col h-full overflow-hidden border-r border-slate-200">
+  <!-- ========================================== -->
+  <!-- 1. LEFT SIDE: MENU & DISH SELECTION -->
+  <!-- ========================================== -->
+  <div class="flex-1 flex flex-col h-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden transition-colors"
+       [ngClass]="{'hidden lg:flex': mobileTab() === 'CART'}">
     
-    <!-- Top Category Tabs -->
-    <div class="bg-white shadow-sm z-10 px-4 py-3 flex gap-3 overflow-x-auto no-scrollbar border-b border-slate-200">
-      @for (cat of categories(); track cat.id) {
-        <button (click)="selectCategory(cat.id)"
-                class="whitespace-nowrap px-5 py-2.5 rounded-full font-bold text-sm transition-all shadow-sm"
-                [ngClass]="activeCategory() === cat.id ? 'bg-blue-600 text-white shadow-blue-600/20' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'">
-          {{ cat.name }}
-        </button>
-      }
-    </div>
-
-    <!-- Items Grid -->
-    <div class="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50">
-      @if (isLoadingMenu()) {
-        <div class="flex justify-center py-12"><div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>
-      } @else if (menuItems().length === 0) {
-        <div class="text-center py-12 text-slate-400 font-medium">No active items in this category.</div>
-      } @else {
-        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-          @for (item of menuItems(); track item.id) {
-            <button (click)="addToCart(item)"
-                    class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all text-left flex flex-col justify-between aspect-square active:scale-95 group">
-              <span class="font-bold text-slate-800 text-lg leading-tight group-hover:text-blue-700 transition-colors">{{ item.name }}</span>
-              <span class="text-lg font-black text-slate-900 mt-2">₹{{ item.price | number:'1.2-2' }}</span>
+    <!-- Top Toolbar: Categories & Search -->
+    <div class="p-3.5 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-850 dark:bg-slate-900 flex flex-col gap-3 shrink-0">
+      
+      <!-- Top Row: Search & Mobile Cart Switcher -->
+      <div class="flex items-center gap-3">
+        <!-- Quick Search -->
+        <div class="relative flex-1">
+          <input type="text" 
+                 [ngModel]="searchQuery()" 
+                 (ngModelChange)="onMenuSearchInput($event)"
+                 placeholder="Search dishes or drinks..." 
+                 class="w-full pl-9 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-2xs transition-all">
+          <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          @if (searchQuery()) {
+            <button (click)="clearMenuSearch()" class="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
           }
         </div>
-      }
-    </div>
-  </div>
 
-  <!-- Right Side: Active Cart -->
-  <div class="w-96 flex flex-col bg-white h-full shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] z-20">
-    
-    <!-- Order Type Selector -->
-    <div class="p-4 border-b border-slate-100 flex gap-2 bg-slate-50/50">
-  <button (click)="orderType.set('TAKE_AWAY'); selectedTable.set(null)"
-          class="flex-1 py-2 rounded-lg font-bold text-sm transition-colors border"
-          [ngClass]="orderType() === 'TAKE_AWAY' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'">
-    Takeaway
-  </button>
-  <button (click)="openTableSelection()"
-          class="flex-1 py-2 rounded-lg font-bold text-sm transition-colors border flex items-center justify-center gap-2"
-          [ngClass]="orderType() === 'DINE_IN' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'">
-    <span>Dine-In</span>
-    <!-- Show selected table number dynamically -->
-    @if (selectedTable(); as table) {
-      <span class="bg-blue-600 text-white px-2 py-0.5 rounded text-xs">{{ table.tableNumber }}</span>
-    }
-  </button>
-</div>
+        <!-- Mobile Switch to Cart Button -->
+        <button (click)="mobileTab.set('CART')" 
+                class="lg:hidden px-3.5 py-2 bg-slate-900 dark:bg-blue-600 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm">
+          <span>Cart</span>
+          <span class="w-4 h-4 rounded-full bg-blue-600 dark:bg-slate-900 text-[10px] flex items-center justify-center font-bold">
+            {{ cartCount() }}
+          </span>
+        </button>
+      </div>
 
-    <!-- Cart Header -->
-    <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
-      <h2 class="text-xl font-black text-slate-800">Current Order</h2>
-      <button (click)="clearCart()" *ngIf="cart().length > 0" class="text-sm font-bold text-red-500 hover:text-red-700">Clear</button>
+      <!-- Categories Pills (Clean Wrapped Grid / Pills without Horizontal Scrollbars) -->
+      <div class="flex flex-wrap items-center gap-1.5">
+        @for (cat of categories(); track cat.id) {
+          <button (click)="selectCategory(cat.id)"
+                  class="px-3 py-1.5 rounded-xl font-bold text-xs transition-all border shadow-2xs cursor-pointer"
+                  [ngClass]="activeCategory() === cat.id 
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-blue-600/20' 
+                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'">
+            {{ cat.name }}
+          </button>
+        }
+      </div>
+
     </div>
 
-    <!-- Cart Items List -->
-    <div class="flex-1 overflow-y-auto p-2">
-      @if (cart().length === 0) {
-        <div class="h-full flex flex-col items-center justify-center text-slate-400">
-          <svg class="w-16 h-16 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-          <span class="font-medium">Cart is empty</span>
-        </div>
+    <!-- Menu Items Grid -->
+    <div class="flex-1 overflow-y-auto p-4 bg-slate-50/40 dark:bg-slate-950/60 pos-menu-scroll">
+      @if (isLoadingMenu()) {
+        <div class="flex justify-center py-20"><div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>
+      } @else if (filteredMenuItems().length === 0) {
+        <div class="text-center py-20 text-slate-400 dark:text-slate-500 font-medium text-xs">No active items found matching the selection.</div>
       } @else {
-        <div class="space-y-2 p-3">
-          @for (item of cart(); track item.itemId) {
-            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-              <div class="flex-1 pr-3">
-                <h4 class="font-bold text-slate-800 text-sm leading-tight">{{ item.name }}</h4>
-                <p class="text-blue-600 font-bold text-sm mt-0.5">₹{{ (item.price * item.quantity) | number:'1.2-2' }}</p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3.5">
+          @for (item of filteredMenuItems(); track item.id) {
+            <div (click)="addToCart(item)"
+                 class="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-md transition-all text-left flex flex-col justify-between aspect-square active:scale-97 cursor-pointer group shadow-2xs">
+              
+              <div>
+                <span class="font-bold text-slate-800 dark:text-slate-100 text-sm leading-tight block group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+                  {{ item.name }}
+                </span>
+                <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mt-1">
+                  {{ item.categoryName || 'Menu Item' }}
+                </span>
               </div>
-              <div class="flex items-center gap-3 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
-                <button (click)="updateQuantity(item.itemId, -1)" class="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded-md font-bold">-</button>
-                <span class="font-black text-slate-900 w-4 text-center text-sm">{{ item.quantity }}</span>
-                <button (click)="updateQuantity(item.itemId, 1)" class="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded-md font-bold">+</button>
+
+              <div class="mt-2 flex items-center justify-between w-full pt-2 border-t border-slate-100 dark:border-slate-700">
+                <span class="text-base font-black text-slate-900 dark:text-white">₹{{ item.price | number:'1.2-2' }}</span>
+                <span class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 group-hover:bg-blue-600 dark:group-hover:bg-blue-600 group-hover:text-white flex items-center justify-center text-slate-600 dark:text-slate-200 font-black text-xs transition-colors shadow-2xs">
+                  +
+                </span>
               </div>
+
             </div>
           }
         </div>
       }
     </div>
 
-    <!-- Checkout Footer -->
-    <div class="p-5 bg-white border-t border-slate-200 shadow-[0_-4px_10px_-5px_rgba(0,0,0,0.05)]">
-      <div class="flex justify-between items-center mb-4">
-        <span class="text-slate-500 font-medium text-sm">Subtotal</span>
-        <span class="font-black text-xl text-slate-900">₹{{ cartTotal() | number:'1.2-2' }}</span>
-      </div>
-      <button (click)="placeOrder()" 
-              [disabled]="cart().length === 0 || isProcessing()"
-              class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl font-black text-lg transition-colors shadow-lg shadow-emerald-600/20 flex justify-center items-center gap-2">
-        @if (isProcessing()) {
-          <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          Processing...
-        } @else {
-          Send to Kitchen ({{ cart().length }})
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 2. RIGHT SIDE: ACTIVE CART & ORDER SUMMARY -->
+  <!-- ========================================== -->
+  <div class="w-full lg:w-96 flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs h-full overflow-hidden transition-colors"
+       [ngClass]="{'hidden lg:flex': mobileTab() === 'MENU'}">
+    
+    <!-- Mobile Back to Menu Button -->
+    <div class="lg:hidden p-3 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+      <button (click)="mobileTab.set('MENU')" class="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 cursor-pointer">
+        <span>← Back to Menu</span>
+      </button>
+      <span class="text-xs font-black text-slate-800 dark:text-white">Cart View</span>
+    </div>
+
+    <!-- Order Channel Switcher (Takeaway vs Dine-In vs Active Tabs) -->
+    <div class="p-3 border-b border-slate-100 dark:border-slate-800 flex gap-2 bg-slate-50/70 dark:bg-slate-850 dark:bg-slate-900 shrink-0">
+      <button (click)="orderType.set('TAKE_AWAY'); selectedTable.set(null); tableActiveOrder.set(null)"
+              class="flex-1 py-2 rounded-xl font-bold text-xs transition-all border flex items-center justify-center gap-1.5 cursor-pointer"
+              [ngClass]="orderType() === 'TAKE_AWAY' && !tableActiveOrder() ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750'">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+        <span>Takeaway</span>
+      </button>
+
+      <button (click)="openTableSelection()"
+              class="flex-1 py-2 rounded-xl font-bold text-xs transition-all border flex items-center justify-center gap-1.5 cursor-pointer"
+              [ngClass]="orderType() === 'DINE_IN' && !tableActiveOrder() ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750'">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        <span>Dine-In</span>
+        @if (selectedTable(); as table) {
+          <span class="bg-white/20 text-white px-1.5 py-0.2 rounded text-[10px] font-black">
+            {{ table.tableNumber }}
+          </span>
         }
       </button>
+
+      <!-- Active Running Tabs selector -->
+      <button (click)="openRunningTabsModal()"
+              class="py-2 px-2.5 rounded-xl font-bold text-xs transition-all border flex items-center justify-center gap-1 cursor-pointer shrink-0"
+              [ngClass]="tableActiveOrder() ? 'bg-amber-500 text-white border-amber-500 shadow-sm' : 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 border-slate-200 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-slate-750'"
+              title="View ongoing active tabs and append items">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        <span>Tabs</span>
+        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black" [ngClass]="tableActiveOrder() ? 'bg-white text-amber-700' : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'">
+          {{ runningOrders().length }}
+        </span>
+      </button>
     </div>
+
+    <!-- Active Tab Alert when appending items -->
+    @if (tableActiveOrder(); as existingOrder) {
+      <div class="p-3 bg-amber-50 dark:bg-amber-950/80 border-b border-amber-200 dark:border-amber-800/80 text-amber-950 dark:text-amber-200 text-xs shrink-0 space-y-1.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5 font-bold">
+            <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+            <span>Appending to Tab #{{ existingOrder.orderNumber }}</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded font-black uppercase bg-amber-200/80 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
+              {{ existingOrder.orderType === 'DINE_IN' ? ('Table ' + existingOrder.tableNumber) : 'Takeaway' }}
+            </span>
+          </div>
+          <button (click)="detachActiveTab()" class="text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer" title="Cancel appending and start separate order">
+            ✕ New Order
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between text-[11px] text-amber-800 dark:text-amber-300">
+          <span>Current Tab: <strong>{{ existingOrder.items?.length || 0 }} items</strong> (₹{{ existingOrder.subTotal | number:'1.2-2' }})</span>
+          <div class="flex gap-2">
+            <button (click)="showExistingItems.set(!showExistingItems())" class="underline font-bold hover:text-amber-950 dark:hover:text-white cursor-pointer">
+              {{ showExistingItems() ? 'Hide Items' : 'View Items' }}
+            </button>
+            <span>•</span>
+            <button (click)="goToBilling()" class="font-black text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
+              Bill Tab
+            </button>
+          </div>
+        </div>
+
+        <!-- Existing items collapsible drawer -->
+        @if (showExistingItems() && existingOrder.items && existingOrder.items.length > 0) {
+          <div class="mt-2 p-2 bg-white/80 dark:bg-slate-900/80 rounded-xl border border-amber-200 dark:border-amber-800/60 max-h-36 overflow-y-auto space-y-1 divide-y divide-slate-100 dark:divide-slate-800">
+            @for (prevItem of existingOrder.items; track prevItem.id) {
+              <div class="pt-1 first:pt-0 flex justify-between text-[11px]">
+                <span><strong class="text-slate-800 dark:text-slate-200">{{ prevItem.quantity }}x</strong> {{ prevItem.itemName }}</span>
+                <span class="font-bold text-slate-700 dark:text-slate-300">₹{{ prevItem.totalPrice | number:'1.2-2' }}</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Cart Header -->
+    <div class="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 shrink-0">
+      <div>
+        <h2 class="text-sm font-black text-slate-900 dark:text-white">Current Order</h2>
+        <span class="text-[11px] text-slate-400 dark:text-slate-500 font-medium">{{ cart().length }} dish(es) selected</span>
+      </div>
+      @if (cart().length > 0) {
+        <button (click)="clearCart()" class="text-xs font-bold text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 cursor-pointer">Clear</button>
+      }
+    </div>
+
+    <!-- Cart Items List -->
+    <div class="flex-1 overflow-y-auto p-3 space-y-2 pos-menu-scroll bg-slate-50/20 dark:bg-slate-950/40">
+      @if (cart().length === 0) {
+        <div class="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-12">
+          <svg class="w-12 h-12 mb-3 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          <span class="font-bold text-xs">Cart is empty</span>
+          <span class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Click any dish on the menu to add</span>
+        </div>
+      } @else {
+        @for (item of cart(); track item.itemId) {
+          <div class="p-3 bg-slate-50/80 dark:bg-slate-800/70 rounded-xl border border-slate-100 dark:border-slate-700/80 space-y-1.5 shadow-2xs">
+            <div class="flex items-center justify-between">
+              <div class="flex-1 min-w-0 pr-2">
+                <h4 class="font-bold text-slate-800 dark:text-slate-100 text-xs truncate">{{ item.name }}</h4>
+                <p class="text-blue-600 dark:text-blue-400 font-black text-xs mt-0.5">₹{{ (item.price * item.quantity) | number:'1.2-2' }}</p>
+              </div>
+              <div class="flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-0.5 shadow-2xs">
+                <button (click)="updateQuantity(item.itemId, -1)" class="w-6 h-6 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-md font-bold text-xs cursor-pointer">-</button>
+                <span class="font-black text-slate-900 dark:text-white w-4 text-center text-xs">{{ item.quantity }}</span>
+                <button (click)="updateQuantity(item.itemId, 1)" class="w-6 h-6 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-md font-bold text-xs cursor-pointer">+</button>
+              </div>
+            </div>
+
+            <!-- Notes line -->
+            <div class="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100 dark:border-slate-700">
+              @if (item.notes) {
+                <span class="text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.2 rounded truncate max-w-[180px]">Note: {{ item.notes }}</span>
+              } @else {
+                <span class="text-slate-400 dark:text-slate-500">No instructions</span>
+              }
+              <button (click)="openNoteModal(item)" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-bold text-[10px] cursor-pointer">
+                {{ item.notes ? 'Edit Note' : '+ Add Note' }}
+              </button>
+            </div>
+          </div>
+        }
+      }
+    </div>
+
+    <!-- Checkout Footer -->
+    <div class="p-3.5 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 shadow-[0_-4px_10px_-5px_rgba(0,0,0,0.05)] space-y-2.5 shrink-0">
+      <div class="space-y-1 text-xs text-slate-600 dark:text-slate-300">
+        @if (tableActiveOrder(); as existingOrder) {
+          <div class="flex justify-between text-amber-700 dark:text-amber-400 font-medium">
+            <span>Existing on Tab #{{ existingOrder.orderNumber }}</span>
+            <span>₹{{ existingTabSubtotal() | number:'1.2-2' }}</span>
+          </div>
+          <div class="flex justify-between text-blue-600 dark:text-blue-400 font-semibold">
+            <span>+ New Items Subtotal</span>
+            <span>₹{{ cartSubtotal() | number:'1.2-2' }}</span>
+          </div>
+          <div class="flex justify-between text-slate-500 dark:text-slate-400">
+            <span>{{ taxName() }} ({{ taxRate() * 100 }}%)</span>
+            <span>₹{{ ((existingTabSubtotal() + cartSubtotal()) * taxRate()) | number:'1.2-2' }}</span>
+          </div>
+          <div class="flex justify-between text-sm font-black text-slate-900 dark:text-white pt-1 border-t border-slate-100 dark:border-slate-800">
+            <span>Projected Total Bill</span>
+            <span class="text-base text-emerald-600 dark:text-emerald-400">₹{{ projectedCombinedTotal() | number:'1.2-2' }}</span>
+          </div>
+        } @else {
+          <div class="flex justify-between">
+            <span class="text-slate-500 dark:text-slate-400">Subtotal</span>
+            <span class="font-bold text-slate-800 dark:text-slate-100">₹{{ cartSubtotal() | number:'1.2-2' }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500 dark:text-slate-400">{{ taxName() }} ({{ taxRate() * 100 }}%)</span>
+            <span class="font-bold text-slate-800 dark:text-slate-100">₹{{ cartTax() | number:'1.2-2' }}</span>
+          </div>
+          <div class="flex justify-between text-sm font-black text-slate-900 dark:text-white pt-1 border-t border-slate-100 dark:border-slate-800">
+            <span>Grand Total</span>
+            <span class="text-base text-blue-600 dark:text-blue-400">₹{{ cartTotal() | number:'1.2-2' }}</span>
+          </div>
+        }
+      </div>
+
+      <div class="flex gap-2">
+        <button (click)="placeOrder()" 
+                [disabled]="cart().length === 0 || isProcessing() || isQuickBilling()"
+                class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:cursor-not-allowed text-white rounded-xl font-black text-xs transition-all shadow-md shadow-blue-600/20 flex justify-center items-center gap-1.5 cursor-pointer">
+          @if (isProcessing()) {
+            <div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <span>Processing...</span>
+          } @else {
+            @if (tableActiveOrder()) {
+              <span>Append to Tab ({{ cartCount() }})</span>
+            } @else {
+              <span>Send to Kitchen ({{ cartCount() }})</span>
+            }
+          }
+        </button>
+
+        <!-- Quick Bill & Pay Button -->
+        <button (click)="openQuickBillModal()"
+                [disabled]="(cart().length === 0 && !tableActiveOrder()) || isProcessing() || isQuickBilling()"
+                class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:cursor-not-allowed text-white rounded-xl font-black text-xs transition-all shadow-md shadow-emerald-600/20 flex justify-center items-center gap-1.5 cursor-pointer"
+                title="Collect payment now, finalize bill and send to kitchen">
+          <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+          <span>⚡ Quick Bill & Pay</span>
+        </button>
+
+        <button (click)="goToBilling()"
+                class="px-3.5 py-3 bg-slate-900 hover:bg-black dark:bg-slate-800 dark:hover:bg-slate-750 text-white rounded-xl font-bold text-xs flex items-center justify-center transition-all cursor-pointer shadow-xs"
+                title="Go to Orders & Billing">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        </button>
+      </div>
+    </div>
+
   </div>
+
 </div>
 
 <!-- ========================================== -->
-<!-- ADD THIS MODAL TO THE VERY BOTTOM OF THE HTML FILE -->
+<!-- TABLE SELECTION MODAL -->
 <!-- ========================================== -->
 @if (showTableModal()) {
-  <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[80vh]">
+  <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-2xs">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[80vh]">
       
       <!-- Modal Header -->
-      <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+      <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-850 dark:bg-slate-800">
         <div>
-          <h3 class="font-bold text-lg text-slate-800">Select a Table</h3>
-          <p class="text-sm text-slate-500">Assign this order to a physical table</p>
+          <h3 class="font-black text-base text-slate-800 dark:text-white">Select a Dining Table</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Assign this order to a table</p>
         </div>
-        <button (click)="showTableModal.set(false)" class="text-slate-400 hover:text-slate-600 bg-white p-2 rounded-full shadow-sm">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        <button (click)="showTableModal.set(false)" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-white dark:bg-slate-700 p-2 rounded-full shadow-2xs cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
       
       <!-- Tables Grid -->
-      <div class="p-6 overflow-y-auto bg-slate-50/50 flex-1">
+      <div class="p-6 overflow-y-auto bg-slate-50/50 dark:bg-slate-950 flex-1">
         @if (isLoadingTables()) {
-          <div class="flex justify-center py-12"><div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>
+          <div class="flex justify-center py-16"><div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>
         } @else if (tables().length === 0) {
-          <div class="text-center py-12 text-slate-400 font-medium">No tables configured in the system.</div>
+          <div class="text-center py-16 text-slate-400 dark:text-slate-500 font-medium text-xs">No tables configured in the system.</div>
         } @else {
-          <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
+          <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
             @for (table of tables(); track table.id) {
               <button (click)="selectTable(table)"
-                      class="relative aspect-square rounded-2xl border-2 flex flex-col items-center justify-center p-2 transition-all active:scale-95 group"
+                      class="relative aspect-square rounded-2xl border-2 flex flex-col items-center justify-center p-2 transition-all active:scale-95 group shadow-2xs cursor-pointer"
                       [ngClass]="{
-                        'border-emerald-200 bg-emerald-50 hover:border-emerald-400 hover:bg-emerald-100': table.status === 'AVAILABLE',
-                        'border-amber-200 bg-amber-50 hover:border-amber-400 hover:bg-amber-100': table.status === 'OCCUPIED'
+                        'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 hover:border-emerald-500 hover:bg-emerald-100 dark:hover:bg-emerald-900/50': table.status === 'AVAILABLE',
+                        'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 hover:border-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/50': table.status === 'OCCUPIED'
                       }">
                 <span class="text-2xl font-black mb-1"
-                      [ngClass]="table.status === 'AVAILABLE' ? 'text-emerald-700' : 'text-amber-700'">
+                      [ngClass]="table.status === 'AVAILABLE' ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'">
                   {{ table.tableNumber }}
                 </span>
-                <span class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded"
-                      [ngClass]="table.status === 'AVAILABLE' ? 'bg-emerald-200/50 text-emerald-800' : 'bg-amber-200/50 text-amber-800'">
+                <span class="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md"
+                      [ngClass]="table.status === 'AVAILABLE' ? 'bg-emerald-200/60 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200' : 'bg-amber-200/60 dark:bg-amber-900 text-amber-800 dark:text-amber-200'">
                   {{ table.status }}
                 </span>
-                
-                <!-- Checkmark if currently selected -->
-                @if (selectedTable()?.id === table.id) {
-                  <div class="absolute -top-2 -right-2 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-md">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                  </div>
-                }
               </button>
             }
           </div>
         }
       </div>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- NOTE INPUT MODAL -->
+<!-- ========================================== -->
+@if (selectedItemForNote()) {
+  <div class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-2xs">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 w-full max-w-sm shadow-xl space-y-3">
+      <h4 class="font-bold text-slate-900 dark:text-white text-sm">Kitchen Note for {{ selectedItemForNote()?.name }}</h4>
+      <textarea [ngModel]="noteInput()" 
+                (ngModelChange)="noteInput.set($event)" 
+                rows="3" 
+                placeholder="e.g. Less spicy, pack extra dips..."
+                class="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-600"></textarea>
+      <div class="flex gap-2">
+        <button (click)="selectedItemForNote.set(null)" class="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer">Cancel</button>
+        <button (click)="saveNote()" class="flex-1 py-2 bg-blue-600 text-white rounded-xl font-bold text-xs hover:bg-blue-700 cursor-pointer">Save Note</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- ACTIVE RUNNING TABS MODAL (ENLARGED & SEARCHABLE) -->
+<!-- ========================================== -->
+@if (showRunningTabsModal()) {
+  <div class="fixed inset-0 z-[105] flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-4xl lg:max-w-5xl w-full h-[88vh] max-h-[88vh] shadow-2xl flex flex-col overflow-hidden transition-colors">
+      
+      <!-- Modal Header -->
+      <div class="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/30 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-700 flex items-center justify-center text-amber-600 dark:text-amber-400 font-black shadow-xs">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-black text-lg sm:text-xl text-slate-900 dark:text-white">Active Running Tabs</h3>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                {{ runningOrders().length }} Open
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Search and select an active tab or table to append new dishes & drinks</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button (click)="loadRunningOrders()" 
+                  [disabled]="isLoadingRunningOrders()"
+                  class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  title="Reload running tabs">
+            <svg class="w-3.5 h-3.5" [ngClass]="{'animate-spin': isLoadingRunningOrders()}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            <span class="hidden sm:inline">Refresh</span>
+          </button>
+          <button (click)="showRunningTabsModal.set(false)" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Search & Filters Toolbar -->
+      <div class="p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 space-y-3">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          
+          <!-- Search Input -->
+          <div class="relative flex-1">
+            <svg class="absolute left-3.5 top-3 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input type="text"
+                   [ngModel]="runningTabsSearch()"
+                   (ngModelChange)="onRunningTabsSearchInput($event)"
+                   placeholder="Search by Table # (e.g. Table 4, T4), Order #, Item Name, Status, Amount..."
+                   class="w-full pl-10 pr-9 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all">
+            @if (runningTabsSearch()) {
+              <button (click)="clearRunningTabsSearch()" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            }
+          </div>
+
+          <!-- Type Filter Pills -->
+          <div class="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl shrink-0">
+            <button (click)="setRunningTabsTypeFilter('ALL')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                    [ngClass]="runningTabsTypeFilter() === 'ALL' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'">
+              All ({{ runningTabsTotal() }})
+            </button>
+            <button (click)="setRunningTabsTypeFilter('DINE_IN')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                    [ngClass]="runningTabsTypeFilter() === 'DINE_IN' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'">
+              <span>🍽️ Dine-In</span>
+            </button>
+            <button (click)="setRunningTabsTypeFilter('TAKE_AWAY')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                    [ngClass]="runningTabsTypeFilter() === 'TAKE_AWAY' ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'">
+              <span>🛍️ Takeaway</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Tabs Grid / List with Infinite Scroll -->
+      <div class="flex-1 overflow-y-auto p-4 sm:p-5 pos-menu-scroll bg-slate-50/30 dark:bg-slate-950/40"
+           appInfiniteScroll
+           [infiniteScrollDistance]="120"
+           [infiniteScrollDisabled]="isLoadingRunningOrders() || isLoadingMoreRunningTabs() || runningTabsIsLast()"
+           (appInfiniteScroll)="loadMoreRunningTabs()">
+        @if (isLoadingRunningOrders()) {
+          <div class="h-full flex flex-col items-center justify-center py-16">
+            <div class="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+            <span class="text-xs font-bold text-slate-500 dark:text-slate-400 mt-3">Loading active tabs...</span>
+          </div>
+        } @else if (runningOrders().length === 0 && !runningTabsSearch()) {
+          <div class="h-full flex flex-col items-center justify-center text-center py-16 px-4">
+            <div class="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-3">
+              <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+              </svg>
+            </div>
+            <h4 class="font-black text-base text-slate-800 dark:text-slate-200">No Active Tabs Currently Open</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm">All customer orders have been billed and settled, or no open tabs exist.</p>
+          </div>
+        } @else if (runningOrders().length === 0 && runningTabsSearch()) {
+          <div class="h-full flex flex-col items-center justify-center text-center py-16 px-4">
+            <div class="w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-500 flex items-center justify-center mb-3">
+              <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+            </div>
+            <h4 class="font-black text-base text-slate-800 dark:text-slate-200">No Running Tabs Match Your Search</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">No orders match "{{ runningTabsSearch() }}". Try searching by Table #, Order #, or Item.</p>
+            <button (click)="clearRunningTabsSearch()" class="mt-4 px-4 py-2 bg-amber-500 text-white rounded-xl text-xs font-bold hover:bg-amber-600 transition-colors cursor-pointer shadow-xs">
+              Clear Search Filter
+            </button>
+          </div>
+        } @else {
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            @for (tab of runningOrders(); track tab.id) {
+              <div (click)="selectRunningTab(tab)"
+                   class="group p-4 rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-lg dark:hover:shadow-amber-500/5 transition-all cursor-pointer flex flex-col justify-between gap-3 relative">
+                
+                <!-- Card Top: Table / Type Badge + Order # + Status + Time -->
+                <div>
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                      @if (tab.orderType === 'DINE_IN') {
+                        <span class="px-2.5 py-1 rounded-xl text-xs font-black bg-blue-600 text-white shadow-xs flex items-center gap-1">
+                          <span>Table</span>
+                          <span class="text-sm font-black">{{ tab.tableNumber || '?' }}</span>
+                        </span>
+                      } @else {
+                        <span class="px-2.5 py-1 rounded-xl text-xs font-black bg-amber-500 text-white shadow-xs">
+                          🛍️ Takeaway
+                        </span>
+                      }
+                      <span class="font-black text-slate-900 dark:text-white text-base">#{{ tab.orderNumber }}</span>
+                    </div>
+
+                    <div class="flex items-center gap-1.5 shrink-0">
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border"
+                            [ngClass]="getStatusBadgeClass(tab.status)">
+                        {{ tab.status }}
+                      </span>
+                      @if (tab.createdAt) {
+                        <span class="text-[11px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">
+                          {{ getElapsedMinutes(tab.createdAt) }}m ago
+                        </span>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Item Previews -->
+                  <div class="mt-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-800/80">
+                    <div class="flex flex-wrap gap-1.5">
+                      @for (item of (tab.items || []).slice(0, 3); track item.id) {
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
+                          <strong class="font-bold text-slate-900 dark:text-white">{{ item.quantity }}x</strong>
+                          <span class="truncate max-w-[120px]">{{ item.itemName }}</span>
+                        </span>
+                      }
+                      @if ((tab.items?.length || 0) > 3) {
+                        <span class="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                          +{{ (tab.items?.length || 0) - 3 }} more
+                        </span>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Card Bottom: Running Total & Append Button -->
+                <div class="pt-2.5 border-t border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                  <div>
+                    <span class="text-[10px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 block">Running Bill</span>
+                    <span class="text-base font-black text-slate-900 dark:text-white">₹{{ tab.subTotal | number:'1.2-2' }}</span>
+                  </div>
+
+                  <button class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs shadow-xs group-hover:scale-102 transition-all flex items-center gap-1.5 cursor-pointer">
+                    <span>Append Items</span>
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            }
+
+            @if (isLoadingMoreRunningTabs()) {
+              <div class="col-span-full py-4 flex justify-center items-center gap-2 text-amber-500">
+                <div class="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">Loading more tabs...</span>
+              </div>
+            }
+
+            @if (runningTabsIsLast() && runningOrders().length > 0) {
+              <div class="col-span-full py-3 text-center text-xs font-medium text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-800">
+                All {{ runningTabsTotal() }} active tabs loaded
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-3.5 sm:p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 flex justify-between items-center shrink-0">
+        <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">
+          Showing <strong>{{ runningOrders().length }}</strong> of <strong>{{ runningTabsTotal() }}</strong> open tabs
+        </span>
+        <button (click)="showRunningTabsModal.set(false)" class="px-5 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition-colors cursor-pointer">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- QUICK BILL & PAY MODAL -->
+<!-- ========================================== -->
+@if (showQuickBillModal()) {
+  <div class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-2xs">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh]">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/80">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/30">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="font-black text-base text-slate-900 dark:text-white">Quick Bill & Pay</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Collect payment, close bill & send to kitchen</p>
+          </div>
+        </div>
+        <button (click)="showQuickBillModal.set(false)" 
+                [disabled]="isQuickBilling()"
+                class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-white dark:bg-slate-700 p-2 rounded-full shadow-2xs cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-5 overflow-y-auto space-y-4 bg-white dark:bg-slate-900 flex-1">
+        
+        <!-- Order Context Info Banner -->
+        <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-500 dark:text-slate-400">Target:</span>
+            <span class="px-2.5 py-0.5 rounded-lg font-black uppercase text-[11px]"
+                  [ngClass]="orderType() === 'DINE_IN' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-200 border border-blue-200 dark:border-blue-700' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-200 dark:border-amber-700'">
+              {{ orderType() === 'DINE_IN' ? ('🍽 Table ' + (selectedTable()?.tableNumber || tableActiveOrder()?.tableNumber || '?')) : '🛍 Takeaway' }}
+            </span>
+          </div>
+          <span class="text-slate-500 dark:text-slate-400 font-medium">
+            {{ cartCount() }} item(s) in cart
+          </span>
+        </div>
+
+        <!-- Bill Financial Breakdown -->
+        <div class="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2.5">
+          <div class="flex justify-between text-xs text-slate-600 dark:text-slate-300">
+            <span>Subtotal</span>
+            <span class="font-bold">₹{{ quickBillSubtotal() | number:'1.2-2' }}</span>
+          </div>
+
+          <div class="flex justify-between text-xs text-slate-600 dark:text-slate-300">
+            <span>{{ taxName() }} ({{ taxRate() * 100 }}%)</span>
+            <span class="font-bold">₹{{ quickBillTax() | number:'1.2-2' }}</span>
+          </div>
+
+          <!-- Discount Input Field -->
+          <div class="pt-2 border-t border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between text-xs">
+            <label class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+              <span>🏷️ Discount (₹):</span>
+            </label>
+            <input type="number" 
+                   min="0"
+                   [max]="quickBillSubtotal() + quickBillTax()"
+                   [(ngModel)]="quickBillDiscount"
+                   class="w-28 p-1.5 text-right font-black text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-xs"
+                   placeholder="0.00" />
+          </div>
+
+          <!-- Grand Total Highlight -->
+          <div class="pt-2.5 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
+            <div>
+              <span class="text-xs uppercase font-black tracking-wider text-slate-500 dark:text-slate-400 block">Total Due</span>
+              <span class="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">Includes Tax & Discounts</span>
+            </div>
+            <div class="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+              ₹{{ quickBillGrandTotal() | number:'1.2-2' }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Method Selector -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block">Payment Method</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button"
+                    (click)="quickBillPaymentMethod.set('CASH')"
+                    class="py-2.5 px-3 rounded-xl border text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    [ngClass]="quickBillPaymentMethod() === 'CASH' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm shadow-emerald-600/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'">
+              <span>💵 Cash</span>
+            </button>
+            <button type="button"
+                    (click)="quickBillPaymentMethod.set('UPI')"
+                    class="py-2.5 px-3 rounded-xl border text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    [ngClass]="quickBillPaymentMethod() === 'UPI' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm shadow-emerald-600/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'">
+              <span>📱 UPI / QR</span>
+            </button>
+            <button type="button"
+                    (click)="quickBillPaymentMethod.set('CARD')"
+                    class="py-2.5 px-3 rounded-xl border text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    [ngClass]="quickBillPaymentMethod() === 'CARD' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm shadow-emerald-600/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'">
+              <span>💳 Card</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Cash Tendered & Change Return Box (When CASH is chosen) -->
+        @if (quickBillPaymentMethod() === 'CASH') {
+          <div class="p-3.5 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 space-y-3">
+            <div class="flex items-center justify-between gap-3">
+              <label class="text-xs font-bold text-slate-700 dark:text-slate-200">Amount Tendered (₹):</label>
+              <input type="number" 
+                     min="0"
+                     [(ngModel)]="quickBillAmountTendered"
+                     class="w-32 p-2 text-right font-black text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm" />
+            </div>
+
+            <!-- Quick Cash Denominations Buttons -->
+            <div class="flex flex-wrap gap-1.5">
+              <button type="button" 
+                      (click)="setExactCashTendered()"
+                      class="px-2.5 py-1 rounded-lg text-[11px] font-black bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-slate-700 cursor-pointer shadow-2xs">
+                Exact (₹{{ quickBillGrandTotal() | number:'1.0-0' }})
+              </button>
+              <button type="button" 
+                      (click)="setQuickCashTendered(100)"
+                      class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">
+                ₹100
+              </button>
+              <button type="button" 
+                      (click)="setQuickCashTendered(200)"
+                      class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">
+                ₹200
+              </button>
+              <button type="button" 
+                      (click)="setQuickCashTendered(500)"
+                      class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">
+                ₹500
+              </button>
+              <button type="button" 
+                      (click)="setQuickCashTendered(2000)"
+                      class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">
+                ₹2000
+              </button>
+            </div>
+
+            <!-- Change Return / Shortage Indicator -->
+            <div class="pt-2 border-t border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between text-xs">
+              <span class="font-bold text-slate-700 dark:text-slate-300">Change to Return:</span>
+              @if ((quickBillAmountTendered() || 0) >= quickBillGrandTotal()) {
+                <span class="font-black text-emerald-700 dark:text-emerald-300 text-base">
+                  ₹{{ quickBillChangeDue() | number:'1.2-2' }}
+                </span>
+              } @else {
+                <span class="font-black text-rose-600 dark:text-rose-400 text-xs">
+                  ⚠ Short by ₹{{ (quickBillGrandTotal() - (quickBillAmountTendered() || 0)) | number:'1.2-2' }}
+                </span>
+              }
+            </div>
+          </div>
+        }
+
+      </div>
+
+      <!-- Modal Footer Action Buttons -->
+      <div class="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 flex justify-end items-center gap-2.5 shrink-0">
+        <button (click)="showQuickBillModal.set(false)" 
+                [disabled]="isQuickBilling()"
+                class="px-4 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition-colors cursor-pointer">
+          Cancel
+        </button>
+
+        <button (click)="confirmQuickBillAndPay()"
+                [disabled]="isQuickBilling() || (quickBillPaymentMethod() === 'CASH' && (quickBillAmountTendered() || 0) < quickBillGrandTotal())"
+                class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:cursor-not-allowed text-white rounded-xl font-black text-xs transition-all shadow-md shadow-emerald-600/20 flex items-center gap-2 cursor-pointer">
+          @if (isQuickBilling()) {
+            <div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <span>Billing & Settling...</span>
+          } @else {
+            <span>✓ Collect ₹{{ quickBillGrandTotal() | number:'1.2-2' }} & Send to Kitchen</span>
+          }
+        </button>
+      </div>
+
     </div>
   </div>
 }

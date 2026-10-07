@@ -21,18 +21,20 @@
       </div>
 
       <!-- Navigation Links using @for -->
-      <nav class="flex-1 overflow-y-auto py-4 space-y-1 px-2">
+      <nav class="flex-1 overflow-y-auto py-4 space-y-1 px-2.5">
         @for (item of menuItems; track item.route) {
           <a [routerLink]="item.route"
-             class="flex items-center px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors cursor-pointer group"
+             routerLinkActive="!bg-blue-600 !text-white shadow-md shadow-blue-900/30 font-bold"
+             [routerLinkActiveOptions]="{ exact: false }"
+             class="flex items-center px-3 py-2.5 rounded-xl hover:bg-slate-800/90 text-slate-300 hover:text-white transition-all cursor-pointer group"
              [ngClass]="{'justify-center': isCollapsed && !isMobileOpen}">
             
-            <svg class="w-6 h-6 shrink-0 text-slate-400 group-hover:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="w-5 h-5 shrink-0 text-slate-400 group-hover:text-blue-300 group-[.router-link-active]:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="item.icon" />
             </svg>
 
             @if (!isCollapsed || isMobileOpen) {
-              <span class="ml-3 font-medium truncate">
+              <span class="ml-3 font-medium text-xs truncate">
                 {{ item.label }}
               </span>
             }

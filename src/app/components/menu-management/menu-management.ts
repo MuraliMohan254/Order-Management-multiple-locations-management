@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
-import { ToastrService } from 'ngx-toastr';
+import { AlertService } from '../../services/alert.service';
 import { MenuService } from '../../services/menu.service';
 import { CategoryResponse, ItemResponse } from '../../models/menu.models';
 
@@ -14,7 +14,7 @@ import { CategoryResponse, ItemResponse } from '../../models/menu.models';
 })
 export class MenuManagementComponent implements OnInit {
   private menuService = inject(MenuService);
-  private toastr = inject(ToastrService);
+  private alertService = inject(AlertService);
   private fb = inject(FormBuilder);
 
   categories = signal<CategoryResponse[]>([]);
@@ -85,7 +85,7 @@ export class MenuManagementComponent implements OnInit {
         this.isLoadingCategories.set(false);
       },
       error: () => {
-        this.toastr.error('Failed to load categories');
+        this.alertService.error('Failed to load categories');
         this.isLoadingCategories.set(false);
       }
     });
@@ -128,25 +128,31 @@ export class MenuManagementComponent implements OnInit {
 
     request$.subscribe({
       next: () => {
-        this.toastr.success(`Category ${id ? 'updated' : 'created'} successfully`);
+        this.alertService.success(`Category ${id ? 'updated' : 'created'} successfully`);
         this.showCategoryModal.set(false);
         this.loadCategories(this.categorySearchCtrl.value);
       },
-      error: () => this.toastr.error('Operation failed')
+      error: () => this.alertService.error('Operation failed')
     });
   }
 
-  deleteCategory(id: string, event: Event) {
+  async deleteCategory(id: string, event: Event) {
     event.stopPropagation(); // Prevents selecting the category when clicking delete
-    if (!confirm('Are you sure you want to delete this category?')) return;
+    const confirmed = await this.alertService.confirm({
+      title: 'Delete Category?',
+      text: 'Are you sure you want to delete this category? Items inside may be affected.',
+      confirmButtonText: 'Yes, delete',
+      isDestructive: true
+    });
+    if (!confirmed) return;
     
     this.menuService.deleteCategory(id).subscribe({
       next: () => {
-        this.toastr.success('Category deleted');
+        this.alertService.success('Category deleted');
         if (this.selectedCategory()?.id === id) this.selectedCategory.set(null);
         this.loadCategories(this.categorySearchCtrl.value);
       },
-      error: () => this.toastr.error('Failed to delete category')
+      error: () => this.alertService.error('Failed to delete category')
     });
   }
 
@@ -162,7 +168,7 @@ export class MenuManagementComponent implements OnInit {
         this.isLoadingItems.set(false);
       },
       error: () => {
-        this.toastr.error('Failed to load items');
+        this.alertService.error('Failed to load items');
         this.isLoadingItems.set(false);
       }
     });
@@ -207,29 +213,35 @@ export class MenuManagementComponent implements OnInit {
 
     request$.subscribe({
       next: () => {
-        this.toastr.success(`Item ${id ? 'updated' : 'created'} successfully`);
+        this.alertService.success(`Item ${id ? 'updated' : 'created'} successfully`);
         this.showItemModal.set(false);
         // Refresh items for the current tab (the item will cleanly vanish if moved out of this category)
         if (this.selectedCategory()) {
            this.loadItems(this.selectedCategory()!.id, this.itemSearchCtrl.value);
         }
       },
-      error: () => this.toastr.error('Operation failed')
+      error: () => this.alertService.error('Operation failed')
     });
   }
 
-  deleteItem(id: string, event: Event) {
+  async deleteItem(id: string, event: Event) {
     event.stopPropagation();
-    if (!confirm('Are you sure you want to delete this item?')) return;
+    const confirmed = await this.alertService.confirm({
+      title: 'Delete Menu Item?',
+      text: 'Are you sure you want to permanently delete this menu item?',
+      confirmButtonText: 'Yes, delete',
+      isDestructive: true
+    });
+    if (!confirmed) return;
 
     this.menuService.deleteItem(id).subscribe({
       next: () => {
-        this.toastr.success('Item deleted');
+        this.alertService.success('Item deleted');
         if (this.selectedCategory()) {
           this.loadItems(this.selectedCategory()!.id, this.itemSearchCtrl.value);
         }
       },
-      error: () => this.toastr.error('Failed to delete item')
+      error: () => this.alertService.error('Failed to delete item')
     });
   }
 }

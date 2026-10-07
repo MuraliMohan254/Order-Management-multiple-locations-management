@@ -1,66 +1,162 @@
 /* You can add global styles to this file, and also import other style files */
 @import "tailwindcss";
-@import 'ngx-toastr/toastr';
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
+@import "sweetalert2/dist/sweetalert2.min.css";
 
-/* Enterprise Toastr Notification System */
-.toast-container .ngx-toastr {
-  @apply rounded-xl shadow-xl border p-4 font-sans backdrop-blur-sm transition-all duration-300;
+/* ========================================================
+   WildBar Enterprise SweetAlert2 System Styling
+   ======================================================== */
+
+/* Toasts (bottom-right notifications) */
+.swal2-popup.wildbar-toast {
+  border-radius: 1rem !important;
+  padding: 0.875rem 1.125rem !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  font-family: inherit !important;
+  overflow: hidden !important;
 }
 
-/* Success Toast - Emerald Theme */
-.toast-success {
-  @apply !bg-emerald-50/95 !text-emerald-950 !border-emerald-200/80 shadow-emerald-900/5;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' width='22' height='22' stroke='%23059669' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M22 11.08V12a10 10 0 1 1-5.93-9.14'%3E%3C/path%3E%3Cpolyline points='22 4 12 14.01 9 11.01'%3E%3C/polyline%3E%3C/svg%3E") !important;
+:where(.dark, [data-theme="dark"]) .swal2-popup.wildbar-toast {
+  background-color: #1e293b !important;
+  border: 1px solid rgba(51, 65, 85, 0.9) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6) !important;
 }
 
-/* Error Toast - Red Theme */
-.toast-error {
-  @apply !bg-rose-50/95 !text-rose-950 !border-rose-200/80 shadow-rose-900/5;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' width='22' height='22' stroke='%23e11d48' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='10'%3E%3C/circle%3E%3Cline x1='15' y1='9' x2='9' y2='15'%3E%3C/line%3E%3Cline x1='9' y1='9' x2='15' y2='15'%3E%3C/line%3E%3C/svg%3E") !important;
+.wildbar-toast .swal2-icon {
+  margin: 0 0.75rem 0 0 !important;
+  transform: scale(0.85);
 }
 
-/* Info Toast - Blue Theme */
-.toast-info {
-  @apply !bg-sky-50/95 !text-sky-950 !border-sky-200/80 shadow-sky-900/5;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' width='22' height='22' stroke='%230284c7' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='10'%3E%3C/circle%3E%3Cline x1='12' y1='16' x2='12' y2='12'%3E%3C/line%3E%3Cline x1='12' y1='8' x2='12.01' y2='8'%3E%3C/line%3E%3C/svg%3E") !important;
+/* Light Theme Title and Subtitle Text */
+.wildbar-toast .swal2-title,
+.wildbar-toast-title {
+  font-size: 0.925rem !important;
+  font-weight: 700 !important;
+  margin: 0 !important;
+  line-height: 1.35 !important;
+  text-align: left !important;
+  color: #0f172a !important; /* Slate 900 */
 }
 
-/* Warning Toast - Amber Theme */
-.toast-warning {
-  @apply !bg-amber-50/95 !text-amber-950 !border-amber-200/80 shadow-amber-900/5;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' width='22' height='22' stroke='%23d97706' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'%3E%3C/path%3E%3Cline x1='12' y1='9' x2='12' y2='13'%3E%3C/line%3E%3Cline x1='12' y1='17' x2='12.01' y2='17'%3E%3C/line%3E%3C/svg%3E") !important;
+.wildbar-toast .swal2-html-container,
+.wildbar-toast-html {
+  font-size: 0.825rem !important;
+  font-weight: 500 !important;
+  margin: 0.35rem 0 0 0 !important;
+  line-height: 1.45 !important;
+  text-align: left !important;
+  color: #334155 !important; /* Slate 700 - high contrast and visible */
+  opacity: 1 !important;
 }
 
-/* Typography Enhancements */
-.toast-title {
-  @apply font-bold text-sm tracking-tight mb-0.5;
+/* Dark Theme Title and Subtitle Text */
+:where(.dark, [data-theme="dark"]) .wildbar-toast .swal2-title,
+:where(.dark, [data-theme="dark"]) .wildbar-toast-title {
+  color: #f8fafc !important; /* Slate 50 */
 }
 
-.toast-message {
-  @apply text-xs leading-relaxed font-medium opacity-90;
+:where(.dark, [data-theme="dark"]) .wildbar-toast .swal2-html-container,
+:where(.dark, [data-theme="dark"]) .wildbar-toast-html {
+  color: #e2e8f0 !important; /* Slate 200 - crystal clear high contrast */
+  opacity: 1 !important;
 }
 
-/* Progress Bar & Close Button Harmonization */
-.toast-progress {
-  @apply opacity-30 rounded-full;
+/* Bottom Progress Bar Line - Crisp, Vivid & High-Contrast */
+.wildbar-toast .swal2-timer-progress-bar-container {
+  overflow: hidden !important;
+  border-bottom-left-radius: 1rem !important;
+  border-bottom-right-radius: 1rem !important;
 }
 
-.toast-success .toast-progress {
-  @apply !bg-emerald-600;
+.wildbar-toast .swal2-timer-progress-bar {
+  height: 4px !important;
+  opacity: 1 !important;
+  background: #3b82f6 !important; /* Default Blue */
 }
 
-.toast-error .toast-progress {
-  @apply !bg-rose-600;
+.wildbar-toast.wildbar-toast-success .swal2-timer-progress-bar {
+  background: #10b981 !important; /* Vivid Emerald 500 */
 }
 
-.toast-info .toast-progress {
-  @apply !bg-sky-600;
+.wildbar-toast.wildbar-toast-error .swal2-timer-progress-bar {
+  background: #f43f5e !important; /* Vivid Rose 500 */
 }
 
-.toast-warning .toast-progress {
-  @apply !bg-amber-600;
+.wildbar-toast.wildbar-toast-warning .swal2-timer-progress-bar {
+  background: #f59e0b !important; /* Vivid Amber 500 */
 }
 
-.toast-close-button {
-  @apply !text-slate-400 hover:!text-slate-700 !opacity-100 font-bold text-lg p-1 transition-colors;
+.wildbar-toast.wildbar-toast-info .swal2-timer-progress-bar {
+  background: #0284c7 !important; /* Vivid Sky 500 */
+}
+
+/* Modals & Dialogs (Alert & Confirm popups) */
+.swal2-popup.wildbar-modal-popup {
+  border-radius: 1.25rem !important;
+  padding: 1.75rem 1.5rem !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  border: 1px solid rgba(226, 232, 240, 0.85) !important;
+  font-family: inherit !important;
+}
+
+:where(.dark, [data-theme="dark"]) .swal2-popup.wildbar-modal-popup {
+  border: 1px solid rgba(51, 65, 85, 0.85) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6) !important;
+}
+
+.wildbar-modal-popup .swal2-title {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  margin-top: 0.75rem !important;
+}
+
+.wildbar-modal-popup .swal2-html-container {
+  font-size: 0.925rem !important;
+  line-height: 1.5 !important;
+  margin-top: 0.5rem !important;
+}
+
+.wildbar-actions {
+  display: flex !important;
+  gap: 0.75rem !important;
+  margin-top: 1.5rem !important;
+}
+
+.wildbar-btn-confirm {
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  padding: 0.625rem 1.25rem !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  transition: transform 0.1s ease, filter 0.15s ease !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+.wildbar-btn-confirm:hover {
+  filter: brightness(1.05) !important;
+}
+
+.wildbar-btn-confirm:active {
+  transform: scale(0.98) !important;
+}
+
+.wildbar-btn-cancel {
+  border-radius: 0.75rem !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  padding: 0.625rem 1.25rem !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  transition: transform 0.1s ease, filter 0.15s ease !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+.wildbar-btn-cancel:hover {
+  filter: brightness(0.95) !important;
+}
+
+.wildbar-btn-cancel:active {
+  transform: scale(0.98) !important;
 }

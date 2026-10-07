@@ -1,1 +1,325 @@
-<p>dashboard works!</p>
+<div class="space-y-6 font-sans text-slate-800 dark:text-slate-100 transition-colors duration-200">
+  
+  <!-- ========================================== -->
+  <!-- 1. TOP HEADER & REPORT EXPORT -->
+  <!-- ========================================== -->
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs transition-colors">
+    <div>
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black shadow-md shadow-blue-600/20">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        </div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Performance & Analytics</h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Live restaurant metrics, revenue reports, and kitchen insights</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions: Refresh & PDF Export -->
+    <div class="flex items-center gap-2.5 self-end sm:self-center">
+      <button (click)="loadMetrics()" 
+              class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all shadow-xs cursor-pointer"
+              title="Refresh Analytics">
+        <svg class="w-4 h-4" [ngClass]="{'animate-spin': isLoading()}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+      </button>
+
+      <a routerLink="/business-analytics"
+         class="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black transition-all shadow-md shadow-indigo-500/20 active:scale-98 flex items-center gap-2 cursor-pointer"
+         title="View Strategic Owner Metrics & Business Insights">
+        <svg class="w-4 h-4 text-indigo-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+        </svg>
+        <span>Executive Insights</span>
+      </a>
+
+      <button (click)="exportPdfReport()" 
+              [disabled]="isExportingPdf()"
+              class="px-4 py-2.5 bg-slate-900 hover:bg-black dark:bg-blue-600 dark:hover:bg-blue-500 text-white rounded-xl text-xs font-black transition-all shadow-md active:scale-98 flex items-center gap-2 disabled:opacity-50 cursor-pointer">
+        @if (isExportingPdf()) {
+          <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          <span>Generating PDF...</span>
+        } @else {
+          <svg class="w-4 h-4 text-rose-400 dark:text-rose-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          <span>Export Jasper Report (PDF)</span>
+        }
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 2. DATE RANGE PRESETS & PICKER -->
+  <!-- ========================================== -->
+  <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-3 transition-colors">
+    
+    <!-- Presets -->
+    <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold">
+      <button (click)="setPreset('TODAY')" 
+              class="px-3.5 py-1.5 rounded-lg transition-all cursor-pointer"
+              [ngClass]="activePreset() === 'TODAY' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+        Today
+      </button>
+      <button (click)="setPreset('WEEK')" 
+              class="px-3.5 py-1.5 rounded-lg transition-all cursor-pointer"
+              [ngClass]="activePreset() === 'WEEK' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+        Last 7 Days
+      </button>
+      <button (click)="setPreset('MONTH')" 
+              class="px-3.5 py-1.5 rounded-lg transition-all cursor-pointer"
+              [ngClass]="activePreset() === 'MONTH' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+        Last 30 Days
+      </button>
+      <button (click)="setPreset('CUSTOM')" 
+              class="px-3.5 py-1.5 rounded-lg transition-all cursor-pointer"
+              [ngClass]="activePreset() === 'CUSTOM' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+        Custom Range
+      </button>
+    </div>
+
+    <!-- Custom Range Inputs -->
+    <div class="flex items-center gap-2 w-full md:w-auto">
+      <div class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5">
+        <span class="text-slate-500 dark:text-slate-400">From:</span>
+        <input type="date" 
+               [ngModel]="customStartDate()" 
+               (ngModelChange)="customStartDate.set($event)"
+               class="bg-transparent font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
+        <span class="text-slate-500 dark:text-slate-400">To:</span>
+        <input type="date" 
+               [ngModel]="customEndDate()" 
+               (ngModelChange)="customEndDate.set($event)"
+               class="bg-transparent font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
+      </div>
+      <button (click)="applyCustomRange()" 
+              class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer">
+        Filter
+      </button>
+    </div>
+
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex flex-col items-center justify-center py-24 text-slate-400">
+      <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+      <p class="font-bold text-sm">Calculating metrics...</p>
+    </div>
+  } @else if (dashboardData(); as data) {
+
+    <!-- ========================================== -->
+    <!-- 3. TOP KPI CARDS (PERIOD METRICS) -->
+    <!-- ========================================== -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <!-- Period Revenue -->
+      <div class="stat-card bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between transition-colors">
+        <div class="flex justify-between items-start">
+          <div>
+            <span class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Period Revenue</span>
+            <h3 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">₹{{ data.periodSales | number:'1.2-2' }}</h3>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-lg">
+            ₹
+          </div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <span>{{ data.billedOrdersCount }} paid bills</span>
+          <span class="text-emerald-600 dark:text-emerald-400 font-bold">100% Succeeded</span>
+        </div>
+      </div>
+
+      <!-- Total Orders Count & Breakdown -->
+      <div class="stat-card bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between transition-colors">
+        <div class="flex justify-between items-start">
+          <div>
+            <span class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Orders</span>
+            <h3 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">{{ data.totalOrdersCount }}</h3>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+          </div>
+        </div>
+        <!-- Progress Bar for Channels -->
+        <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
+          <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 flex overflow-hidden">
+            <div class="bg-blue-600 h-2" [style.width.%]="dineInPercentage()"></div>
+            <div class="bg-amber-500 h-2" [style.width.%]="takeAwayPercentage()"></div>
+          </div>
+          <div class="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 font-bold">
+            <span class="text-blue-600 dark:text-blue-400">Dine-In: {{ data.dineInOrdersCount }} ({{ dineInPercentage() }}%)</span>
+            <span class="text-amber-600 dark:text-amber-400">Takeaway: {{ data.takeAwayOrdersCount }} ({{ takeAwayPercentage() }}%)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Average Order Value (AOV) -->
+      <div class="stat-card bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between transition-colors">
+        <div class="flex justify-between items-start">
+          <div>
+            <span class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Average Order Value</span>
+            <h3 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">₹{{ data.averageOrderValue | number:'1.2-2' }}</h3>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+          </div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <span>Per customer transaction</span>
+          <span class="text-purple-600 dark:text-purple-400 font-bold">Ticket Size</span>
+        </div>
+      </div>
+
+      <!-- Turnaround Time -->
+      <div class="stat-card bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between transition-colors">
+        <div class="flex justify-between items-start">
+          <div>
+            <span class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Avg Turnaround</span>
+            <h3 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">
+              {{ (data.averageTurnaroundMinutes != null ? data.averageTurnaroundMinutes : 0) | number:'1.0-0' }} <span class="text-base font-bold text-slate-400">mins</span>
+            </h3>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <span>Order to bill turnaround</span>
+          <span class="text-teal-600 dark:text-teal-400 font-bold">Kitchen Pace</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 4. BASELINE FINANCIAL COMPARISON CARDS -->
+    <!-- ========================================== -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="bg-gradient-to-br from-slate-900 to-indigo-950 border border-indigo-900/40 text-white p-5 rounded-2xl shadow-xs">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-300">Today's Revenue</span>
+        <div class="text-2xl font-black mt-1">₹{{ data.dailySales | number:'1.2-2' }}</div>
+        <div class="text-xs text-indigo-200/80 mt-1 font-medium">Reset daily at 00:00 UTC</div>
+      </div>
+
+      <div class="bg-gradient-to-br from-blue-900 to-slate-900 border border-blue-900/40 text-white p-5 rounded-2xl shadow-xs">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-blue-300">This Month's Revenue</span>
+        <div class="text-2xl font-black mt-1">₹{{ data.monthlySales | number:'1.2-2' }}</div>
+        <div class="text-xs text-blue-200/80 mt-1 font-medium">Cumulative calendar month</div>
+      </div>
+
+      <div class="bg-gradient-to-br from-slate-800 to-slate-950 border border-slate-700/40 text-white p-5 rounded-2xl shadow-xs">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-300">This Year's Revenue</span>
+        <div class="text-2xl font-black mt-1">₹{{ data.yearlySales | number:'1.2-2' }}</div>
+        <div class="text-xs text-slate-400 mt-1 font-medium">Annual fiscal sales volume</div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 5. TOP DISHES & RECENT TRANSACTIONS STREAM -->
+    <!-- ========================================== -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Left: Top / Fast-Moving Items -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col transition-colors">
+        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+          <div>
+            <h3 class="font-black text-slate-900 dark:text-white text-base">Top Selling Dishes</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Highest volume menu items for the period</p>
+          </div>
+          <span class="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-xs font-bold">Top 10</span>
+        </div>
+
+        @if (!data.fastMovingItems || data.fastMovingItems.length === 0) {
+          <div class="flex-1 flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-500">
+            <p class="text-sm font-medium">No sales records in this period.</p>
+          </div>
+        } @else {
+          <div class="space-y-3 flex-1 overflow-y-auto">
+            @for (item of data.fastMovingItems; track item.itemName; let idx = $index) {
+              <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-700/80 hover:border-slate-200 dark:hover:border-slate-600 transition-all">
+                <div class="flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-lg text-xs font-black flex items-center justify-center"
+                        [ngClass]="{
+                          'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200': idx === 0,
+                          'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200': idx === 1,
+                          'bg-orange-100 dark:bg-orange-900/60 text-orange-800 dark:text-orange-200': idx === 2,
+                          'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400': idx > 2
+                        }">
+                    #{{ idx + 1 }}
+                  </span>
+                  <div>
+                    <h4 class="font-bold text-slate-800 dark:text-slate-200 text-sm leading-tight">{{ item.itemName }}</h4>
+                    <span class="text-xs text-slate-400 dark:text-slate-500">{{ item.totalSold }} servings sold</span>
+                  </div>
+                </div>
+
+                <div class="text-right">
+                  @if (item.totalRevenue) {
+                    <span class="font-black text-slate-900 dark:text-white text-sm block">₹{{ item.totalRevenue | number:'1.2-2' }}</span>
+                  }
+                  <span class="text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded">Popular</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Right: Recent Orders Stream -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col transition-colors">
+        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+          <div>
+            <h3 class="font-black text-slate-900 dark:text-white text-base">Recent Orders Stream</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Latest transactions and tickets</p>
+          </div>
+          <span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold">{{ data.recentOrders.length }} orders</span>
+        </div>
+
+        @if (!data.recentOrders || data.recentOrders.length === 0) {
+          <div class="flex-1 flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-500">
+            <p class="text-sm font-medium">No recent orders for this range.</p>
+          </div>
+        } @else {
+          <div class="space-y-2.5 flex-1 overflow-y-auto max-h-[440px]">
+            @for (order of data.recentOrders; track order.id) {
+              <div class="p-3 bg-slate-50 dark:bg-slate-850 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-700/80 flex items-center justify-between text-xs">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="font-black text-slate-900 dark:text-white">{{ order.orderNumber }}</span>
+                    <span class="px-1.5 py-0.2 rounded text-[10px] font-bold uppercase"
+                          [ngClass]="order.orderType === 'DINE_IN' ? 'bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300' : 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300'">
+                      {{ order.orderType }}
+                    </span>
+                  </div>
+                  <span class="text-slate-400 dark:text-slate-500 text-[11px] mt-0.5 block">
+                    {{ order.tableNumber ? ('Table ' + order.tableNumber + ' • ') : '' }}
+                    {{ order.createdAt | date:'short' }}
+                  </span>
+                </div>
+
+                <div class="text-right">
+                  <span class="font-black text-slate-900 dark:text-white text-sm block">
+                    ₹{{ (order.grandTotal > 0 ? order.grandTotal : order.subTotal) | number:'1.2-2' }}
+                  </span>
+                  <span class="text-[10px] font-bold uppercase"
+                        [ngClass]="{
+                          'text-emerald-700 dark:text-emerald-400': order.status === 'BILLED' || order.status === 'READY',
+                          'text-blue-700 dark:text-blue-400': order.status === 'CONFIRMED' || order.status === 'SOFT_ORDER',
+                          'text-purple-700 dark:text-purple-400': order.status === 'PREPARING',
+                          'text-rose-700 dark:text-rose-400': order.status === 'CANCELLED'
+                        }">
+                    {{ order.status }}
+                  </span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+    </div>
+
+  }
+</div>

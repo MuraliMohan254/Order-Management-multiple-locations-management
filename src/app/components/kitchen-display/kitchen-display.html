@@ -1,0 +1,285 @@
+<div class="w-full min-h-[calc(100vh-6.5rem)] bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-3xl p-4 sm:p-6 lg:p-8 flex flex-col font-sans overflow-x-hidden shadow-sm dark:shadow-xl border border-slate-200 dark:border-slate-800 transition-colors duration-200">
+  
+  <!-- ========================================== -->
+  <!-- 1. KDS TOP CONTROLS & STATUS BAR -->
+  <!-- ========================================== -->
+  <header class="bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 sm:p-5 shadow-xs dark:shadow-lg mb-5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 shrink-0 transition-colors">
+    
+    <!-- Title & Live Clock -->
+    <div class="flex items-center gap-3.5 w-full sm:w-auto">
+      <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-orange-600 flex items-center justify-center text-white shadow-md shadow-orange-600/30 shrink-0">
+        <svg class="w-6 h-6 sm:w-7 sm:h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"/>
+        </svg>
+      </div>
+      <div class="flex-1 min-w-0">
+        <h1 class="text-lg sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2 truncate">
+          <span>Kitchen Display (KDS)</span>
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+        </h1>
+        <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-mono">
+          <span class="text-slate-700 dark:text-slate-300 font-bold">{{ currentTime() | date:'mediumTime' }}</span>
+          <span>•</span>
+          <span>Queue Live</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metrics Badges (Responsive Grid on Mobile) -->
+    <div class="grid grid-cols-3 sm:flex items-center gap-2 w-full sm:w-auto">
+      <div class="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-700/60 flex items-center justify-center sm:justify-start gap-1.5 text-center">
+        <span class="w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400 shrink-0"></span>
+        <span class="text-[11px] sm:text-xs font-bold text-blue-700 dark:text-blue-200">New: {{ pendingCount() }}</span>
+      </div>
+      <div class="px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-900/50 border border-purple-200 dark:border-purple-700/60 flex items-center justify-center sm:justify-start gap-1.5 text-center">
+        <span class="w-2 h-2 rounded-full bg-purple-500 dark:bg-purple-400 shrink-0"></span>
+        <span class="text-[11px] sm:text-xs font-bold text-purple-700 dark:text-purple-200">Cooking: {{ preparingCount() }}</span>
+      </div>
+      <div class="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-700/60 flex items-center justify-center sm:justify-start gap-1.5 text-center">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 shrink-0"></span>
+        <span class="text-[11px] sm:text-xs font-bold text-emerald-700 dark:text-emerald-200">Ready: {{ readyCount() }}</span>
+      </div>
+    </div>
+
+    <!-- Controls (Auto-refresh, Sound, Manual Reload) -->
+    <div class="flex items-center justify-between sm:justify-end gap-2.5 w-full sm:w-auto">
+      <!-- Sound toggle -->
+      <button (click)="soundEnabled.set(!soundEnabled())" 
+              class="p-2 sm:p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+              [ngClass]="soundEnabled() ? 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white border-slate-300 dark:border-slate-600' : 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'"
+              [title]="soundEnabled() ? 'Sound On' : 'Sound Muted'">
+        @if (soundEnabled()) {
+          <svg class="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+        } @else {
+          <svg class="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
+        }
+      </button>
+
+      <!-- Auto refresh toggle -->
+      <button (click)="isAutoRefresh.set(!isAutoRefresh())" 
+              class="px-3 py-2 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+              [ngClass]="isAutoRefresh() ? 'bg-emerald-50 dark:bg-emerald-950/70 border-emerald-300 dark:border-emerald-600 text-emerald-700 dark:text-emerald-300' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'">
+        <span class="w-2 h-2 rounded-full" [ngClass]="isAutoRefresh() ? 'bg-emerald-500 dark:bg-emerald-400 animate-ping' : 'bg-slate-400 dark:bg-slate-500'"></span>
+        <span>Auto-Sync</span>
+      </button>
+
+      <!-- Manual reload -->
+      <button (click)="loadActiveOrders(true)" 
+              class="p-2 sm:p-2.5 rounded-xl bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white transition-all active:scale-95 cursor-pointer shadow-2xs"
+              title="Refresh Queue">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5" [ngClass]="{'animate-spin': isLoading()}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================== -->
+  <!-- 2. FILTER TABS (WRAPS RESPONSIVELY) -->
+  <!-- ========================================== -->
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5 shrink-0">
+    <!-- Status filters -->
+    <div class="flex flex-wrap items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 w-full sm:w-auto">
+      <button (click)="filterStatus.set('ALL')"
+              class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer"
+              [ngClass]="filterStatus() === 'ALL' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+        All ({{ orders().length }})
+      </button>
+      <button (click)="filterStatus.set('CONFIRMED')"
+              class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer"
+              [ngClass]="filterStatus() === 'CONFIRMED' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white'">
+        New ({{ pendingCount() }})
+      </button>
+      <button (click)="filterStatus.set('PREPARING')"
+              class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer"
+              [ngClass]="filterStatus() === 'PREPARING' ? 'bg-purple-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-white'">
+        Cooking ({{ preparingCount() }})
+      </button>
+      <button (click)="filterStatus.set('READY')"
+              class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer"
+              [ngClass]="filterStatus() === 'READY' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-white'">
+        Ready ({{ readyCount() }})
+      </button>
+    </div>
+
+    <!-- Order Type Filter -->
+    <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 w-full sm:w-auto">
+      <button (click)="filterType.set('ALL')"
+              class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer"
+              [ngClass]="filterType() === 'ALL' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+        All Types
+      </button>
+      <button (click)="filterType.set('DINE_IN')"
+              class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer"
+              [ngClass]="filterType() === 'DINE_IN' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+        Dine-In
+      </button>
+      <button (click)="filterType.set('TAKE_AWAY')"
+              class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer"
+              [ngClass]="filterType() === 'TAKE_AWAY' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+        Takeaway
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 3. KITCHEN TICKETS BOARD -->
+  <!-- ========================================== -->
+  <div class="flex-1">
+    @if (isLoading()) {
+      <div class="flex flex-col items-center justify-center py-24 text-slate-400">
+        <div class="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+        <p class="font-bold text-sm">Loading kitchen queue...</p>
+      </div>
+    } @else if (filteredOrders().length === 0) {
+      <div class="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 sm:p-12 text-center max-w-md mx-auto my-8">
+        <div class="w-14 h-14 rounded-full bg-emerald-50 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3">
+          <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <h3 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white">All Caught Up!</h3>
+        <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">No pending orders matching the current filter. New orders will appear here automatically.</p>
+      </div>
+    } @else {
+      <!-- Fully Mobile-Responsive Tickets Grid: 1 col on mobile, 2 on tablet, 3-4 on desktop -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+        @for (order of filteredOrders(); track order.id) {
+          
+          <div class="ticket-card bg-white dark:bg-slate-800 rounded-2xl border-2 flex flex-col overflow-hidden shadow-sm dark:shadow-xl transition-all duration-200"
+               [ngClass]="{
+                 'border-blue-500 shadow-blue-500/10 dark:shadow-blue-500/20': getKitchenStage(order) === 'CONFIRMED',
+                 'border-purple-500 shadow-purple-500/10 dark:shadow-purple-500/20': getKitchenStage(order) === 'PREPARING',
+                 'border-emerald-500 shadow-emerald-500/10 dark:shadow-emerald-500/20': getKitchenStage(order) === 'READY'
+               }">
+            
+            <!-- Ticket Header -->
+            <div class="p-3.5 sm:p-4 border-b flex items-start justify-between transition-colors"
+                 [ngClass]="{
+                   'bg-blue-50/70 dark:bg-blue-950/40 border-blue-100 dark:border-slate-700/80': getKitchenStage(order) === 'CONFIRMED',
+                   'bg-purple-50/70 dark:bg-purple-950/40 border-purple-100 dark:border-slate-700/80': getKitchenStage(order) === 'PREPARING',
+                   'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-100 dark:border-slate-700/80': getKitchenStage(order) === 'READY'
+                 }">
+              <div class="min-w-0 pr-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight truncate">
+                    {{ order.orderType === 'DINE_IN' ? ('TABLE ' + (order.tableNumber || '?')) : 'TAKEAWAY' }}
+                  </span>
+                  <span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider"
+                        [ngClass]="order.orderType === 'DINE_IN' ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30' : 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30'">
+                    {{ order.orderType }}
+                  </span>
+
+                  <!-- Financial Status Badge: PAID vs RUNNING TAB -->
+                  @if (order.status === 'BILLED') {
+                    <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-600 text-white shadow-2xs flex items-center gap-1">
+                      <span>✓</span> PAID
+                    </span>
+                  } @else {
+                    <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600">
+                      RUNNING TAB
+                    </span>
+                  }
+                </div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                  #{{ order.orderNumber }}
+                </div>
+              </div>
+
+              <!-- Time Elapsed Badge -->
+              <div class="px-2 py-0.5 rounded-lg border text-[11px] font-bold shrink-0"
+                   [ngClass]="getElapsedClass(getElapsedMinutes(order.createdAt))">
+                ⏱ {{ getElapsedMinutes(order.createdAt) }}m ago
+              </div>
+            </div>
+
+            <!-- Items List -->
+            <div class="p-3.5 sm:p-4 flex-1 overflow-y-auto space-y-2.5 min-h-[140px] max-h-[300px] bg-slate-50/50 dark:bg-transparent">
+              @for (item of order.items; track item.id) {
+                <div class="flex items-start gap-2.5 bg-white dark:bg-slate-900/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/50 shadow-2xs">
+                  <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-black text-sm sm:text-base flex items-center justify-center shrink-0 border border-slate-200 dark:border-transparent">
+                    {{ item.quantity }}
+                  </span>
+                  <div class="flex-1 min-w-0">
+                    <span class="font-bold text-slate-800 dark:text-white text-sm sm:text-base leading-snug block">{{ item.itemName }}</span>
+                    @if (item.notes) {
+                      <div class="mt-1 text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-700/50 flex items-center gap-1">
+                        <span>⚠</span>
+                        <span class="font-semibold">{{ item.notes }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+
+            <!-- Ticket Footer / Action Buttons (Instant 1-Click Operations) -->
+            <div class="p-3 sm:p-4 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-700 flex flex-col gap-2">
+              
+              <!-- In-flight Loading Indicator -->
+              @if (updatingOrderId() === order.id) {
+                <div class="w-full h-12 bg-slate-200 dark:bg-slate-800 rounded-xl flex items-center justify-center gap-2 text-slate-600 dark:text-slate-300 font-bold text-xs animate-pulse">
+                  <div class="w-4 h-4 border-2 border-slate-600 dark:border-slate-300 border-t-transparent rounded-full animate-spin"></div>
+                  <span>Updating status...</span>
+                </div>
+              } @else {
+                
+                <!-- Status: CONFIRMED (New Order) -->
+                @if (getKitchenStage(order) === 'CONFIRMED') {
+                  <div class="flex flex-col gap-2">
+                    <!-- Quick Direct Mark as Ready Shortcut -->
+                    <button (click)="updateStatus(order.id, 'READY')"
+                            class="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-sm transition-all shadow-md shadow-emerald-600/20 active:scale-98 flex items-center justify-center gap-1.5 cursor-pointer"
+                            title="Mark Order as Ready Immediately">
+                      <span>★ Mark as Ready</span>
+                    </button>
+                    <!-- Or Start Cooking In-Progress -->
+                    <button (click)="updateStatus(order.id, 'PREPARING')"
+                            class="w-full h-10 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs transition-all shadow-sm active:scale-98 flex items-center justify-center gap-1.5 cursor-pointer"
+                            title="Move Order to Cooking Status">
+                      <span>♨ Start Cooking</span>
+                    </button>
+                  </div>
+                } 
+                
+                <!-- Status: PREPARING (Cooking in Progress) -->
+                @else if (getKitchenStage(order) === 'PREPARING') {
+                  <div class="flex flex-col gap-2">
+                    <button (click)="updateStatus(order.id, 'READY')"
+                            class="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-sm transition-all shadow-md shadow-emerald-600/20 active:scale-98 flex items-center justify-center gap-1.5 cursor-pointer"
+                            title="Mark Dish Ready for Server">
+                      <span>★ Mark as Ready</span>
+                    </button>
+                    <button (click)="updateStatus(order.id, 'CONFIRMED')"
+                            class="w-full h-8 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg font-bold text-[11px] transition-all active:scale-98 flex items-center justify-center gap-1 cursor-pointer"
+                            title="Revert back to Queued">
+                      <span>↩ Back to New</span>
+                    </button>
+                  </div>
+                } 
+                
+                <!-- Status: READY (Food Ready on Counter) -->
+                @else if (getKitchenStage(order) === 'READY') {
+                  <div class="flex flex-col gap-2">
+                    <button (click)="updateStatus(order.id, 'SERVED')"
+                            class="w-full h-11 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-black text-sm transition-all shadow-md shadow-teal-600/20 active:scale-98 flex items-center justify-center gap-1.5 cursor-pointer"
+                            title="Mark Order as Served to Table/Customer">
+                      <span>✓ Mark as Served</span>
+                    </button>
+                    <button (click)="updateStatus(order.id, 'PREPARING')"
+                            class="w-full h-8 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg font-bold text-[11px] transition-all active:scale-98 flex items-center justify-center gap-1 cursor-pointer"
+                            title="Revert back to Cooking">
+                      <span>↩ Back to Cooking</span>
+                    </button>
+                  </div>
+                }
+              }
+
+            </div>
+
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+</div>

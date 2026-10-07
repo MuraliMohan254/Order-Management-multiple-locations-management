@@ -1,139 +1,497 @@
-<div class="h-screen flex bg-slate-100 overflow-hidden font-sans">
+<div class="h-[calc(100vh-6.5rem)] flex flex-col md:flex-row bg-slate-100 dark:bg-slate-950 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden font-sans text-slate-800 dark:text-slate-100 transition-colors duration-200">
   
   <!-- Left Side: Orders List & Filters -->
-  <div class="w-1/3 flex flex-col h-full bg-white border-r border-slate-200 z-10">
-    <div class="p-5 border-b border-slate-100 bg-slate-50">
-      <h2 class="text-xl font-bold text-slate-800">Orders Dashboard</h2>
+  <div class="w-full md:w-80 lg:w-96 flex flex-col h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-10 transition-colors">
+    <div class="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-lg font-black text-slate-800 dark:text-white">Orders & Bills</h2>
+        <button (click)="resetAndLoadOrders()" class="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-xs cursor-pointer" title="Refresh">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+      </div>
+
+      <!-- Search Input for Finding Bills (Backend Debounced Search) -->
+      <div class="relative mb-3">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </div>
+        <input 
+          type="text" 
+          [ngModel]="searchQuery()" 
+          (ngModelChange)="onSearchInput($event)"
+          placeholder="Search bill #, table, dish, ₹..."
+          class="w-full pl-9 pr-8 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 shadow-2xs transition-all"
+        />
+        @if (searchQuery()) {
+          <button 
+            (click)="clearSearch()" 
+            class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+            title="Clear search">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        }
+      </div>
       
       <!-- Status Filter Tabs -->
-      <div class="flex mt-4 bg-slate-200 p-1 rounded-lg">
+      <div class="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold">
         <button (click)="setFilter('ACTIVE')" 
-                [ngClass]="currentFilter() === 'ACTIVE' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-600 hover:bg-slate-50'"
-                class="flex-1 py-1.5 text-xs font-bold rounded-md transition-all">Active</button>
-        <button (click)="setFilter('COMPLETED')" 
-                [ngClass]="currentFilter() === 'COMPLETED' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-600 hover:bg-slate-50'"
-                class="flex-1 py-1.5 text-xs font-bold rounded-md transition-all">Completed</button>
+                [ngClass]="currentFilter() === 'ACTIVE' ? 'bg-white dark:bg-slate-700 shadow-xs text-blue-700 dark:text-white' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+                class="flex-1 py-1.5 rounded-lg transition-all cursor-pointer">Active</button>
+        <button (click)="setFilter('BILLED')" 
+                [ngClass]="currentFilter() === 'BILLED' ? 'bg-white dark:bg-slate-700 shadow-xs text-blue-700 dark:text-white' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+                class="flex-1 py-1.5 rounded-lg transition-all cursor-pointer">Billed</button>
         <button (click)="setFilter('CANCELLED')" 
-                [ngClass]="currentFilter() === 'CANCELLED' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-600 hover:bg-slate-50'"
-                class="flex-1 py-1.5 text-xs font-bold rounded-md transition-all">Cancelled</button>
+                [ngClass]="currentFilter() === 'CANCELLED' ? 'bg-white dark:bg-slate-700 shadow-xs text-blue-700 dark:text-white' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+                class="flex-1 py-1.5 rounded-lg transition-all cursor-pointer">Cancelled</button>
+      </div>
+
+      <!-- Backend Results Counter -->
+      <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 mt-2 px-0.5">
+        <span>Showing <strong>{{ orders().length }}</strong> of {{ totalElements() }} {{ currentFilter() | lowercase }} orders</span>
+        @if (searchQuery()) {
+          <button (click)="clearSearch()" class="text-blue-600 dark:text-blue-400 font-bold hover:underline cursor-pointer">Clear</button>
+        }
       </div>
     </div>
 
-    <!-- Dynamic Orders List -->
-    <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
+    <!-- Dynamic Orders List with Infinite Scroll -->
+    <div class="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50/50 dark:bg-slate-950/40"
+         appInfiniteScroll
+         [infiniteScrollDistance]="120"
+         [infiniteScrollDisabled]="isLoading() || isLoadingMore() || isLastPage()"
+         (appInfiniteScroll)="loadMoreOrders()">
       @if (isLoading()) {
-        <div class="flex justify-center py-8"><div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>
+        <div class="flex justify-center py-16"><div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>
       } @else if (orders().length === 0) {
-        <div class="text-center py-12 text-slate-400 font-medium">No {{ currentFilter() | lowercase }} orders found.</div>
+        <div class="text-center py-16 text-slate-400 dark:text-slate-500 font-medium text-xs">
+          @if (searchQuery()) {
+            <p class="font-bold text-slate-600 dark:text-slate-300">No matching orders</p>
+            <p class="mt-1">No orders found matching "{{ searchQuery() }}" in {{ currentFilter() | lowercase }}.</p>
+            <button (click)="clearSearch()" class="mt-3 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-lg font-bold text-xs border border-blue-200 dark:border-blue-800 cursor-pointer">Reset Search</button>
+          } @else {
+            <p>No {{ currentFilter() | lowercase }} orders found.</p>
+          }
+        </div>
       } @else {
         @for (order of orders(); track order.id) {
           <div (click)="selectOrder(order.id)"
-               class="p-4 rounded-xl border-2 cursor-pointer transition-all active:scale-[0.98]"
-               [ngClass]="selectedOrder()?.id === order.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-blue-300'">
-            <div class="flex justify-between items-start mb-2">
-              <span class="font-bold text-slate-800 text-lg">{{ order.orderNumber }}</span>
-              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded"
+               class="p-3.5 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98] shadow-xs"
+               [ngClass]="selectedOrder()?.id === order.id ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/40' : 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600'">
+            <div class="flex justify-between items-start mb-1.5">
+              <div>
+                <span class="font-black text-slate-900 dark:text-white text-sm block">{{ order.orderNumber }}</span>
+                <span class="text-xs text-slate-500 dark:text-slate-400 font-bold">
+                  {{ order.orderType === 'DINE_IN' ? ('Table ' + (order.tableNumber || '?')) : 'Takeaway' }}
+                </span>
+              </div>
+              <span class="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full"
                     [ngClass]="{
-                      'bg-amber-100 text-amber-800': order.status === 'CONFIRMED' || order.status === 'SOFT_ORDER',
-                      'bg-emerald-100 text-emerald-800': order.status === 'BILLED' || order.status === 'COMPLETED',
-                      'bg-red-100 text-red-800': order.status === 'CANCELLED'
+                       'bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300': order.status === 'CONFIRMED' || order.status === 'SOFT_ORDER',
+                       'bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300': order.status === 'PREPARING',
+                       'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300': order.status === 'READY' || order.status === 'SERVED',
+                       'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200': order.status === 'BILLED',
+                       'bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300': order.status === 'CANCELLED'
                     }">
                 {{ order.status }}
               </span>
             </div>
-            <div class="flex justify-between items-end">
-              <span class="text-sm font-medium text-slate-500">{{ order.orderType }}</span>
-              <span class="font-black text-slate-900">₹{{ (order.grandTotal > 0 ? order.grandTotal : order.subTotal) | number:'1.2-2' }}</span>
+            <div class="flex justify-between items-end pt-1 border-t border-slate-100 dark:border-slate-700 mt-2">
+              <span class="text-[11px] text-slate-400 dark:text-slate-500 font-medium">{{ order.items?.length || 0 }} items</span>
+              <span class="font-black text-slate-900 dark:text-white text-sm">₹{{ (order.grandTotal > 0 ? order.grandTotal : order.subTotal) | number:'1.2-2' }}</span>
             </div>
+          </div>
+        }
+
+        <!-- Infinite Scroll Loading Indicator & End of List -->
+        @if (isLoadingMore()) {
+          <div class="flex items-center justify-center py-3 text-xs text-slate-500 dark:text-slate-400 gap-2">
+            <div class="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <span>Loading more orders...</span>
+          </div>
+        }
+        @if (isLastPage() && orders().length > 0) {
+          <div class="text-center py-2.5 text-[11px] text-slate-400 dark:text-slate-600 font-medium border-t border-slate-100 dark:border-slate-800/80 mt-2">
+            ✓ All {{ totalElements() }} orders loaded
           </div>
         }
       }
     </div>
   </div>
 
-  <!-- Right Side: Order Details (Read-only for Completed/Cancelled) -->
-  <div class="flex-1 flex flex-col h-full bg-slate-50">
+  <!-- Right Side: Order Details & Billing Terminal -->
+  <div class="flex-1 flex flex-col h-full bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors">
     @if (!selectedOrder()) {
-      <div class="flex-1 flex flex-col items-center justify-center text-slate-400">
-        <svg class="w-20 h-20 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        <p class="text-lg font-medium">Select an order from the list to view details.</p>
+      <div class="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 p-8">
+        <svg class="w-16 h-16 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <p class="text-base font-bold text-slate-600 dark:text-slate-300">Select an order from the list</p>
+        <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Review items, generate final bill, and settle payment.</p>
       </div>
     } @else {
       <!-- Order Header -->
-      <div class="p-6 bg-white border-b border-slate-200 shadow-sm flex justify-between items-center">
+      <div class="p-5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-xs flex justify-between items-center shrink-0 transition-colors">
         <div>
-          <h2 class="text-2xl font-black text-slate-800">{{ selectedOrder()!.orderNumber }}</h2>
-          <p class="text-sm font-bold text-slate-500 uppercase tracking-wide mt-1">{{ selectedOrder()!.orderType }}</p>
+          <div class="flex items-center gap-3">
+            <h2 class="text-xl font-black text-slate-900 dark:text-white">{{ selectedOrder()!.orderNumber }}</h2>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+              {{ selectedOrder()!.orderType }}
+            </span>
+            @if (selectedOrder()!.tableNumber) {
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                Table {{ selectedOrder()!.tableNumber }}
+              </span>
+            }
+          </div>
+          <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Status: <strong class="text-slate-700 dark:text-slate-300">{{ selectedOrder()!.status }}</strong></p>
+        </div>
+
+        <!-- Actions: Club/Merge + Cancel Order -->
+        <div class="flex items-center gap-2">
+          @if (selectedOrder()!.status !== 'BILLED' && selectedOrder()!.status !== 'CANCELLED') {
+            <button (click)="openMergeModal()" 
+                    class="px-3 py-1.5 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                    title="Club another open order into this bill">
+              <svg class="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+              </svg>
+              <span>Club / Merge Bill</span>
+            </button>
+
+            <button (click)="cancelEntireOrder()" 
+                    class="px-3 py-1.5 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs">
+              <svg class="w-4 h-4 text-rose-500 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              <span>Cancel Order</span>
+            </button>
+          }
         </div>
       </div>
 
-      <!-- Receipt / Order Details -->
-      <div class="flex-1 p-8 overflow-y-auto">
-        <div class="max-w-md mx-auto bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <h3 class="text-center font-bold text-slate-400 uppercase tracking-widest text-xs mb-6 border-b border-slate-100 pb-4">Order Summary</h3>
-          
-          <div class="space-y-3 text-sm">
-            <div class="flex justify-between text-slate-600">
-              <span>Subtotal</span>
-              <span class="font-medium">₹{{ selectedOrder()!.subTotal | number:'1.2-2' }}</span>
-            </div>
-            
-            @if (selectedOrder()!.status === 'BILLED' || selectedOrder()!.status === 'COMPLETED') {
-              <div class="flex justify-between text-slate-600">
-                <span>Tax (5%)</span>
-                <span class="font-medium">₹{{ selectedOrder()!.taxAmount | number:'1.2-2' }}</span>
+      <!-- Main Content (Items List & Billing Panel) -->
+      <div class="flex-1 overflow-y-auto p-6 flex flex-col lg:flex-row gap-6">
+        
+        <!-- Left: Itemized Order List -->
+        <div class="flex-1 bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col transition-colors">
+          <h3 class="font-black text-slate-800 dark:text-white text-sm uppercase tracking-wide border-b border-slate-100 dark:border-slate-800 pb-3 mb-3 flex justify-between items-center">
+            <span>Ordered Items ({{ selectedOrder()!.items?.length || 0 }})</span>
+            <span class="text-xs text-slate-400 dark:text-slate-500 font-normal">Line items</span>
+          </h3>
+
+          <div class="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+            @for (item of selectedOrder()!.items; track item.id) {
+              <div class="py-3 flex items-center justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-black text-xs flex items-center justify-center shrink-0">
+                      {{ item.quantity }}x
+                    </span>
+                    <span class="font-bold text-slate-800 dark:text-slate-200 text-sm">{{ item.itemName }}</span>
+                  </div>
+                  @if (item.notes) {
+                    <p class="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded mt-1 inline-block">Note: {{ item.notes }}</p>
+                  }
+                  <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                    ₹{{ item.unitPrice | number:'1.2-2' }} each
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                  <span class="font-black text-slate-900 dark:text-white text-sm">₹{{ item.totalPrice | number:'1.2-2' }}</span>
+                  
+                  @if (selectedOrder()!.status !== 'BILLED' && selectedOrder()!.status !== 'CANCELLED') {
+                    <button (click)="voidItem(item.id)" 
+                            class="p-1.5 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
+                            title="Void this item">
+                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  }
+                </div>
               </div>
-              @if (selectedOrder()!.discountAmount > 0) {
-                <div class="flex justify-between text-emerald-600">
+            }
+          </div>
+        </div>
+
+        <!-- Right: Billing Calculation & Settle Terminal -->
+        <div class="w-full lg:w-96 flex flex-col gap-4">
+          
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4 transition-colors">
+            <h3 class="font-black text-slate-800 dark:text-white text-sm uppercase tracking-wide border-b border-slate-100 dark:border-slate-800 pb-3">Bill Breakdown</h3>
+            
+            <div class="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+              <div class="flex justify-between">
+                <span class="text-slate-500 dark:text-slate-400">Subtotal</span>
+                <span class="font-bold text-slate-800 dark:text-slate-100">₹{{ selectedOrder()!.subTotal | number:'1.2-2' }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-500 dark:text-slate-400">Tax ({{ taxName() }})</span>
+                <span class="font-bold text-slate-800 dark:text-slate-100">₹{{ selectedOrder()!.taxAmount | number:'1.2-2' }}</span>
+              </div>
+              
+              <!-- Discount Input -->
+              @if (selectedOrder()!.status !== 'BILLED') {
+                <div class="pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <label class="block text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase mb-1">Discount Amount (₹)</label>
+                  <input type="number" 
+                         [ngModel]="discountInput()" 
+                         (ngModelChange)="discountInput.set($event)" 
+                         min="0" 
+                         class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-600">
+                </div>
+              } @else if (selectedOrder()!.discountAmount > 0) {
+                <div class="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
                   <span>Discount Applied</span>
-                  <span class="font-medium">-₹{{ selectedOrder()!.discountAmount | number:'1.2-2' }}</span>
+                  <span>-₹{{ selectedOrder()!.discountAmount | number:'1.2-2' }}</span>
                 </div>
               }
+
+              <!-- Grand Total -->
+              <div class="flex justify-between text-base font-black text-slate-900 dark:text-white pt-3 border-t-2 border-dashed border-slate-200 dark:border-slate-700">
+                <span>Total Due</span>
+                <span class="text-xl text-blue-600 dark:text-blue-400">₹{{ (selectedOrder()!.status === 'BILLED' ? selectedOrder()!.grandTotal : selectedOrder()!.subTotal) | number:'1.2-2' }}</span>
+              </div>
+            </div>
+
+            <!-- Generate Bill Action -->
+            @if (selectedOrder()!.status !== 'BILLED' && selectedOrder()!.status !== 'CANCELLED') {
+              <button (click)="generateBill()" 
+                      [disabled]="isProcessing()"
+                      class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 cursor-pointer">
+                @if (isProcessing()) {
+                  <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Calculating Bill...</span>
+                } @else {
+                  <span>Generate Final Bill</span>
+                }
+              </button>
             }
           </div>
 
-          <div class="mt-6 pt-4 border-t-2 border-dashed border-slate-200 flex justify-between items-end">
-            <span class="font-bold text-slate-800 text-lg">Grand Total</span>
-            <span class="font-black text-3xl text-slate-900">
-              ₹{{ (selectedOrder()!.status === 'BILLED' || selectedOrder()!.status === 'COMPLETED' ? selectedOrder()!.grandTotal : selectedOrder()!.subTotal) | number:'1.2-2' }}
-            </span>
-          </div>
-        </div>
-      </div>
+          <!-- Payment Settlement (Available once billed or generated) -->
+          @if (selectedOrder()!.status === 'BILLED') {
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border-2 border-emerald-500 shadow-sm space-y-4 transition-colors">
+              <h3 class="font-black text-emerald-800 dark:text-emerald-300 text-sm uppercase tracking-wide flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span>Payment Settlement</span>
+              </h3>
 
-      <!-- Action Panel (Hidden if order is already COMPLETED or CANCELLED) -->
-      @if (currentFilter() === 'ACTIVE') {
-        <div class="p-6 bg-white border-t border-slate-200 shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.05)]">
-          @if (selectedOrder()!.status !== 'BILLED') {
-            <div class="flex gap-4 items-end">
-              <div class="w-1/3">
-                <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Apply Discount (₹)</label>
-                <input type="number" [ngModel]="discountInput()" (ngModelChange)="discountInput.set($event)" min="0"
-                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <!-- Payment Method Selector -->
+              <div class="grid grid-cols-3 gap-2">
+                <button (click)="paymentMethod.set('CASH')" 
+                        class="py-2.5 rounded-xl border text-xs font-bold transition-all text-center cursor-pointer"
+                        [ngClass]="paymentMethod() === 'CASH' ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-800 dark:text-emerald-200 shadow-xs' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'">
+                  💵 Cash
+                </button>
+                <button (click)="paymentMethod.set('CARD')" 
+                        class="py-2.5 rounded-xl border text-xs font-bold transition-all text-center cursor-pointer"
+                        [ngClass]="paymentMethod() === 'CARD' ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-800 dark:text-emerald-200 shadow-xs' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'">
+                  💳 Card
+                </button>
+                <button (click)="paymentMethod.set('UPI')" 
+                        class="py-2.5 rounded-xl border text-xs font-bold transition-all text-center cursor-pointer"
+                        [ngClass]="paymentMethod() === 'UPI' ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-800 dark:text-emerald-200 shadow-xs' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'">
+                  📱 UPI
+                </button>
               </div>
-              <button (click)="generateBill()" [disabled]="isProcessing()"
-                      class="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black rounded-xl transition-all shadow-lg shadow-blue-600/20">
-                Generate Final Bill
-              </button>
-            </div>
-          } @else {
-            <div class="flex flex-col gap-4">
-              <div class="flex gap-3">
-                <button (click)="paymentMethod.set('CASH')" [ngClass]="paymentMethod() === 'CASH' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'" class="flex-1 py-3 rounded-xl font-bold transition-colors border border-transparent">CASH</button>
-                <button (click)="paymentMethod.set('CARD')" [ngClass]="paymentMethod() === 'CARD' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'" class="flex-1 py-3 rounded-xl font-bold transition-colors border border-transparent">CARD</button>
-                <button (click)="paymentMethod.set('UPI')" [ngClass]="paymentMethod() === 'UPI' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'" class="flex-1 py-3 rounded-xl font-bold transition-colors border border-transparent">UPI</button>
-              </div>
-              <button (click)="settlePayment()" [disabled]="isProcessing()"
-                      class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-lg rounded-xl transition-all shadow-lg shadow-emerald-600/20 flex justify-center items-center gap-2">
+
+              <!-- Settle Button -->
+              <button (click)="settlePayment()" 
+                      [disabled]="isProcessing()"
+                      class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
                 @if (isProcessing()) {
-                  <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Processing Payment...</span>
+                } @else {
+                  <span>Settle ₹{{ selectedOrder()!.grandTotal | number:'1.2-2' }} via {{ paymentMethod() }}</span>
                 }
-                Confirm Payment (₹{{ selectedOrder()!.grandTotal | number:'1.2-2' }})
+              </button>
+
+              <button (click)="showReceiptModal.set(true)" 
+                      class="w-full py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                <svg class="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                <span>Print Bill Receipt</span>
               </button>
             </div>
           }
+
         </div>
-      }
+
+      </div>
     }
   </div>
+
 </div>
+
+<!-- ========================================== -->
+<!-- THERMAL RECEIPT PRINT MODAL -->
+<!-- ========================================== -->
+@if (showReceiptModal() && selectedOrder(); as order) {
+  <div class="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
+      
+      <!-- Receipt Header -->
+      <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-850 dark:bg-slate-800">
+        <h3 class="font-black text-sm text-slate-900 dark:text-white">Receipt Preview</h3>
+        <button (click)="showReceiptModal.set(false)" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Thermal Paper Body -->
+      <div class="p-6 font-mono text-xs text-slate-800 bg-white space-y-3" id="thermal-receipt">
+        <div class="text-center border-b border-dashed border-slate-300 pb-3">
+          <h2 class="text-base font-black tracking-widest uppercase">WildBar</h2>
+          <p class="text-[10px] text-slate-500 mt-0.5">Order Management System</p>
+          <div class="text-[10px] text-slate-400 mt-2">
+            Order #{{ order.orderNumber }}<br>
+            {{ order.orderType }} {{ order.tableNumber ? ('• Table ' + order.tableNumber) : '' }}
+          </div>
+        </div>
+
+        <!-- Items Table -->
+        <div class="divide-y divide-dashed divide-slate-200">
+          @for (item of order.items; track item.id) {
+            <div class="py-1.5 flex justify-between">
+              <div>
+                <span>{{ item.quantity }}x {{ item.itemName }}</span>
+              </div>
+              <span class="font-bold">₹{{ item.totalPrice | number:'1.2-2' }}</span>
+            </div>
+          }
+        </div>
+
+        <!-- Calculations -->
+        <div class="border-t border-dashed border-slate-300 pt-2 space-y-1">
+          <div class="flex justify-between">
+            <span>Subtotal:</span>
+            <span>₹{{ order.subTotal | number:'1.2-2' }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>{{ taxName() }} ({{ taxRate() * 100 }}%):</span>
+            <span>₹{{ order.taxAmount | number:'1.2-2' }}</span>
+          </div>
+          @if (order.discountAmount > 0) {
+            <div class="flex justify-between text-emerald-600">
+              <span>Discount:</span>
+              <span>-₹{{ order.discountAmount | number:'1.2-2' }}</span>
+            </div>
+          }
+          <div class="flex justify-between text-sm font-black pt-1.5 border-t border-slate-800">
+            <span>TOTAL:</span>
+            <span>₹{{ order.grandTotal | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <div class="text-center text-[10px] text-slate-400 border-t border-dashed border-slate-300 pt-3">
+          Thank you for dining with WildBar!<br>
+          Visit us again soon.
+        </div>
+      </div>
+
+      <!-- Print Button -->
+      <div class="p-4 bg-slate-50 dark:bg-slate-850 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 flex gap-2">
+        <button (click)="showReceiptModal.set(false)" class="flex-1 py-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl font-bold text-xs text-slate-700 dark:text-slate-200 cursor-pointer">Close</button>
+        <button (click)="printReceipt()" class="flex-1 py-2.5 bg-slate-900 dark:bg-blue-600 hover:bg-black dark:hover:bg-blue-500 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          <span>Print Receipt</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- MERGE / CLUB ORDERS MODAL -->
+<!-- ========================================== -->
+@if (showMergeModal()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-2xs">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+      
+      <!-- Modal Header -->
+      <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div>
+          <h3 class="font-black text-lg text-slate-900 dark:text-white">Club Orders into #{{ selectedOrder()?.orderNumber }}</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Combine all items from another active order into this single bill</p>
+        </div>
+        <button (click)="showMergeModal.set(false)" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-full cursor-pointer">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Orders Selection List -->
+      <div class="flex-1 overflow-y-auto space-y-2.5 pr-1">
+        @if (mergeableOrders().length === 0) {
+          <div class="py-12 text-center text-slate-400 dark:text-slate-500 text-xs">
+            <p class="font-bold text-sm text-slate-600 dark:text-slate-300">No other active orders to club</p>
+            <p class="mt-1">All other orders are already billed or cancelled.</p>
+          </div>
+        } @else {
+          <p class="text-xs font-bold text-slate-600 dark:text-slate-300">Select order to merge into this bill:</p>
+          @for (otherOrder of mergeableOrders(); track otherOrder.id) {
+            <div (click)="orderToMergeWith.set(otherOrder)"
+                 class="p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex justify-between items-center"
+                 [ngClass]="orderToMergeWith()?.id === otherOrder.id ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/30' : 'border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-600'">
+              <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                  <span class="font-black text-slate-900 dark:text-white text-sm">#{{ otherOrder.orderNumber }}</span>
+                  <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider"
+                        [ngClass]="otherOrder.orderType === 'DINE_IN' ? 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300' : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300'">
+                    {{ otherOrder.orderType === 'DINE_IN' ? ('Table ' + (otherOrder.tableNumber || '?')) : 'Takeaway' }}
+                  </span>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                  {{ otherOrder.items?.length || 0 }} items • Subtotal: <strong class="text-slate-800 dark:text-slate-200">₹{{ otherOrder.subTotal | number:'1.2-2' }}</strong>
+                </p>
+              </div>
+              
+              <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0"
+                   [ngClass]="orderToMergeWith()?.id === otherOrder.id ? 'border-amber-500 bg-amber-500 text-white' : 'border-slate-300 dark:border-slate-600'">
+                @if (orderToMergeWith()?.id === otherOrder.id) {
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Preview Summary -->
+      @if (orderToMergeWith(); as source) {
+        <div class="p-3.5 bg-amber-50 dark:bg-amber-950/50 rounded-2xl border border-amber-200 dark:border-amber-800/80 text-xs space-y-1 text-amber-900 dark:text-amber-200">
+          <div class="flex justify-between">
+            <span>Primary Order (#{{ selectedOrder()?.orderNumber }}):</span>
+            <span class="font-bold">₹{{ selectedOrder()?.subTotal | number:'1.2-2' }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Merging Order (#{{ source.orderNumber }}):</span>
+            <span class="font-bold">+₹{{ source.subTotal | number:'1.2-2' }}</span>
+          </div>
+          <div class="flex justify-between font-black text-sm pt-1.5 border-t border-amber-200 dark:border-amber-800">
+            <span>Combined Subtotal:</span>
+            <span class="text-emerald-600 dark:text-emerald-400">₹{{ (selectedOrder()!.subTotal + source.subTotal) | number:'1.2-2' }}</span>
+          </div>
+        </div>
+      }
+
+      <!-- Modal Footer -->
+      <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+        <button (click)="showMergeModal.set(false)" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs cursor-pointer">
+          Cancel
+        </button>
+        <button (click)="confirmMerge()" 
+                [disabled]="!orderToMergeWith() || isMerging()"
+                class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:cursor-not-allowed text-white rounded-xl font-bold text-xs shadow-md shadow-amber-500/20 transition-all flex items-center gap-1.5 cursor-pointer">
+          @if (isMerging()) {
+            <div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <span>Clubbing Bills...</span>
+          } @else {
+            <span>Club into Single Bill</span>
+          }
+        </button>
+      </div>
+
+    </div>
+  </div>
+}

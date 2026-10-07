@@ -7,6 +7,9 @@ import { MenuManagementComponent } from './components/menu-management/menu-manag
 import { PosTerminalComponent } from './components/pos/pos-terminal/pos-terminal';
 import { TableManagementComponent } from './components/table-management/table-management';
 import { OrdersBillingComponent } from './components/orders-billing/orders-billing';
+import { CustomerQrOrderComponent } from './components/customer-qr-order/customer-qr-order';
+import { KitchenDisplayComponent } from './components/kitchen-display/kitchen-display';
+import { BusinessAnalyticsComponent } from './components/business-analytics/business-analytics';
 
 export const routes: Routes = [
   { 
@@ -19,6 +22,12 @@ export const routes: Routes = [
     component: LoginComponent,
     canActivate: [publicGuard] // Prevents logged-in users from going back to login
   },
+  // Public Customer QR Ordering Route (No staff login required)
+  {
+    path: 'order/:qrToken',
+    component: CustomerQrOrderComponent
+  },
+  // Authenticated Staff Layout & Routes
   {
     path: '',
     component: LayoutComponent,
@@ -28,16 +37,35 @@ export const routes: Routes = [
         path: 'dashboard',
         component: Dashboard
       },
-       {
-        path: 'menu-management',
-        component: MenuManagementComponent
-      },{
+      {
+        path: 'business-analytics',
+        component: BusinessAnalyticsComponent
+      },
+      {
         path: 'pos-sale',
         component: PosTerminalComponent
       },
-      { path: 'tables', component: TableManagementComponent },
-      { path: 'billing', component: OrdersBillingComponent },
-      // Future routes like 'pos', 'menu' go here
+      {
+        path: 'pos',
+        redirectTo: 'pos-sale',
+        pathMatch: 'full'
+      },
+      {
+        path: 'kitchen',
+        component: KitchenDisplayComponent
+      },
+      {
+        path: 'tables',
+        component: TableManagementComponent
+      },
+      {
+        path: 'billing',
+        component: OrdersBillingComponent
+      },
+      {
+        path: 'menu-management',
+        component: MenuManagementComponent
+      }
     ]
   },
   { 

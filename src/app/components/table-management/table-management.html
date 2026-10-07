@@ -1,73 +1,121 @@
-<div class="h-full flex flex-col lg:flex-row gap-6 p-4 sm:p-6 lg:p-8 bg-slate-50 min-h-screen">
+<div class="h-full flex flex-col lg:flex-row gap-6 p-4 sm:p-6 lg:p-8 bg-slate-50 dark:bg-slate-950 min-h-screen font-sans text-slate-800 dark:text-slate-100 transition-colors duration-200">
   
   <!-- Left Column: Add Table Form -->
   <div class="w-full lg:w-1/3 flex flex-col">
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-      <div class="p-5 border-b border-slate-100 bg-slate-50">
-        <h2 class="text-lg font-bold text-slate-800">Add New Table</h2>
-        <p class="text-sm text-slate-500">Create a new table for the POS system</p>
+    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors">
+      <div class="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 dark:bg-slate-900">
+        <h2 class="text-lg font-black text-slate-800 dark:text-white">Add New Table</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Create a dining table with an auto-generated QR code</p>
       </div>
       
       <form [formGroup]="tableForm" (ngSubmit)="addTable()" class="p-5 space-y-4">
         <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wide">Table Number / Name</label>
-          <input type="text" formControlName="tableNumber" placeholder="e.g. T1, Booth 4" 
-                 class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all">
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1 uppercase tracking-wide">Table Number / Label</label>
+          <input type="text" formControlName="tableNumber" placeholder="e.g. T1, T2, Booth 4, Patio 1" 
+                 class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white dark:focus:bg-slate-800 transition-all">
         </div>
         
         <button type="submit" [disabled]="tableForm.invalid || isSubmitting()" 
-                class="w-full py-3 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+                class="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 cursor-pointer">
           @if (isSubmitting()) {
             <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            Creating...
+            <span>Creating...</span>
           } @else {
-            + Create Table
+            <span>+ Create Table & QR</span>
           }
         </button>
       </form>
     </div>
+
+    <!-- Quick Info Card -->
+    <div class="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/80 rounded-2xl p-5 mt-6 text-blue-900 dark:text-blue-200 space-y-2">
+      <div class="flex items-center gap-2 font-black text-sm text-blue-800 dark:text-blue-300">
+        <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span>QR Table Ordering</span>
+      </div>
+      <p class="text-xs text-blue-700 dark:text-blue-300/90 leading-relaxed">
+        Each table comes with a unique secure QR token. Customers scan the QR placed at their table using their phone to view the live menu and place orders straight to the kitchen without waiting.
+      </p>
+    </div>
   </div>
 
   <!-- Right Column: Table Floor Plan Grid -->
-  <div class="w-full lg:w-2/3 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
-    <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+  <div class="w-full lg:w-2/3 flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden min-h-[500px] transition-colors">
+    
+    <!-- Floor Plan Header & Filters -->
+    <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-50 dark:bg-slate-850 dark:bg-slate-900">
       <div>
-        <h2 class="text-xl font-bold text-slate-800">Floor Plan</h2>
-        <p class="text-sm text-slate-500">Live monitoring of table statuses</p>
+        <h2 class="text-xl font-black text-slate-800 dark:text-white">Restaurant Floor Plan</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Click any table to generate, preview, or print its QR card</p>
       </div>
-      <button (click)="loadTables()" class="p-2 text-slate-400 hover:text-blue-600 bg-white rounded-lg border border-slate-200 shadow-sm transition-colors" title="Refresh">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-      </button>
+
+      <div class="flex items-center gap-2">
+        <!-- Status Filter -->
+        <div class="flex bg-white dark:bg-slate-800 rounded-xl p-1 border border-slate-200 dark:border-slate-700 shadow-xs text-xs font-bold">
+          <button (click)="statusFilter.set('ALL')"
+                  class="px-3 py-1 rounded-lg transition-all cursor-pointer"
+                  [ngClass]="statusFilter() === 'ALL' ? 'bg-slate-900 dark:bg-slate-700 text-white' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+            All ({{ tables().length }})
+          </button>
+          <button (click)="statusFilter.set('AVAILABLE')"
+                  class="px-3 py-1 rounded-lg transition-all cursor-pointer"
+                  [ngClass]="statusFilter() === 'AVAILABLE' ? 'bg-emerald-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-400'">
+            Available
+          </button>
+          <button (click)="statusFilter.set('OCCUPIED')"
+                  class="px-3 py-1 rounded-lg transition-all cursor-pointer"
+                  [ngClass]="statusFilter() === 'OCCUPIED' ? 'bg-amber-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:text-amber-700 dark:hover:text-amber-400'">
+            Occupied
+          </button>
+        </div>
+
+        <!-- Refresh Button -->
+        <button (click)="loadTables()" class="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs transition-colors cursor-pointer" title="Refresh">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+      </div>
     </div>
 
-    <div class="flex-1 p-6 bg-slate-50/50 overflow-y-auto">
+    <!-- Tables Grid -->
+    <div class="flex-1 p-6 bg-slate-50/50 dark:bg-slate-950/40 overflow-y-auto">
       @if (isLoading()) {
-        <div class="flex justify-center py-12"><div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>
-      } @else if (tables().length === 0) {
-        <div class="flex flex-col items-center justify-center py-16 text-slate-400">
+        <div class="flex justify-center py-16"><div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>
+      } @else if (filteredTables().length === 0) {
+        <div class="flex flex-col items-center justify-center py-20 text-slate-400 dark:text-slate-500">
           <svg class="w-16 h-16 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
-          <p class="text-sm font-medium">No tables exist yet. Create one to get started.</p>
+          <p class="text-sm font-medium">No tables found.</p>
         </div>
       } @else {
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          @for (table of tables(); track table.id) {
-            <div class="relative bg-white aspect-square rounded-2xl border flex flex-col items-center justify-center p-4 shadow-sm"
+          @for (table of filteredTables(); track table.id) {
+            <div (click)="openQrModal(table)"
+                 class="group relative bg-white dark:bg-slate-800 aspect-square rounded-2xl border-2 flex flex-col items-center justify-between p-4 shadow-xs transition-all hover:shadow-md cursor-pointer active:scale-98"
                  [ngClass]="{
-                   'border-emerald-200': table.status === 'AVAILABLE',
-                   'border-amber-200': table.status === 'OCCUPIED'
+                   'border-emerald-200 dark:border-emerald-800/80 hover:border-emerald-400': table.status === 'AVAILABLE',
+                   'border-amber-200 dark:border-amber-800/80 hover:border-amber-400': table.status === 'OCCUPIED'
                  }">
               
-              <!-- QR Token Icon Placeholder -->
-              <div class="absolute top-3 right-3 text-slate-300 hover:text-slate-500 cursor-pointer" [title]="'QR Token: ' + table.qrToken">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+              <!-- QR Code Icon Top Right -->
+              <div class="w-full flex justify-end">
+                <span class="p-1 rounded-md text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" title="View Table QR Code">
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+                  </svg>
+                </span>
               </div>
 
-              <span class="text-3xl font-black mb-2"
-                    [ngClass]="table.status === 'AVAILABLE' ? 'text-emerald-700' : 'text-amber-700'">
-                {{ table.tableNumber }}
-              </span>
-              <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md"
-                    [ngClass]="table.status === 'AVAILABLE' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'">
+              <!-- Table Number -->
+              <div class="text-center">
+                <span class="text-3xl font-black block leading-none"
+                      [ngClass]="table.status === 'AVAILABLE' ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'">
+                  {{ table.tableNumber }}
+                </span>
+                <span class="text-[10px] text-slate-400 dark:text-slate-500 font-bold block mt-1">Click for QR</span>
+              </div>
+
+              <!-- Status Badge -->
+              <span class="text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full"
+                    [ngClass]="table.status === 'AVAILABLE' ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300'">
                 {{ table.status }}
               </span>
             </div>
@@ -76,4 +124,72 @@
       }
     </div>
   </div>
+
 </div>
+
+<!-- ========================================== -->
+<!-- TABLE QR CODE MODAL & PRINTABLE CARD -->
+<!-- ========================================== -->
+@if (showQrModal() && selectedTableForQr(); as table) {
+  <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-850 dark:bg-slate-800">
+        <div>
+          <h3 class="font-black text-lg text-slate-900 dark:text-white">Table {{ table.tableNumber }} QR Code</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Scan to order from this table</p>
+        </div>
+        <button (click)="showQrModal.set(false)" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 bg-white dark:bg-slate-700 rounded-full shadow-xs cursor-pointer">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Printable QR Card Body -->
+      <div class="p-6 flex flex-col items-center text-center bg-white dark:bg-slate-900" id="printable-qr-card">
+        
+        <!-- Table Card Header -->
+        <div class="w-full bg-gradient-to-tr from-slate-900 to-indigo-900 text-white rounded-2xl p-4 shadow-sm mb-5">
+          <div class="text-xs uppercase tracking-widest font-bold text-indigo-300">WildBar Restaurant</div>
+          <div class="text-2xl font-black mt-0.5">TABLE {{ table.tableNumber }}</div>
+          <div class="text-[11px] text-slate-300 font-medium mt-1">Scan with any smartphone camera to order</div>
+        </div>
+
+        <!-- Visual Scannable QR Code -->
+        <div class="p-4 bg-white rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-inner mb-4 flex items-center justify-center">
+          <img [src]="getQrImageUrl(table.qrToken)" 
+               [alt]="'QR Code for Table ' + table.tableNumber"
+               class="w-56 h-56 object-contain rounded-lg">
+        </div>
+
+        <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs font-medium">
+          Point phone camera at this QR code to view live menu, select items, and place kitchen orders.
+        </p>
+
+        <!-- Direct Link Input -->
+        <div class="w-full mt-4 flex items-center gap-2 bg-slate-50 dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-left">
+          <input type="text" readonly [value]="getTableOrderUrl(table.qrToken)" 
+                 class="flex-1 bg-transparent text-xs text-slate-600 dark:text-slate-300 focus:outline-none font-mono truncate">
+          <button (click)="copyQrLink(table.qrToken)" class="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 shrink-0 cursor-pointer">
+            Copy
+          </button>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="p-5 bg-slate-50 dark:bg-slate-850 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-800 flex gap-2">
+        <a [href]="getTableOrderUrl(table.qrToken)" target="_blank"
+           class="flex-1 py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-xl font-bold text-xs text-center flex items-center justify-center gap-1.5 transition-all">
+          <svg class="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          <span>Open Customer View</span>
+        </a>
+        <button (click)="printQrCard()" 
+                class="flex-1 py-3 bg-slate-900 dark:bg-blue-600 hover:bg-black dark:hover:bg-blue-500 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          <span>Print QR Card</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+}

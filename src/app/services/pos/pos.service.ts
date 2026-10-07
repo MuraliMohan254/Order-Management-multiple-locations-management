@@ -2,21 +2,23 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { OrderItemRequest, OrderResponse, TableResponse } from '../../models/pos/pos.models';
+import { 
+  OrderItemRequest, 
+  OrderResponse, 
+  TableResponse, 
+  PaymentResponse, 
+  KitchenTicketResponse,
+  PagedResponse
+} from '../../models/pos/pos.models';
 
 @Injectable({ providedIn: 'root' })
 export class PosService {
   private http = inject(HttpClient);
-  private baseUrl = `${environment.apiUrl}/orders`; // Base route for orders
+  private baseUrl = `${environment.apiUrl}/orders`;
 
-  // Create Walk-in / Take-Away Order
+  // --- Orders Creation & Modification ---
   createTakeAwayOrder(items: OrderItemRequest[]): Observable<OrderResponse> {
     return this.http.post<OrderResponse>(`${this.baseUrl}/take-away`, items);
-  }
-
-  // Create / Append to Table Order
-  appendItemsToOrder(orderId: string, items: OrderItemRequest[]): Observable<OrderResponse> {
-    return this.http.post<OrderResponse>(`${this.baseUrl}/${orderId}/items`, items);
   }
 
   createPosDineInOrder(tableId: string, items: OrderItemRequest[]): Observable<OrderResponse> {
@@ -24,7 +26,54 @@ export class PosService {
     return this.http.post<OrderResponse>(`${this.baseUrl}/dine-in`, items, { params });
   }
 
-  // Generate Bill
+  appendItemsToOrder(orderId: string, items: OrderItemRequest[]): Observable<OrderResponse> {
+    return this.http.post<OrderResponse>(`${this.baseUrl}/${orderId}/items`, items);
+  }
+
+  getOrderById(orderId: string): Observable<OrderResponse> {
+    return this.http.get<OrderResponse>(`${this.baseUrl}/${orderId}`);
+  }
+
+  getPagedOrders(options?: {
+    statuses?: string[];
+    orderType?: string;
+    search?: string;
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDirection?: string;
+  }): Observable<PagedResponse<OrderResponse>> {
+    let params = new HttpParams();
+    if (options?.statuses && options.statuses.length > 0) {
+      options.statuses.forEach(status => {
+        params = params.append('statuses', status);
+      });
+    }
+    if (options?.orderType) params = params.set('orderType', options.orderType);
+    if (options?.search && options.search.trim()) params = params.set('search', options.search.trim());
+    if (options?.page !== undefined) params = params.set('page', options.page.toString());
+    if (options?.size !== undefined) params = params.set('size', options.size.toString());
+    if (options?.sortBy) params = params.set('sortBy', options.sortBy);
+    if (options?.sortDirection) params = params.set('sortDirection', options.sortDirection);
+
+    return this.http.get<PagedResponse<OrderResponse>>(`${this.baseUrl}/paged`, { params });
+  }
+
+  getOrders(statuses?: string[]): Observable<OrderResponse[]> {
+    let params = new HttpParams();
+    if (statuses && statuses.length > 0) {
+      statuses.forEach(status => {
+        params = params.append('statuses', status);
+      });
+    }
+    return this.http.get<OrderResponse[]>(this.baseUrl, { params });
+  }
+
+  updateOrderStatus(orderId: string, status: string): Observable<OrderResponse> {
+    const params = new HttpParams().set('status', status);
+    return this.http.put<OrderResponse>(`${this.baseUrl}/${orderId}/status`, { status }, { params });
+  }
+
   generateBill(orderId: string, discount?: number): Observable<OrderResponse> {
     let params = new HttpParams();
     if (discount !== undefined && discount > 0) {
@@ -33,7 +82,6 @@ export class PosService {
     return this.http.post<OrderResponse>(`${this.baseUrl}/${orderId}/bill`, null, { params });
   }
 
-  // Settle Payment
   settlePayment(orderId: string, method: string, amount: number): Observable<PaymentResponse> {
     const params = new HttpParams()
       .set('method', method)
@@ -41,17 +89,25 @@ export class PosService {
     return this.http.post<PaymentResponse>(`${this.baseUrl}/${orderId}/pay`, null, { params });
   }
 
-  // Void an Item from Order
   voidOrderItem(orderId: string, orderItemId: string): Observable<OrderResponse> {
     return this.http.delete<OrderResponse>(`${this.baseUrl}/${orderId}/items/${orderItemId}`);
   }
 
-  // Cancel Entire Order
   cancelOrder(orderId: string): Observable<OrderResponse> {
     return this.http.put<OrderResponse>(`${this.baseUrl}/${orderId}/cancel`, null);
   }
-  
-  // Table Management (Mapped from your TransactionController)
+
+  mergeOrders(targetOrderId: string, sourceOrderId: string): Observable<OrderResponse> {
+    const params = new HttpParams().set('sourceOrderId', sourceOrderId);
+    return this.http.post<OrderResponse>(`${this.baseUrl}/${targetOrderId}/merge`, null, { params });
+  }
+
+  // --- Kitchen Display System ---
+  getActiveKitchenTickets(): Observable<KitchenTicketResponse[]> {
+    return this.http.get<KitchenTicketResponse[]>(`${this.baseUrl}/kitchen/active`);
+  }
+
+  // --- Table Management ---
   createTable(tableNumber: string): Observable<TableResponse> {
     const params = new HttpParams().set('tableNumber', tableNumber);
     return this.http.post<TableResponse>(`${environment.apiUrl}/tables`, null, { params });
@@ -59,5 +115,26 @@ export class PosService {
 
   getTables(): Observable<TableResponse[]> {
     return this.http.get<TableResponse[]>(`${environment.apiUrl}/tables`);
+  }
+
+  // --- Public Customer QR Ordering APIs ---
+  getTableByQrToken(qrToken: string): Observable<TableResponse> {
+    return this.http.get<TableResponse>(`${environment.apiUrl}/public/table/${qrToken}`);
+  }
+
+  getActiveOrderByQrToken(qrToken: string): Observable<OrderResponse> {
+    return this.http.get<OrderResponse>(`${environment.apiUrl}/public/table/${qrToken}/active-order`);
+  }
+
+  processQrOrder(qrToken: string, items: OrderItemRequest[]): Observable<OrderResponse> {
+    return this.http.post<OrderResponse>(`${environment.apiUrl}/public/qr-order/${qrToken}`, items);
+  }
+
+  getPublicOrderById(orderId: string): Observable<OrderResponse> {
+    return this.http.get<OrderResponse>(`${environment.apiUrl}/public/orders/${orderId}`);
+  }
+
+  getAppConfig(): Observable<{ taxRate: number; taxName: string; restaurantName: string }> {
+    return this.http.get<{ taxRate: number; taxName: string; restaurantName: string }>(`${environment.apiUrl}/public/config`);
   }
 }

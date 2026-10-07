@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
+import { AlertService } from '../../services/alert.service';
 import { AuthService } from '../../services/auth.service';
 import { SharedService } from '../../services/shared';
 
@@ -17,7 +17,7 @@ export class LoginComponent {
   private authService = inject(AuthService);
   public sharedService = inject(SharedService);
   private router = inject(Router);
-  private toastr = inject(ToastrService);
+  private alertService = inject(AlertService);
   
   isLoading = signal(false);
   showPassword = signal(false);
@@ -45,14 +45,14 @@ export class LoginComponent {
     // Connecting to actual backend auth service configured earlier
     this.authService.login({ username, password }).subscribe({
       next: () => {
-        this.toastr.success(`Welcome back to ${this.sharedService.appName}`, 'Login Successful');
+        this.alertService.success(`Welcome back to ${this.sharedService.appName}`, 'Login Successful');
         this.router.navigate(['/dashboard']);
       },
       error: (err) => {
         this.isLoading.set(false);
         const errorMsg = err.error?.message || 'Invalid username or password';
         this.errorMessage.set(errorMsg);
-        this.toastr.error(errorMsg, 'Authentication Failed');
+        this.alertService.error(errorMsg, 'Authentication Failed');
       }
     });
   }

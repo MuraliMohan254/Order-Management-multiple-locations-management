@@ -46,4 +46,9 @@ export class MenuService {
   deleteItem(id: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/items/${id}`);
   }
+
+  searchAllItems(search: string): Observable<ItemResponse[]> {
+    const params = new HttpParams().set('search', search);
+    return this.http.get<ItemResponse[]>(`${this.baseUrl}/items`, { params });
+  }
 }

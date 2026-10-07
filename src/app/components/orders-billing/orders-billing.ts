@@ -1,78 +1,184 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ToastrService } from 'ngx-toastr';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { AlertService } from '../../services/alert.service';
 import { BillingService } from '../../services/billing/billing.service';
+import { PosService } from '../../services/pos/pos.service';
 import { OrderResponse } from '../../models/pos/pos.models';
+import { InfiniteScrollDirective } from '../../shared/directives/infinite-scroll.directive';
 
 @Component({
   selector: 'app-orders-billing',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, InfiniteScrollDirective],
   templateUrl: './orders-billing.html'
 })
-export class OrdersBillingComponent implements OnInit {
+export class OrdersBillingComponent implements OnInit, OnDestroy {
   private billingService = inject(BillingService);
-  private toastr = inject(ToastrService);
+  private posService = inject(PosService);
+  private alertService = inject(AlertService);
 
+  // Backend Paginated Orders List
   orders = signal<OrderResponse[]>([]);
   selectedOrder = signal<OrderResponse | null>(null);
   
-  // UI Filter State
-  currentFilter = signal<'ACTIVE' | 'COMPLETED' | 'CANCELLED'>('ACTIVE');
+  // UI Filter & Search State
+  currentFilter = signal<'ACTIVE' | 'BILLED' | 'CANCELLED'>('ACTIVE');
+  searchQuery = signal<string>('');
+  private searchSubject = new Subject<string>();
+  private searchSubscription?: Subscription;
+
+  // Pagination & Infinite Scroll State
+  currentPage = signal<number>(0);
+  pageSize = signal<number>(20);
+  totalElements = signal<number>(0);
+  isLastPage = signal<boolean>(false);
+  isLoading = signal<boolean>(false);
+  isLoadingMore = signal<boolean>(false);
+
+  // Order Clubbing / Merging State
+  showMergeModal = signal<boolean>(false);
+  orderToMergeWith = signal<OrderResponse | null>(null);
+  isMerging = signal<boolean>(false);
+
+  mergeableOrders = computed(() => {
+    const current = this.selectedOrder();
+    if (!current) return [];
+    return this.orders().filter(o => 
+      o.id !== current.id && o.status !== 'BILLED' && o.status !== 'CANCELLED'
+    );
+  });
   
-  isLoading = signal(false);
   isProcessing = signal(false);
   
   discountInput = signal<number>(0);
   paymentMethod = signal<'CASH' | 'CARD' | 'UPI'>('CASH');
+  showReceiptModal = signal(false);
+
+  taxRate = signal<number>(0.05);
+  taxName = signal<string>('GST');
 
   ngOnInit() {
-    this.loadOrders();
+    this.posService.getAppConfig().subscribe({
+      next: (cfg) => {
+        if (cfg) {
+          if (cfg.taxRate !== undefined) this.taxRate.set(Number(cfg.taxRate));
+          if (cfg.taxName) this.taxName.set(cfg.taxName);
+        }
+      },
+      error: () => {}
+    });
+
+    // Debounced Backend Search (350ms)
+    this.searchSubscription = this.searchSubject.pipe(
+      debounceTime(350),
+      distinctUntilChanged()
+    ).subscribe(query => {
+      this.searchQuery.set(query);
+      this.resetAndLoadOrders();
+    });
+
+    // Initial backend fetch
+    this.resetAndLoadOrders();
   }
 
-  setFilter(filter: 'ACTIVE' | 'COMPLETED' | 'CANCELLED') {
+  ngOnDestroy() {
+    this.searchSubscription?.unsubscribe();
+  }
+
+  onSearchInput(value: string) {
+    this.searchSubject.next(value);
+  }
+
+  clearSearch() {
+    this.searchQuery.set('');
+    this.searchSubject.next('');
+  }
+
+  setFilter(filter: 'ACTIVE' | 'BILLED' | 'CANCELLED') {
     this.currentFilter.set(filter);
-    this.selectedOrder.set(null); // Clear selection on filter change
-    this.loadOrders();
+    this.selectedOrder.set(null);
+    this.resetAndLoadOrders();
   }
 
-  loadOrders() {
-    this.isLoading.set(true);
-    
-    // Map UI filter to Backend Enum Array
-    let queryStatuses: string[] = [];
+  private getQueryStatuses(): string[] {
     if (this.currentFilter() === 'ACTIVE') {
-      queryStatuses = ['SOFT_ORDER', 'CONFIRMED', 'BILLED'];
-    } else if (this.currentFilter() === 'COMPLETED') {
-      queryStatuses = ['COMPLETED']; // Assuming you have a COMPLETED status post-payment
+      return ['SOFT_ORDER', 'CONFIRMED', 'PREPARING', 'READY', 'SERVED'];
+    } else if (this.currentFilter() === 'BILLED') {
+      return ['BILLED'];
     } else if (this.currentFilter() === 'CANCELLED') {
-      queryStatuses = ['CANCELLED'];
+      return ['CANCELLED'];
+    }
+    return [];
+  }
+
+  resetAndLoadOrders() {
+    this.currentPage.set(0);
+    this.isLastPage.set(false);
+    this.loadOrdersPage(0, false);
+  }
+
+  loadOrdersPage(page: number, append: boolean = false) {
+    if (append) {
+      this.isLoadingMore.set(true);
+    } else {
+      this.isLoading.set(true);
     }
 
-    this.billingService.getOrders(queryStatuses).subscribe({
-      next: (data) => {
-        this.orders.set(data);
-        if (this.selectedOrder()) {
-          const updated = data.find(o => o.id === this.selectedOrder()!.id);
-          this.selectedOrder.set(updated || null);
+    const statuses = this.getQueryStatuses();
+    const search = this.searchQuery();
+
+    this.billingService.getPagedOrders({
+      statuses,
+      search,
+      page,
+      size: this.pageSize(),
+      sortBy: 'createdAt',
+      sortDirection: 'DESC'
+    }).subscribe({
+      next: (res) => {
+        if (append) {
+          this.orders.update(prev => [...prev, ...res.content]);
+          this.isLoadingMore.set(false);
+        } else {
+          this.orders.set(res.content);
+          this.isLoading.set(false);
+          // Auto-select first order if none selected or if selected order not in new results
+          if (res.content.length > 0 && !this.selectedOrder()) {
+            this.selectOrder(res.content[0].id);
+          } else if (res.content.length === 0) {
+            this.selectedOrder.set(null);
+          }
         }
-        this.isLoading.set(false);
+
+        this.currentPage.set(res.pageNumber);
+        this.totalElements.set(res.totalElements);
+        this.isLastPage.set(res.last);
       },
       error: () => {
-        this.toastr.error('Failed to load orders');
         this.isLoading.set(false);
+        this.isLoadingMore.set(false);
+        this.alertService.error('Failed to load orders from server');
       }
     });
+  }
+
+  // Triggered when user reaches near the bottom of the orders container
+  loadMoreOrders() {
+    if (this.isLoading() || this.isLoadingMore() || this.isLastPage()) return;
+    const nextPage = this.currentPage() + 1;
+    this.loadOrdersPage(nextPage, true);
   }
 
   selectOrder(orderId: string) {
     this.billingService.getOrderById(orderId).subscribe({
       next: (order) => {
         this.selectedOrder.set(order);
-        this.discountInput.set(0); 
+        this.discountInput.set(order.discountAmount || 0); 
       },
-      error: () => this.toastr.error('Failed to fetch order details')
+      error: () => this.alertService.error('Failed to fetch order details')
     });
   }
 
@@ -82,34 +188,111 @@ export class OrdersBillingComponent implements OnInit {
     
     this.isProcessing.set(true);
     this.billingService.generateBill(order.id, this.discountInput()).subscribe({
-      next: () => {
-        this.toastr.success('Bill generated successfully');
-        this.loadOrders(); 
+      next: (updatedOrder) => {
+        this.alertService.success(`Bill generated for ${updatedOrder.orderNumber}`);
+        this.selectedOrder.set(updatedOrder);
+        this.resetAndLoadOrders(); 
         this.isProcessing.set(false);
       },
       error: () => {
-        this.toastr.error('Failed to generate bill');
+        this.alertService.error('Failed to generate bill');
         this.isProcessing.set(false);
+      }
+    });
+  }
+
+  openMergeModal() {
+    this.orderToMergeWith.set(null);
+    this.showMergeModal.set(true);
+  }
+
+  confirmMerge() {
+    const target = this.selectedOrder();
+    const source = this.orderToMergeWith();
+    if (!target || !source) return;
+
+    this.isMerging.set(true);
+    this.billingService.mergeOrders(target.id, source.id).subscribe({
+      next: (merged) => {
+        this.alertService.success(`Successfully clubbed Order #${source.orderNumber} into #${target.orderNumber}!`, 'Orders Clubbed');
+        this.selectedOrder.set(merged);
+        this.showMergeModal.set(false);
+        this.isMerging.set(false);
+        this.resetAndLoadOrders();
+      },
+      error: (err) => {
+        this.alertService.error(err?.error?.error || 'Failed to club orders');
+        this.isMerging.set(false);
       }
     });
   }
 
   settlePayment() {
     const order = this.selectedOrder();
-    if (!order || order.status !== 'BILLED') return;
+    if (!order) return;
 
     this.isProcessing.set(true);
-    this.billingService.settlePayment(order.id, this.paymentMethod(), order.grandTotal).subscribe({
+    const amountToPay = order.grandTotal > 0 ? order.grandTotal : order.subTotal;
+    
+    this.billingService.settlePayment(order.id, this.paymentMethod(), amountToPay).subscribe({
       next: () => {
-        this.toastr.success(`Payment successful!`);
-        this.selectedOrder.set(null);
-        this.loadOrders(); // Auto-refreshes to remove the paid order from the ACTIVE tab
+        this.alertService.success(`Payment of ₹${amountToPay.toFixed(2)} settled via ${this.paymentMethod()}!`);
+        this.showReceiptModal.set(true);
+        this.resetAndLoadOrders();
         this.isProcessing.set(false);
       },
       error: () => {
-        this.toastr.error('Payment failed');
+        this.alertService.error('Payment failed');
         this.isProcessing.set(false);
       }
     });
+  }
+
+  async voidItem(orderItemId: string) {
+    const order = this.selectedOrder();
+    if (!order) return;
+
+    const confirmed = await this.alertService.confirm({
+      title: 'Void Item?',
+      text: 'Are you sure you want to remove this item from the order?',
+      confirmButtonText: 'Yes, void item',
+      isDestructive: true
+    });
+    if (!confirmed) return;
+
+    this.posService.voidOrderItem(order.id, orderItemId).subscribe({
+      next: (updated) => {
+        this.alertService.success('Item voided from order');
+        this.selectedOrder.set(updated);
+        this.resetAndLoadOrders();
+      },
+      error: () => this.alertService.error('Failed to void item')
+    });
+  }
+
+  async cancelEntireOrder() {
+    const order = this.selectedOrder();
+    if (!order) return;
+
+    const confirmed = await this.alertService.confirm({
+      title: `Cancel Order ${order.orderNumber}?`,
+      text: 'This will cancel the entire order and free the assigned table.',
+      confirmButtonText: 'Yes, cancel order',
+      isDestructive: true
+    });
+    if (!confirmed) return;
+
+    this.posService.cancelOrder(order.id).subscribe({
+      next: (updated) => {
+        this.alertService.warning(`Order ${order.orderNumber} cancelled`);
+        this.selectedOrder.set(null);
+        this.resetAndLoadOrders();
+      },
+      error: () => this.alertService.error('Failed to cancel order')
+    });
+  }
+
+  printReceipt() {
+    window.print();
   }
 }

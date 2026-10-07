@@ -1,36 +1,74 @@
 export interface OrderItemRequest {
-  itemId: string; //
-  quantity: number; //[cite: 3]
-  notes?: string; //[cite: 3]
+  itemId: string;
+  quantity: number;
+  notes?: string;
+}
+
+export interface OrderItemDetailResponse {
+  id: string;
+  itemId: string;
+  itemName: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  notes?: string;
 }
 
 export interface OrderResponse {
-  id: string; //
-  orderNumber: string; //[cite: 4]
-  orderType: string; //[cite: 4]
-  status: string; //[cite: 4]
-  subTotal: number; //[cite: 4]
-  taxAmount: number; //[cite: 4]
-  discountAmount: number; //[cite: 4]
-  grandTotal: number; //[cite: 4]
+  id: string;
+  orderNumber: string;
+  orderType: 'DINE_IN' | 'TAKE_AWAY' | string;
+  status: 'SOFT_ORDER' | 'CONFIRMED' | 'PREPARING' | 'READY' | 'SERVED' | 'BILLED' | 'CANCELLED' | string;
+  kitchenStatus?: string;
+  tableId?: string;
+  tableNumber?: string;
+  subTotal: number;
+  taxAmount: number;
+  discountAmount: number;
+  grandTotal: number;
+  createdAt?: string;
+  items?: OrderItemDetailResponse[];
+}
+
+export interface PagedResponse<T> {
+  content: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+  first: boolean;
+  empty: boolean;
 }
 
 export interface TableResponse {
-  id: string; //[cite: 7]
-  tableNumber: string; //[cite: 7]
-  qrToken: string; //[cite: 7]
-  status: string; //[cite: 7]
+  id: string;
+  tableNumber: string;
+  qrToken: string;
+  status: 'AVAILABLE' | 'OCCUPIED' | string;
 }
 
 export interface PaymentResponse {
-  id: string; //[cite: 5]
-  orderId: string; //[cite: 5]
-  amountPaid: number; //[cite: 5]
-  paymentMethod: string; //[cite: 5]
-  paymentStatus: string; //[cite: 5]
+  id: string;
+  orderId: string;
+  amountPaid: number;
+  paymentMethod: string;
+  paymentStatus: string;
 }
 
-// Internal UI Cart Model (Not sent to backend directly)
+export interface KitchenTicketResponse {
+  orderItemId: string;
+  orderId?: string;
+  orderNumber: string;
+  tableName: string;
+  itemName: string;
+  quantity: number;
+  notes?: string;
+  orderTime: string;
+  status?: string;
+}
+
+// Internal UI Cart Model
 export interface CartItem {
   itemId: string;
   name: string;

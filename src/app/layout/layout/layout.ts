@@ -3,15 +3,17 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { SidebarComponent } from '../sidebar/sidebar';
 import { AuthService } from '../../services/auth.service';
+import { ThemeService } from '../../services/theme.service';
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule,SidebarComponent],
+  imports: [CommonModule, RouterModule, SidebarComponent],
   templateUrl: 'layout.html',
 })
 export class LayoutComponent {
   private authService = inject(AuthService);
+  public themeService = inject(ThemeService);
 
   isCollapsed = signal(false);
   isMobileOpen = signal(false);
