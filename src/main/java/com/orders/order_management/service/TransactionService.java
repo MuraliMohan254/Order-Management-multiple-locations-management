@@ -226,4 +226,53 @@ public class TransactionService {
                         .build())
                 .toList();
     }
+    // --- 1. Fetch all tables for the POS Grid ---
+    public List<TableResponse> getAllTables() {
+        return tableRepository.findAll().stream()
+                .map(this::mapToTableResponse)
+                .toList();
+    }
+
+    // --- 2. Process Cashier Dine-In Order ---
+    public OrderResponse createPosDineInOrder(UUID tableId, List<OrderItemRequest> itemRequests) {
+        RestaurantTable table = tableRepository.findById(tableId)
+                .orElseThrow(() -> new IllegalArgumentException("Table not found"));
+
+        // Check if there is already an active order for this table
+        Order order = orderRepository.findByTableIdAndStatusIn(
+                table.getId(), List.of(OrderStatus.SOFT_ORDER, OrderStatus.CONFIRMED)).orElse(null);
+
+        // If no active order exists, create a new one and occupy the table
+        if (order == null) {
+            order = Order.builder()
+                    .orderNumber("POS-" + System.currentTimeMillis())
+                    .orderType(OrderType.DINE_IN)
+                    .status(OrderStatus.CONFIRMED) // Cashier orders bypass SOFT_ORDER directly to CONFIRMED
+                    .table(table)
+                    .subTotal(BigDecimal.ZERO)
+                    .build();
+            table.setStatus(TableStatus.OCCUPIED);
+            tableRepository.save(table);
+        }
+
+        // Append the new items to the order
+        appendItemsToOrder(order, itemRequests);
+        return mapToOrderResponse(orderRepository.save(order));
+    }
+
+    public OrderResponse getOrderById(UUID orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+        return mapToOrderResponse(order);
+    }
+    public List<OrderResponse> getOrders(List<OrderStatus> statuses) {
+        // If no status is provided, default to active restaurant workflows
+        if (statuses == null || statuses.isEmpty()) {
+            statuses = List.of(OrderStatus.SOFT_ORDER, OrderStatus.CONFIRMED, OrderStatus.BILLED);
+        }
+
+        return orderRepository.findByStatusIn(statuses).stream()
+                .map(this::mapToOrderResponse)
+                .toList();
+    }
 }

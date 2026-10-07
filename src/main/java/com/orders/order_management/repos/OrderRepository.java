@@ -27,4 +27,6 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     AND created_at >= CURRENT_DATE - INTERVAL '30 days'
 """, nativeQuery = true)
     Double getAverageTurnaroundTimeMinutesLast30Days();
+
+    List<Order> findByStatusIn(List<OrderStatus> statuses);
 }

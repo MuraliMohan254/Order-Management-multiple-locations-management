@@ -91,4 +91,31 @@ public class TransactionController {
             @PathVariable UUID orderItemId) {
         return ResponseEntity.ok(transactionService.voidOrderItem(orderId, orderItemId));
     }
+
+    // ==========================================
+    // TABLE & POS DINE-IN ENDPOINTS
+    // ==========================================
+
+    @GetMapping("/tables")
+    public ResponseEntity<List<TableResponse>> getTables() {
+        return ResponseEntity.ok(transactionService.getAllTables());
+    }
+
+    @PostMapping("/orders/dine-in")
+    public ResponseEntity<OrderResponse> createPosDineInOrder(
+            @RequestParam UUID tableId,
+            @Valid @RequestBody List<OrderItemRequest> items) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(transactionService.createPosDineInOrder(tableId, items));
+    }
+    @GetMapping("/orders/{orderId}")
+    public ResponseEntity<OrderResponse> getOrderById(@PathVariable UUID orderId) {
+        return ResponseEntity.ok(transactionService.getOrderById(orderId));
+    }
+
+    @GetMapping("/orders")
+    public ResponseEntity<List<OrderResponse>> getOrders(
+            @RequestParam(required = false) List<OrderStatus> statuses) {
+        return ResponseEntity.ok(transactionService.getOrders(statuses));
+    }
 }
