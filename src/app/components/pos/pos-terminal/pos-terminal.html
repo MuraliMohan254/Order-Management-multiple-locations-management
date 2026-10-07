@@ -1,0 +1,165 @@
+<div class="h-screen w-full flex bg-slate-100 overflow-hidden font-sans">
+  
+  <!-- Left Side: Menu Selection -->
+  <div class="flex-1 flex flex-col h-full overflow-hidden border-r border-slate-200">
+    
+    <!-- Top Category Tabs -->
+    <div class="bg-white shadow-sm z-10 px-4 py-3 flex gap-3 overflow-x-auto no-scrollbar border-b border-slate-200">
+      @for (cat of categories(); track cat.id) {
+        <button (click)="selectCategory(cat.id)"
+                class="whitespace-nowrap px-5 py-2.5 rounded-full font-bold text-sm transition-all shadow-sm"
+                [ngClass]="activeCategory() === cat.id ? 'bg-blue-600 text-white shadow-blue-600/20' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'">
+          {{ cat.name }}
+        </button>
+      }
+    </div>
+
+    <!-- Items Grid -->
+    <div class="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50">
+      @if (isLoadingMenu()) {
+        <div class="flex justify-center py-12"><div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>
+      } @else if (menuItems().length === 0) {
+        <div class="text-center py-12 text-slate-400 font-medium">No active items in this category.</div>
+      } @else {
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+          @for (item of menuItems(); track item.id) {
+            <button (click)="addToCart(item)"
+                    class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all text-left flex flex-col justify-between aspect-square active:scale-95 group">
+              <span class="font-bold text-slate-800 text-lg leading-tight group-hover:text-blue-700 transition-colors">{{ item.name }}</span>
+              <span class="text-lg font-black text-slate-900 mt-2">₹{{ item.price | number:'1.2-2' }}</span>
+            </button>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Right Side: Active Cart -->
+  <div class="w-96 flex flex-col bg-white h-full shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] z-20">
+    
+    <!-- Order Type Selector -->
+    <div class="p-4 border-b border-slate-100 flex gap-2 bg-slate-50/50">
+  <button (click)="orderType.set('TAKE_AWAY'); selectedTable.set(null)"
+          class="flex-1 py-2 rounded-lg font-bold text-sm transition-colors border"
+          [ngClass]="orderType() === 'TAKE_AWAY' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'">
+    Takeaway
+  </button>
+  <button (click)="openTableSelection()"
+          class="flex-1 py-2 rounded-lg font-bold text-sm transition-colors border flex items-center justify-center gap-2"
+          [ngClass]="orderType() === 'DINE_IN' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'">
+    <span>Dine-In</span>
+    <!-- Show selected table number dynamically -->
+    @if (selectedTable(); as table) {
+      <span class="bg-blue-600 text-white px-2 py-0.5 rounded text-xs">{{ table.tableNumber }}</span>
+    }
+  </button>
+</div>
+
+    <!-- Cart Header -->
+    <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+      <h2 class="text-xl font-black text-slate-800">Current Order</h2>
+      <button (click)="clearCart()" *ngIf="cart().length > 0" class="text-sm font-bold text-red-500 hover:text-red-700">Clear</button>
+    </div>
+
+    <!-- Cart Items List -->
+    <div class="flex-1 overflow-y-auto p-2">
+      @if (cart().length === 0) {
+        <div class="h-full flex flex-col items-center justify-center text-slate-400">
+          <svg class="w-16 h-16 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          <span class="font-medium">Cart is empty</span>
+        </div>
+      } @else {
+        <div class="space-y-2 p-3">
+          @for (item of cart(); track item.itemId) {
+            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div class="flex-1 pr-3">
+                <h4 class="font-bold text-slate-800 text-sm leading-tight">{{ item.name }}</h4>
+                <p class="text-blue-600 font-bold text-sm mt-0.5">₹{{ (item.price * item.quantity) | number:'1.2-2' }}</p>
+              </div>
+              <div class="flex items-center gap-3 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+                <button (click)="updateQuantity(item.itemId, -1)" class="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded-md font-bold">-</button>
+                <span class="font-black text-slate-900 w-4 text-center text-sm">{{ item.quantity }}</span>
+                <button (click)="updateQuantity(item.itemId, 1)" class="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded-md font-bold">+</button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Checkout Footer -->
+    <div class="p-5 bg-white border-t border-slate-200 shadow-[0_-4px_10px_-5px_rgba(0,0,0,0.05)]">
+      <div class="flex justify-between items-center mb-4">
+        <span class="text-slate-500 font-medium text-sm">Subtotal</span>
+        <span class="font-black text-xl text-slate-900">₹{{ cartTotal() | number:'1.2-2' }}</span>
+      </div>
+      <button (click)="placeOrder()" 
+              [disabled]="cart().length === 0 || isProcessing()"
+              class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl font-black text-lg transition-colors shadow-lg shadow-emerald-600/20 flex justify-center items-center gap-2">
+        @if (isProcessing()) {
+          <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          Processing...
+        } @else {
+          Send to Kitchen ({{ cart().length }})
+        }
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- ADD THIS MODAL TO THE VERY BOTTOM OF THE HTML FILE -->
+<!-- ========================================== -->
+@if (showTableModal()) {
+  <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[80vh]">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div>
+          <h3 class="font-bold text-lg text-slate-800">Select a Table</h3>
+          <p class="text-sm text-slate-500">Assign this order to a physical table</p>
+        </div>
+        <button (click)="showTableModal.set(false)" class="text-slate-400 hover:text-slate-600 bg-white p-2 rounded-full shadow-sm">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      
+      <!-- Tables Grid -->
+      <div class="p-6 overflow-y-auto bg-slate-50/50 flex-1">
+        @if (isLoadingTables()) {
+          <div class="flex justify-center py-12"><div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>
+        } @else if (tables().length === 0) {
+          <div class="text-center py-12 text-slate-400 font-medium">No tables configured in the system.</div>
+        } @else {
+          <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
+            @for (table of tables(); track table.id) {
+              <button (click)="selectTable(table)"
+                      class="relative aspect-square rounded-2xl border-2 flex flex-col items-center justify-center p-2 transition-all active:scale-95 group"
+                      [ngClass]="{
+                        'border-emerald-200 bg-emerald-50 hover:border-emerald-400 hover:bg-emerald-100': table.status === 'AVAILABLE',
+                        'border-amber-200 bg-amber-50 hover:border-amber-400 hover:bg-amber-100': table.status === 'OCCUPIED'
+                      }">
+                <span class="text-2xl font-black mb-1"
+                      [ngClass]="table.status === 'AVAILABLE' ? 'text-emerald-700' : 'text-amber-700'">
+                  {{ table.tableNumber }}
+                </span>
+                <span class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded"
+                      [ngClass]="table.status === 'AVAILABLE' ? 'bg-emerald-200/50 text-emerald-800' : 'bg-amber-200/50 text-amber-800'">
+                  {{ table.status }}
+                </span>
+                
+                <!-- Checkmark if currently selected -->
+                @if (selectedTable()?.id === table.id) {
+                  <div class="absolute -top-2 -right-2 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-md">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                  </div>
+                }
+              </button>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
