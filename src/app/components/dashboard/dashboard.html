@@ -294,7 +294,7 @@
                     </span>
                   </div>
                   <span class="text-slate-400 dark:text-slate-500 text-[11px] mt-0.5 block">
-                    {{ order.tableNumber ? ('Table ' + order.tableNumber + ' • ') : '' }}
+                    {{ order.tableNumber ? (order.tableNumber + ' • ') : '' }}
                     {{ order.createdAt | date:'short' }}
                   </span>
                 </div>

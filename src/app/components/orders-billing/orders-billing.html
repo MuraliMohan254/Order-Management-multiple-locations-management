@@ -85,7 +85,7 @@
               <div>
                 <span class="font-black text-slate-900 dark:text-white text-sm block">{{ order.orderNumber }}</span>
                 <span class="text-xs text-slate-500 dark:text-slate-400 font-bold">
-                  {{ order.orderType === 'DINE_IN' ? ('Table ' + (order.tableNumber || '?')) : 'Takeaway' }}
+                  {{ order.orderType === 'DINE_IN' ? ((order.tableNumber || '?')) : 'Takeaway' }}
                 </span>
               </div>
               <span class="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full"
@@ -345,7 +345,7 @@
           <p class="text-[10px] text-slate-500 mt-0.5">Order Management System</p>
           <div class="text-[10px] text-slate-400 mt-2">
             Order #{{ order.orderNumber }}<br>
-            {{ order.orderType }} {{ order.tableNumber ? ('• Table ' + order.tableNumber) : '' }}
+            {{ order.orderType }} {{ order.tableNumber ? ('• ' + order.tableNumber) : '' }}
           </div>
         </div>
 
@@ -438,7 +438,7 @@
                   <span class="font-black text-slate-900 dark:text-white text-sm">#{{ otherOrder.orderNumber }}</span>
                   <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider"
                         [ngClass]="otherOrder.orderType === 'DINE_IN' ? 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300' : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300'">
-                    {{ otherOrder.orderType === 'DINE_IN' ? ('Table ' + (otherOrder.tableNumber || '?')) : 'Takeaway' }}
+                    {{ otherOrder.orderType === 'DINE_IN' ? ((otherOrder.tableNumber || '?')) : 'Takeaway' }}
                   </span>
                 </div>
                 <p class="text-xs text-slate-500 dark:text-slate-400">

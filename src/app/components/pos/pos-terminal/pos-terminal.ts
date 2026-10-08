@@ -385,13 +385,13 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
       const existing = this.runningOrders().find(o => o.tableId === table.id || (table.tableNumber && o.tableNumber === table.tableNumber));
       if (existing) {
         this.tableActiveOrder.set(existing);
-        this.alertService.info(`Table ${table.tableNumber} has active Tab #${existing.orderNumber}. New items will append to it.`);
+        this.alertService.info(`${table.tableNumber} has active Tab #${existing.orderNumber}. New items will append to it.`);
       } else {
         this.posService.getActiveOrderByQrToken(table.qrToken).subscribe({
           next: (order) => {
             if (order && order.id) {
               this.tableActiveOrder.set(order);
-              this.alertService.info(`Table ${table.tableNumber} has active Tab #${order.orderNumber}. New items will append to it.`);
+              this.alertService.info(`${table.tableNumber} has active Tab #${order.orderNumber}. New items will append to it.`);
             }
           },
           error: () => this.tableActiveOrder.set(null)

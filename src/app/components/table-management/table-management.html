@@ -137,7 +137,7 @@
       <!-- Modal Header -->
       <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-850 dark:bg-slate-800">
         <div>
-          <h3 class="font-black text-lg text-slate-900 dark:text-white">Table {{ table.tableNumber }} QR Code</h3>
+          <h3 class="font-black text-lg text-slate-900 dark:text-white">{{ table.tableNumber }} QR Code</h3>
           <p class="text-xs text-slate-500 dark:text-slate-400">Scan to order from this table</p>
         </div>
         <button (click)="showQrModal.set(false)" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 bg-white dark:bg-slate-700 rounded-full shadow-xs cursor-pointer">
@@ -151,7 +151,7 @@
         <!-- Table Card Header -->
         <div class="w-full bg-gradient-to-tr from-slate-900 to-indigo-900 text-white rounded-2xl p-4 shadow-sm mb-5">
           <div class="text-xs uppercase tracking-widest font-bold text-indigo-300">WildBar Restaurant</div>
-          <div class="text-2xl font-black mt-0.5">TABLE {{ table.tableNumber }}</div>
+          <div class="text-2xl font-black mt-0.5">{{ table.tableNumber }}</div>
           <div class="text-[11px] text-slate-300 font-medium mt-1">Scan with any smartphone camera to order</div>
         </div>
 

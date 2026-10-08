@@ -1,17 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { TableManagement } from './table-management';
+import { TableManagementComponent } from './table-management';
 
-describe('TableManagement', () => {
-  let component: TableManagement;
-  let fixture: ComponentFixture<TableManagement>;
+describe('TableManagementComponent', () => {
+  let component: TableManagementComponent;
+  let fixture: ComponentFixture<TableManagementComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TableManagement],
+      imports: [TableManagementComponent],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(TableManagement);
+    fixture = TestBed.createComponent(TableManagementComponent);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });
