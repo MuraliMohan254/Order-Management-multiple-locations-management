@@ -14,7 +14,6 @@
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
   border: 1px solid rgba(226, 232, 240, 0.9) !important;
   font-family: inherit !important;
-  overflow: hidden !important;
 }
 
 :where(.dark, [data-theme="dark"]) .swal2-popup.wildbar-toast {
