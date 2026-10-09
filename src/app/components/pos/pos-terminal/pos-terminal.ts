@@ -83,6 +83,7 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
 
   taxRate = signal<number>(0.05);
   taxName = signal<string>('GST');
+  defaultDiscountPercentage = signal<number>(0);
 
   cartTax = computed(() => {
     return this.cartSubtotal() * this.taxRate();
@@ -139,6 +140,9 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
         if (cfg) {
           if (cfg.taxRate !== undefined) this.taxRate.set(Number(cfg.taxRate));
           if (cfg.taxName) this.taxName.set(cfg.taxName);
+          if (cfg.defaultDiscountPercentage !== undefined && cfg.defaultDiscountPercentage > 0) {
+            this.defaultDiscountPercentage.set(Number(cfg.defaultDiscountPercentage));
+          }
         }
       },
       error: () => {}
@@ -460,7 +464,11 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.quickBillDiscount.set(0);
+    this.quickBillDiscount.set(
+      this.defaultDiscountPercentage() > 0 
+        ? Math.round((this.quickBillSubtotal() + this.quickBillTax()) * this.defaultDiscountPercentage()) 
+        : 0
+    );
     this.quickBillPaymentMethod.set('CASH');
     this.quickBillAmountTendered.set(Math.ceil(this.quickBillGrandTotal()));
     this.showQuickBillModal.set(true);

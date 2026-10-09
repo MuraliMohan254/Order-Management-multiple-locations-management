@@ -1,0 +1,93 @@
+<div class="w-full min-h-[calc(100vh-6.5rem)] bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-3xl p-4 sm:p-6 lg:p-8 flex flex-col font-sans shadow-sm dark:shadow-xl border border-slate-200 dark:border-slate-800 transition-colors duration-200">
+  
+  <!-- Header -->
+  <header class="mb-8">
+    <div class="flex items-center gap-3.5 mb-2">
+      <div class="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-600/30">
+        <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">System Settings</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Configure global restaurant workflow, taxes, and discounts.</p>
+      </div>
+    </div>
+  </header>
+
+  @if (isLoading()) {
+    <div class="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 gap-4">
+      <div class="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+      <p class="font-bold">Loading configuration...</p>
+    </div>
+  } @else {
+    <div class="max-w-3xl grid grid-cols-1 gap-6">
+      
+      <!-- Kitchen Workflow Card -->
+      <div class="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700/80">
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Kitchen Display (KDS) Workflow</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Enable or disable sending orders to the kitchen queue. If disabled, billed orders will bypass the kitchen and be marked as Served instantly.</p>
+        
+        <label class="flex items-center gap-4 cursor-pointer p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:border-indigo-300">
+          <div class="relative">
+            <input type="checkbox" class="sr-only peer" [ngModel]="kitchenWorkflowEnabled()" (ngModelChange)="kitchenWorkflowEnabled.set($event)">
+            <div class="w-12 h-7 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600"></div>
+          </div>
+          <div>
+            <span class="block text-sm font-bold text-slate-900 dark:text-white">Enable Kitchen Workflow</span>
+            <span class="block text-xs text-slate-500 dark:text-slate-400">Routes incoming orders to KDS for chefs</span>
+          </div>
+        </label>
+      </div>
+
+      <!-- Financials Card -->
+      <div class="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700/80">
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Financial & Billing Defaults</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Set the default tax brackets and automatic discounts applied during checkout.</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Tax Name</label>
+            <input type="text" [ngModel]="taxName()" (ngModelChange)="taxName.set($event)"
+                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                   placeholder="e.g. GST, VAT, Service Tax">
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Tax Rate (%)</label>
+            <div class="relative">
+              <input type="number" [ngModel]="taxRate()" (ngModelChange)="taxRate.set($event)" min="0" max="100" step="0.1"
+                     class="w-full pl-4 pr-10 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+              <span class="absolute right-4 top-3.5 text-slate-400 font-bold">%</span>
+            </div>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Default Global Discount (%)</label>
+            <div class="relative">
+              <input type="number" [ngModel]="defaultDiscountPercentage()" (ngModelChange)="defaultDiscountPercentage.set($event)" min="0" max="100" step="1"
+                     class="w-full pl-4 pr-10 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                     placeholder="0">
+              <span class="absolute right-4 top-3.5 text-slate-400 font-bold">%</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-2">This percentage discount is automatically calculated and pre-filled when ringing up a Quick Bill.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Save Button -->
+      <div class="pt-4 flex justify-end">
+        <button (click)="saveConfig()" [disabled]="isSaving()"
+                class="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-sm transition-all shadow-md active:scale-95 flex items-center gap-2 cursor-pointer disabled:opacity-50">
+          @if (isSaving()) {
+            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <span>Saving...</span>
+          } @else {
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span>Save Configuration</span>
+          }
+        </button>
+      </div>
+
+    </div>
+  }
+</div>

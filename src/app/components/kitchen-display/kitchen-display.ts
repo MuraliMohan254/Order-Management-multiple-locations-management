@@ -118,6 +118,30 @@ export class KitchenDisplayComponent implements OnInit, OnDestroy {
     });
   }
 
+  clearAll() {
+    this.alertService.confirm({
+      title: 'Clear Kitchen Display?',
+      text: 'This will instantly mark all active tickets as Served. Are you sure?',
+      confirmButtonText: 'Yes, clear all',
+      isDestructive: true
+    }).then(confirmed => {
+      if (confirmed) {
+        this.isLoading.set(true);
+        this.posService.clearKitchen().subscribe({
+          next: () => {
+            this.alertService.success('Kitchen queue cleared successfully.');
+            this.loadActiveOrders(false);
+          },
+          error: (err) => {
+            const errMsg = err?.error?.error || 'Failed to clear queue';
+            this.alertService.error(errMsg);
+            this.isLoading.set(false);
+          }
+        });
+      }
+    });
+  }
+
   updateStatus(orderId: string, newStatus: string) {
     if (this.updatingOrderId()) return; // Prevent spamming while in-flight
     this.updatingOrderId.set(orderId);

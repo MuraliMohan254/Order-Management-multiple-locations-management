@@ -134,7 +134,15 @@ export class PosService {
     return this.http.get<OrderResponse>(`${environment.apiUrl}/public/orders/${orderId}`);
   }
 
-  getAppConfig(): Observable<{ taxRate: number; taxName: string; restaurantName: string }> {
-    return this.http.get<{ taxRate: number; taxName: string; restaurantName: string }>(`${environment.apiUrl}/public/config`);
+  getAppConfig(): Observable<{ taxRate: number; taxName: string; restaurantName: string; defaultDiscountPercentage: number; kitchenWorkflowEnabled: boolean }> {
+    return this.http.get<{ taxRate: number; taxName: string; restaurantName: string; defaultDiscountPercentage: number; kitchenWorkflowEnabled: boolean }>(`${environment.apiUrl}/public/config`);
+  }
+
+  updateAppConfig(config: any): Observable<any> {
+    return this.http.put<any>(`${environment.apiUrl}/config`, config);
+  }
+
+  clearKitchen(): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/kitchen/clear`, {});
   }
 }

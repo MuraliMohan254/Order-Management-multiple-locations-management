@@ -1,3 +1,4 @@
+import { SystemSettingsComponent } from './components/system-settings/system-settings';
 import { Routes } from '@angular/router';
 import { LoginComponent } from './components/login/login';
 import { LayoutComponent } from './layout/layout/layout';
@@ -33,6 +34,10 @@ export const routes: Routes = [
     component: LayoutComponent,
     canActivate: [authGuard], // Protects the layout and ALL its children
     children: [
+      {
+        path: 'settings',
+        component: SystemSettingsComponent
+      },
       {
         path: 'dashboard',
         component: Dashboard
