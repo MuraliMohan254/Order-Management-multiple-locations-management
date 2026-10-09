@@ -25,6 +25,9 @@ public class Item extends BaseEntity {
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal price;
 
+    @Column(length = 500)
+    private String description;
+
     @Builder.Default
     @Column(name = "is_available", nullable = false)
     private boolean isAvailable = true;

@@ -15,6 +15,7 @@ public class ItemResponse {
     private UUID categoryId;
     private String categoryName;
     private String name;
+    private String description;
     private BigDecimal price;
     private boolean isAvailable;
 }

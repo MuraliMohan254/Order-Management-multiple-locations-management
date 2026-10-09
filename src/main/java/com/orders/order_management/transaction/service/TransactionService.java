@@ -126,6 +126,10 @@ public class TransactionService {
             order.addOrderItem(orderItem);
         }
         order.setSubTotal(runningSubTotal);
+        BigDecimal effectiveTaxRate = configService.getConfig().getTaxRate();
+        order.setTaxAmount(order.getSubTotal().multiply(effectiveTaxRate).setScale(2, java.math.RoundingMode.HALF_UP));
+        BigDecimal discount = order.getDiscountAmount() != null ? order.getDiscountAmount() : BigDecimal.ZERO;
+        order.setGrandTotal(order.getSubTotal().add(order.getTaxAmount()).subtract(discount));
 
         // If order was already completed or served, reset back to CONFIRMED so newly appended items route to the kitchen
         if (order.getStatus() == OrderStatus.SERVED || order.getStatus() == OrderStatus.READY) {
@@ -290,6 +294,10 @@ public class TransactionService {
         // Recalculate subtotal
         BigDecimal updatedSubTotal = order.getSubTotal().subtract(itemToRemove.getTotalPrice());
         order.setSubTotal(updatedSubTotal.max(BigDecimal.ZERO)); // Prevent negative subtotals
+        BigDecimal effectiveTaxRate = configService.getConfig().getTaxRate();
+        order.setTaxAmount(order.getSubTotal().multiply(effectiveTaxRate).setScale(2, java.math.RoundingMode.HALF_UP));
+        BigDecimal discount = order.getDiscountAmount() != null ? order.getDiscountAmount() : BigDecimal.ZERO;
+        order.setGrandTotal(order.getSubTotal().add(order.getTaxAmount()).subtract(discount));
 
         if (order.getItems().isEmpty()) {
             order.setStatus(OrderStatus.CANCELLED);
@@ -467,6 +475,10 @@ public class TransactionService {
                 .map(OrderItem::getTotalPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         targetOrder.setSubTotal(newSubtotal);
+        BigDecimal effectiveTaxRate = configService.getConfig().getTaxRate();
+        targetOrder.setTaxAmount(targetOrder.getSubTotal().multiply(effectiveTaxRate).setScale(2, java.math.RoundingMode.HALF_UP));
+        BigDecimal discount = targetOrder.getDiscountAmount() != null ? targetOrder.getDiscountAmount() : BigDecimal.ZERO;
+        targetOrder.setGrandTotal(targetOrder.getSubTotal().add(targetOrder.getTaxAmount()).subtract(discount));
 
         // If target order was already marked served/ready, reset to CONFIRMED for newly merged items to be visible in kitchen
         if (targetOrder.getStatus() == OrderStatus.SERVED || targetOrder.getStatus() == OrderStatus.READY) {

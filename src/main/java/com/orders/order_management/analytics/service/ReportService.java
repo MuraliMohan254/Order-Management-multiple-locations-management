@@ -36,6 +36,11 @@ public class ReportService {
         try {
             List<Order> orders = orderRepository.findOrdersBetween(startDate, endDate);
             
+            // Sort by createdAt ascending for grouping
+            orders.sort((o1, o2) -> o1.getCreatedAt().compareTo(o2.getCreatedAt()));
+            
+            DateTimeFormatter DATE_ONLY = DateTimeFormatter.ofPattern("MMM dd, yyyy").withZone(ZoneId.systemDefault());
+
             List<OrderReportItemDto> reportItems = orders.stream().map(o -> OrderReportItemDto.builder()
                     .orderNumber(o.getOrderNumber() != null ? o.getOrderNumber() : "N/A")
                     .orderType(o.getOrderType() != null ? o.getOrderType().name() : "N/A")
@@ -43,6 +48,7 @@ public class ReportService {
                     .status(o.getStatus() != null ? o.getStatus().name() : "N/A")
                     .grandTotal(o.getGrandTotal() != null ? o.getGrandTotal() : (o.getSubTotal() != null ? o.getSubTotal() : BigDecimal.ZERO))
                     .createdAt(o.getCreatedAt() != null ? DATE_FORMATTER.format(o.getCreatedAt()) : "N/A")
+                    .dateGroup(o.getCreatedAt() != null ? DATE_ONLY.format(o.getCreatedAt()) : "N/A")
                     .paymentMethod(o.getPayments() != null && !o.getPayments().isEmpty() ? o.getPayments().get(0).getPaymentMethod().name() : "N/A")
                     .build()).toList();
 

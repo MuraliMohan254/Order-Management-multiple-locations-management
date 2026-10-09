@@ -19,5 +19,6 @@ public class OrderReportItemDto {
     private BigDecimal grandTotal;
     private String createdAtText;
     private String createdAt;
+    private String dateGroup;
     private String paymentMethod;
 }

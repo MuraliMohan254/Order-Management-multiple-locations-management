@@ -97,6 +97,7 @@ public class MenuService {
         Item item = Item.builder()
                 .category(category)
                 .name(request.getName())
+                .description(request.getDescription())
                 .price(request.getPrice())
                 .isAvailable(true)
                 .build();
@@ -130,6 +131,7 @@ public class MenuService {
         }
 
         item.setName(request.getName());
+        item.setDescription(request.getDescription());
         item.setPrice(request.getPrice());
         item.setAvailable(request.isAvailable());
         return mapToItemResponse(itemRepository.save(item));
@@ -162,6 +164,7 @@ public class MenuService {
                 .categoryId(item.getCategory().getId())
                 .categoryName(item.getCategory().getName())
                 .name(item.getName())
+                .description(item.getDescription())
                 .price(item.getPrice())
                 .isAvailable(item.isAvailable())
                 .build();
