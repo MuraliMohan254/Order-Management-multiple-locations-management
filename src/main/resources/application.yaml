@@ -1,6 +1,13 @@
 spring:
   application:
     name: order-management
+  
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    # Locations of migrations
+    locations: classpath:db/migration
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/order_management}
     username: ${DB_USERNAME:postgres}
@@ -9,7 +16,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
@@ -24,9 +31,6 @@ jwt:
   secret: ${JWT_SECRET:yAhmxRTWRPeFvmZhr2hcd6om8rOm+5n3REZgiKt4EJY=}
   expirationMillis: 3600000  # 1hr
 app:
-  tax:
-    rate: ${APP_TAX_RATE:0.05}
-    name: ${APP_TAX_NAME:GST}
   subscription:
     url: https://7yhnrcm91a.execute-api.us-east-1.amazonaws.com/bkp-prod/bkp-subscription
   cors:

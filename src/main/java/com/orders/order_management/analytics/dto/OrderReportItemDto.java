@@ -18,4 +18,6 @@ public class OrderReportItemDto {
     private String status;
     private BigDecimal grandTotal;
     private String createdAtText;
+    private String createdAt;
+    private String paymentMethod;
 }

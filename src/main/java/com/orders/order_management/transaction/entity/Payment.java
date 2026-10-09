@@ -20,7 +20,7 @@ public class Payment extends BaseEntity {
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
-    @Column(name = "amount_paid", nullable = false, precision = 10, scale = 2)
+    @Column(name = "amount_paid", nullable = false, precision = 15, scale = 2)
     private BigDecimal amountPaid;
 
     @Enumerated(EnumType.STRING)

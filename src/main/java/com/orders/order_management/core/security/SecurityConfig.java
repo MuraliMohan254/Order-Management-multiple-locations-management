@@ -133,7 +133,7 @@ public class SecurityConfig {
                                 "/uploads/**", "/api/auth/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/menu/**").permitAll()
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 )
 
                 // Our auth provider + JWT filter

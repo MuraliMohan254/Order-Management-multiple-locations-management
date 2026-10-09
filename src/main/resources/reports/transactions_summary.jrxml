@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" 
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" 
+              name="TransactionsSummaryReport" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+    <field name="date" class="java.lang.String"/>
+    <field name="orderCount" class="java.lang.Long"/>
+    <field name="totalRevenue" class="java.math.BigDecimal"/>
+    <field name="averageOrderValue" class="java.math.BigDecimal"/>
+    
+    <variable name="totalOrderCount" class="java.lang.Long" calculation="Sum">
+        <variableExpression><![CDATA[$F{orderCount}]]></variableExpression>
+    </variable>
+    
+    <variable name="grandTotalRevenue" class="java.math.BigDecimal" calculation="Sum">
+        <variableExpression><![CDATA[$F{totalRevenue}]]></variableExpression>
+    </variable>
+
+    <title>
+        <band height="50">
+            <textField>
+                <reportElement x="0" y="0" width="555" height="30"/>
+                <textElement textAlignment="Center">
+                    <font size="16" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA["WildBar - Day-wise Sales Summary"]]></textFieldExpression>
+            </textField>
+        </band>
+    </title>
+    
+    <columnHeader>
+        <band height="20">
+            <staticText>
+                <reportElement x="0" y="0" width="200" height="20"/>
+                <textElement><font isBold="true"/></textElement>
+                <text><![CDATA[Date]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="200" y="0" width="100" height="20"/>
+                <textElement><font isBold="true"/></textElement>
+                <text><![CDATA[Total Orders]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="300" y="0" width="125" height="20"/>
+                <textElement><font isBold="true"/></textElement>
+                <text><![CDATA[Average Value]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="425" y="0" width="130" height="20"/>
+                <textElement><font isBold="true"/></textElement>
+                <text><![CDATA[Total Revenue]]></text>
+            </staticText>
+        </band>
+    </columnHeader>
+    
+    <detail>
+        <band height="20">
+            <textField>
+                <reportElement x="0" y="0" width="200" height="20"/>
+                <textFieldExpression><![CDATA[$F{date}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="200" y="0" width="100" height="20"/>
+                <textFieldExpression><![CDATA[$F{orderCount}]]></textFieldExpression>
+            </textField>
+            <textField pattern="###0.00">
+                <reportElement x="300" y="0" width="125" height="20"/>
+                <textFieldExpression><![CDATA[$F{averageOrderValue}]]></textFieldExpression>
+            </textField>
+            <textField pattern="###0.00">
+                <reportElement x="425" y="0" width="130" height="20"/>
+                <textFieldExpression><![CDATA[$F{totalRevenue}]]></textFieldExpression>
+            </textField>
+        </band>
+    </detail>
+    
+    <summary>
+        <band height="30">
+            <staticText>
+                <reportElement x="0" y="5" width="200" height="20"/>
+                <textElement><font isBold="true"/></textElement>
+                <text><![CDATA[GRAND TOTAL]]></text>
+            </staticText>
+            <textField>
+                <reportElement x="200" y="5" width="100" height="20"/>
+                <textElement><font isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$V{totalOrderCount}]]></textFieldExpression>
+            </textField>
+            <textField pattern="###0.00">
+                <reportElement x="425" y="5" width="130" height="20"/>
+                <textElement><font isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$V{grandTotalRevenue}]]></textFieldExpression>
+            </textField>
+        </band>
+    </summary>
+</jasperReport>

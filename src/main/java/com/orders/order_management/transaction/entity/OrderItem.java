@@ -29,10 +29,10 @@ public class OrderItem extends BaseEntity {
     @Column(nullable = false)
     private Integer quantity;
 
-    @Column(name = "unit_price", nullable = false, precision = 10, scale = 2)
+    @Column(name = "unit_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal unitPrice;
 
-    @Column(name = "total_price", nullable = false, precision = 10, scale = 2)
+    @Column(name = "total_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal totalPrice;
 
     @Column(length = 255)

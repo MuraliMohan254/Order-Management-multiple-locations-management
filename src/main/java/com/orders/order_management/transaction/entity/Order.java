@@ -46,25 +46,29 @@ public class Order extends BaseEntity {
     private RestaurantTable table;
 
     @Builder.Default
-    @Column(name = "sub_total", nullable = false, precision = 10, scale = 2)
+    @Column(name = "sub_total", nullable = false, precision = 15, scale = 2)
     private BigDecimal subTotal = BigDecimal.ZERO;
 
     @Builder.Default
-    @Column(name = "tax_amount", nullable = false, precision = 10, scale = 2)
+    @Column(name = "tax_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal taxAmount = BigDecimal.ZERO;
 
     @Builder.Default
-    @Column(name = "discount_amount", nullable = false, precision = 10, scale = 2)
+    @Column(name = "discount_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal discountAmount = BigDecimal.ZERO;
 
     @Builder.Default
-    @Column(name = "grand_total", nullable = false, precision = 10, scale = 2)
+    @Column(name = "grand_total", nullable = false, precision = 15, scale = 2)
     private BigDecimal grandTotal = BigDecimal.ZERO;
 
     @Builder.Default
     @org.hibernate.annotations.BatchSize(size = 50)
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Payment> payments = new ArrayList<>();
 
     public void addOrderItem(OrderItem item) {
         items.add(item);

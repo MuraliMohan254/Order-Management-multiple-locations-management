@@ -37,6 +37,25 @@ public class AnalyticsController {
         return ResponseEntity.ok(analyticsService.getBusinessInsights(startDate, endDate));
     }
 
+    @GetMapping("/reports/summary/pdf")
+    public ResponseEntity<byte[]> downloadSalesSummaryPdf(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant endDate) {
+        
+        Instant start = startDate != null ? startDate : Instant.now().minus(30, ChronoUnit.DAYS);
+        Instant end = endDate != null ? endDate : Instant.now();
+
+        byte[] pdfReport = reportService.generateSalesSummaryPdf(start, end);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("filename", "sales_summary_report.pdf");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(pdfReport);
+    }
+
     @GetMapping("/reports/sales/pdf")
     public ResponseEntity<byte[]> downloadSalesReportPdf(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant startDate,

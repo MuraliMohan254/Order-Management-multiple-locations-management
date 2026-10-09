@@ -110,6 +110,12 @@ public class TransactionController {
         return ResponseEntity.ok(transactionService.updateOrderStatus(orderId, effectiveStatus));
     }
 
+    @PostMapping("/orders/kitchen/clear")
+    public ResponseEntity<Void> clearKitchenQueue() {
+        transactionService.clearKitchenQueue();
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/orders/kitchen/active")
     public ResponseEntity<List<KitchenTicketResponse>> getActiveKitchenTickets() {
         return ResponseEntity.ok(transactionService.getActiveKitchenTickets());

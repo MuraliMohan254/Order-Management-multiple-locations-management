@@ -45,17 +45,19 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TransactionService {
 
-    @Value("${app.tax.rate:0.05}")
-    private BigDecimal taxRate;
-
-    @Value("${app.tax.name:GST}")
-    private String taxName;
-
     private final RestaurantTableRepository tableRepository;
     private final OrderRepository orderRepository;
     private final ItemRepository itemRepository;
     private final PaymentRepository paymentRepository;
     private final OrderItemRepository orderItemRepository;
+    private final com.orders.order_management.core.service.SystemConfigService configService;
+
+    private String determineInitialKitchenStatus() {
+        if (!configService.getConfig().isKitchenWorkflowEnabled()) {
+            return "SERVED"; // Bypass kitchen KDS
+        }
+        return com.orders.order_management.core.enums.OrderStatus.CONFIRMED.name();
+    }
 
     public TableResponse createTable(String tableNumber) {
         RestaurantTable table = RestaurantTable.builder()
@@ -75,10 +77,10 @@ public class TransactionService {
 
         if (order == null) {
             order = Order.builder()
-                    .orderNumber("ORD-" + System.currentTimeMillis())
+                    .orderNumber("ORD-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0,4).toUpperCase())
                     .orderType(OrderType.DINE_IN)
                     .status(OrderStatus.CONFIRMED)
-                    .kitchenStatus(OrderStatus.CONFIRMED.name())
+                    .kitchenStatus(determineInitialKitchenStatus())
                     .table(table)
                     .subTotal(BigDecimal.ZERO)
                     .build();
@@ -128,7 +130,7 @@ public class TransactionService {
         // If order was already completed or served, reset back to CONFIRMED so newly appended items route to the kitchen
         if (order.getStatus() == OrderStatus.SERVED || order.getStatus() == OrderStatus.READY) {
             order.setStatus(OrderStatus.CONFIRMED);
-            order.setKitchenStatus(OrderStatus.CONFIRMED.name());
+            order.setKitchenStatus(determineInitialKitchenStatus());
         }
     }
 
@@ -136,7 +138,7 @@ public class TransactionService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
-        BigDecimal effectiveTaxRate = taxRate != null ? taxRate : new BigDecimal("0.05");
+        BigDecimal effectiveTaxRate = configService.getConfig().getTaxRate();
         BigDecimal taxAmount = order.getSubTotal().multiply(effectiveTaxRate).setScale(2, RoundingMode.HALF_UP);
         BigDecimal finalDiscount = discount != null ? discount : BigDecimal.ZERO;
 
@@ -149,7 +151,7 @@ public class TransactionService {
         order.setGrandTotal(grandTotal);
         // Ensure kitchenStatus is set so KDS knows the kitchen preparation phase
         if (order.getKitchenStatus() == null || "PENDING".equalsIgnoreCase(order.getKitchenStatus())) {
-            order.setKitchenStatus(order.getStatus() != null && order.getStatus() != OrderStatus.SOFT_ORDER ? order.getStatus().name() : OrderStatus.CONFIRMED.name());
+            order.setKitchenStatus(order.getStatus() != null && order.getStatus() != OrderStatus.SOFT_ORDER ? order.getStatus().name() : determineInitialKitchenStatus());
         }
         order.setStatus(OrderStatus.BILLED);
 
@@ -214,10 +216,10 @@ public class TransactionService {
 
     public OrderResponse createTakeAwayOrder(List<OrderItemRequest> itemRequests) {
         Order order = Order.builder()
-                .orderNumber("TA-" + System.currentTimeMillis())
+                .orderNumber("TA-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0,4).toUpperCase())
                 .orderType(OrderType.TAKE_AWAY)
                 .status(OrderStatus.CONFIRMED) // Take-aways usually go straight to kitchen
-                .kitchenStatus(OrderStatus.CONFIRMED.name())
+                .kitchenStatus(determineInitialKitchenStatus())
                 .table(null) // No table required
                 .subTotal(BigDecimal.ZERO)
                 .build();
@@ -302,6 +304,19 @@ public class TransactionService {
         return mapToOrderResponse(orderRepository.save(order));
     }
 
+    public void clearKitchenQueue() {
+        List<Order> activeOrders = orderRepository.findActiveOrdersByStatusIn(List.of(
+                com.orders.order_management.core.enums.OrderStatus.CONFIRMED,
+                com.orders.order_management.core.enums.OrderStatus.PREPARING,
+                com.orders.order_management.core.enums.OrderStatus.READY,
+                com.orders.order_management.core.enums.OrderStatus.BILLED
+        ));
+        for (Order order : activeOrders) {
+            order.setKitchenStatus("SERVED");
+        }
+        orderRepository.saveAll(activeOrders);
+    }
+
     public List<KitchenTicketResponse> getActiveKitchenTickets() {
         return orderItemRepository.findActiveKitchenTickets().stream()
                 .map(oi -> KitchenTicketResponse.builder()
@@ -351,10 +366,10 @@ public class TransactionService {
         // If no active order exists, create a new one and occupy the table
         if (order == null) {
             order = Order.builder()
-                    .orderNumber("POS-" + System.currentTimeMillis())
+                    .orderNumber("POS-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0,4).toUpperCase())
                     .orderType(OrderType.DINE_IN)
                     .status(OrderStatus.CONFIRMED) // Cashier orders bypass SOFT_ORDER directly to CONFIRMED
-                    .kitchenStatus(OrderStatus.CONFIRMED.name())
+                    .kitchenStatus(determineInitialKitchenStatus())
                     .table(table)
                     .subTotal(BigDecimal.ZERO)
                     .build();
@@ -474,8 +489,10 @@ public class TransactionService {
 
     public Map<String, Object> getAppConfig() {
         return Map.of(
-                "taxRate", taxRate != null ? taxRate : new BigDecimal("0.05"),
-                "taxName", taxName != null ? taxName : "GST",
+                "taxRate", configService.getConfig().getTaxRate(),
+                "defaultDiscountPercentage", configService.getConfig().getDefaultDiscountPercentage(),
+                "kitchenWorkflowEnabled", configService.getConfig().isKitchenWorkflowEnabled(),
+                "taxName", configService.getConfig().getTaxName(),
                 "restaurantName", "WildBar"
         );
     }

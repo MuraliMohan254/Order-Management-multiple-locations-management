@@ -8,6 +8,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.lang.Nullable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -19,6 +24,10 @@ import java.util.UUID;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, UUID>, JpaSpecificationExecutor<Order> {
     
+        @EntityGraph(attributePaths = {"items", "table"})
+    Page<Order> findAll(@Nullable Specification<Order> spec, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"items", "table"})
     Optional<Order> findByTableIdAndStatusIn(UUID tableId, List<OrderStatus> statuses);
 
     @Query("SELECT COALESCE(SUM(o.grandTotal), 0) FROM Order o WHERE o.status = 'BILLED' AND o.createdAt >= :startDate AND o.createdAt <= :endDate")
@@ -44,6 +53,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID>, JpaSpecific
 
     List<Order> findByStatusIn(List<OrderStatus> statuses);
 
+    @EntityGraph(attributePaths = {"items", "table"})
     @Query("SELECT o FROM Order o WHERE o.status IN :statuses AND (o.kitchenStatus IS NULL OR (o.kitchenStatus != 'SERVED' AND o.kitchenStatus != 'CANCELLED')) ORDER BY o.createdAt ASC")
     List<Order> findActiveOrdersByStatusIn(@Param("statuses") List<OrderStatus> statuses);
 

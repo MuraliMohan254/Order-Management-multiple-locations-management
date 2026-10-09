@@ -22,7 +22,7 @@ public class Item extends BaseEntity {
     @Column(nullable = false, length = 150)
     private String name;
 
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal price;
 
     @Builder.Default
