@@ -101,7 +101,7 @@
             </div>
             <div class="flex justify-between items-end pt-1 border-t border-slate-100 dark:border-slate-700 mt-2">
               <span class="text-[11px] text-slate-400 dark:text-slate-500 font-medium">{{ order.items?.length || 0 }} items</span>
-              <span class="font-black text-slate-900 dark:text-white text-sm">₹{{ (order.grandTotal > 0 ? order.grandTotal : order.subTotal) | number:'1.2-2' }}</span>
+              <span class="font-black text-slate-900 dark:text-white text-sm">₹{{ order.grandTotal | number:'1.2-2' }}</span>
             </div>
           </div>
         }
@@ -249,7 +249,7 @@
               <!-- Grand Total -->
               <div class="flex justify-between text-base font-black text-slate-900 dark:text-white pt-3 border-t-2 border-dashed border-slate-200 dark:border-slate-700">
                 <span>Total Due</span>
-                <span class="text-xl text-blue-600 dark:text-blue-400">₹{{ (selectedOrder()!.status === 'BILLED' ? selectedOrder()!.grandTotal : selectedOrder()!.subTotal) | number:'1.2-2' }}</span>
+                <span class="text-xl text-blue-600 dark:text-blue-400">₹{{ (selectedOrder()!.grandTotal > 0 ? selectedOrder()!.grandTotal : (selectedOrder()!.subTotal + selectedOrder()!.taxAmount - selectedOrder()!.discountAmount)) | number:'1.2-2' }}</span>
               </div>
             </div>
 
@@ -495,3 +495,4 @@
     </div>
   </div>
 }
+

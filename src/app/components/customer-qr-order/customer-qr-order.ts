@@ -103,6 +103,7 @@ export class CustomerQrOrderComponent implements OnInit, OnDestroy {
       if (token) {
         this.qrToken.set(token);
         this.loadTableAndOrder(token);
+          this.loadCart(token);
         this.loadMenuData();
         this.startStatusPolling();
       } else {
@@ -219,30 +220,54 @@ export class CustomerQrOrderComponent implements OnInit, OnDestroy {
     });
   }
 
-  getItemQuantityInCart(itemId: string): number {
-    const found = this.cart().find(c => c.itemId === itemId);
-    return found ? found.quantity : 0;
+
+
+  saveCart(cartData: CartItem[]) {
+    if (this.qrToken()) {
+      localStorage.setItem(`wb_cart_${this.qrToken()}`, JSON.stringify(cartData));
+    }
+  }
+
+  loadCart(token: string) {
+    try {
+      const saved = localStorage.getItem(`wb_cart_${token}`);
+      if (saved) {
+        this.cart.set(JSON.parse(saved));
+      }
+    } catch {
+      // ignore
+    }
   }
 
   addToCart(item: ItemResponse) {
     this.cart.update(current => {
       const existing = current.find(i => i.itemId === item.id);
+      let newCart;
       if (existing) {
-        return current.map(i => i.itemId === item.id ? { ...i, quantity: i.quantity + 1 } : i);
+        newCart = current.map(i => i.itemId === item.id ? { ...i, quantity: i.quantity + 1 } : i);
+      } else {
+        newCart = [...current, { itemId: item.id, name: item.name, price: item.price, quantity: 1 }];
       }
-      return [...current, { itemId: item.id, name: item.name, price: item.price, quantity: 1 }];
+      this.saveCart(newCart);
+      return newCart;
     });
+    this.alertService.success(`${item.name} added to cart`);
+  }
+
+  getItemQuantityInCart(itemId: string): number {
+    return this.cart().find(i => i.itemId === itemId)?.quantity || 0;
   }
 
   updateQuantity(itemId: string, delta: number) {
     this.cart.update(current => {
-      return current.map(i => {
+      const newCart = current.map(i => {
         if (i.itemId === itemId) {
-          const newQ = i.quantity + delta;
-          return newQ > 0 ? { ...i, quantity: newQ } : i;
+          return { ...i, quantity: i.quantity + delta };
         }
         return i;
       }).filter(i => i.quantity > 0);
+      this.saveCart(newCart);
+      return newCart;
     });
   }
 
@@ -278,6 +303,7 @@ export class CustomerQrOrderComponent implements OnInit, OnDestroy {
         this.alertService.success(`Order ${res.orderNumber} sent to kitchen!`, 'Order Confirmed');
         this.activeOrder.set(res);
         this.cart.set([]);
+          this.saveCart([]);
         this.showCartModal.set(false);
         this.activeView.set('TRACKER');
         this.isSubmittingOrder.set(false);

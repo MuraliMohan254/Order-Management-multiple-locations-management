@@ -64,10 +64,16 @@ export class KitchenDisplayComponent implements OnInit, OnDestroy {
   preparingCount = computed(() => this.orders().filter(o => this.getKitchenStage(o) === 'PREPARING').length);
   readyCount = computed(() => this.orders().filter(o => this.getKitchenStage(o) === 'READY').length);
 
+  volume = signal(0.8);
+
   ngOnInit() {
     this.loadActiveOrders(true);
     this.startClock();
     this.startPolling();
+  }
+
+  toggleSound() {
+    this.soundEnabled.set(!this.soundEnabled());
   }
 
   ngOnDestroy() {
@@ -193,19 +199,34 @@ export class KitchenDisplayComponent implements OnInit, OnDestroy {
   }
 
   playKitchenChime() {
+    if (!this.soundEnabled()) return;
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
-      osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.3);
-      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+      
+      // More urgent "Ding-Dong" or loud pulse
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(600, audioCtx.currentTime); 
+      osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+      
+      gain.gain.setValueAtTime(0, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(this.volume(), audioCtx.currentTime + 0.05); // Use dynamic volume
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+      
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start();
-      osc.stop(audioCtx.currentTime + 0.35);
+      osc.stop(audioCtx.currentTime + 0.5);
+      
+      // Optional: Speech Synthesis for "New Order"
+      if ('speechSynthesis' in window) {
+         const utterance = new SpeechSynthesisUtterance('New Order');
+         utterance.volume = this.volume();
+         utterance.rate = 1.2;
+         window.speechSynthesis.speak(utterance);
+      }
+
     } catch {
       // AudioContext unavailable or blocked
     }

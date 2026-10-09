@@ -14,6 +14,7 @@ export interface ItemResponse {
   categoryId: string;
   categoryName: string;
   name: string;
+  description?: string;
   price: number;
   available: boolean;
 }
@@ -21,6 +22,7 @@ export interface ItemResponse {
 export interface ItemRequest {
   categoryId: string;
   name: string;
+  description?: string;
   price: number;
   available: boolean;
 }

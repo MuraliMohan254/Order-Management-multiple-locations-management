@@ -35,12 +35,14 @@ export class MenuManagementComponent implements OnInit {
 
   categoryForm = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.minLength(3)]],
+    description: [''],
     active: [true]
   });
 
   itemForm = this.fb.nonNullable.group({
     categoryId: ['', [Validators.required]], // Added Category Selection
     name: ['', [Validators.required, Validators.minLength(3)]],
+    description: [''],
     price: [0, [Validators.required, Validators.min(0.01)]],
     available: [true]
   });
@@ -112,7 +114,8 @@ export class MenuManagementComponent implements OnInit {
       });
     } else {
       this.editingCategoryId.set(null);
-      this.categoryForm.reset({ name: '', active: true });
+      this.categoryForm.reset({ name: '',
+        description: '', active: true });
     }
     this.showCategoryModal.set(true);
   }
@@ -179,7 +182,8 @@ export class MenuManagementComponent implements OnInit {
       this.editingItemId.set(item.id);
       this.itemForm.patchValue({ 
         categoryId: item.categoryId,
-        name: item.name, 
+        name: item.name,
+        description: item.description || '', 
         price: item.price, 
         available: item.available 
       });
@@ -187,7 +191,8 @@ export class MenuManagementComponent implements OnInit {
       this.editingItemId.set(null);
       this.itemForm.reset({ 
         categoryId: this.selectedCategory()?.id || '', // Default to current
-        name: '', 
+        name: '',
+        description: '', 
         price: 0, 
         available: true 
       });
@@ -202,7 +207,8 @@ export class MenuManagementComponent implements OnInit {
     
     const req = { 
       categoryId: formVals.categoryId, // Grab category assignment from form
-      name: formVals.name, 
+      name: formVals.name,
+      description: (formVals as any).description, 
       price: formVals.price,
       available: formVals.available
     };
