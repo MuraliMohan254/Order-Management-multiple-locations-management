@@ -32,4 +32,14 @@ export class AnalyticsService {
       responseType: 'blob'
     });
   }
+
+  downloadSalesSummaryPdf(startDate?: string, endDate?: string): Observable<Blob> {
+    let params = new HttpParams();
+    if (startDate) params = params.set('startDate', startDate);
+    if (endDate) params = params.set('endDate', endDate);
+    return this.http.get(`${this.baseUrl}/reports/summary/pdf`, {
+      params,
+      responseType: 'blob'
+    });
+  }
 }

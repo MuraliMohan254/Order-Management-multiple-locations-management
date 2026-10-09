@@ -112,16 +112,42 @@ export class Dashboard implements OnInit {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `WildBar_Sales_Report_${this.customStartDate()}_to_${this.customEndDate()}.pdf`;
+        a.download = `WildBar_Sales_Detailed_${this.customStartDate()}_to_${this.customEndDate()}.pdf`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
-        this.alertService.success('Sales report PDF generated and downloaded!');
+        this.alertService.success('Detailed sales report downloaded!');
         this.isExportingPdf.set(false);
       },
       error: () => {
         this.alertService.error('Failed to generate PDF report');
+        this.isExportingPdf.set(false);
+      }
+    });
+  }
+
+  exportSummaryPdfReport() {
+    this.isExportingPdf.set(true);
+
+    const startIso = this.customStartDate() ? `${this.customStartDate()}T00:00:00Z` : undefined;
+    const endIso = this.customEndDate() ? `${this.customEndDate()}T23:59:59Z` : undefined;
+
+    this.analyticsService.downloadSalesSummaryPdf(startIso, endIso).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `WildBar_Sales_Summary_${this.customStartDate()}_to_${this.customEndDate()}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        this.alertService.success('Sales summary report downloaded!');
+        this.isExportingPdf.set(false);
+      },
+      error: () => {
+        this.alertService.error('Failed to generate summary PDF report');
         this.isExportingPdf.set(false);
       }
     });
