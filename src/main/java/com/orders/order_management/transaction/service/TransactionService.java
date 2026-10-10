@@ -175,11 +175,17 @@ public class TransactionService {
 
         paymentRepository.save(payment);
 
+
         if (amount.compareTo(order.getGrandTotal()) >= 0 && order.getTable() != null) {
             RestaurantTable table = order.getTable();
             table.setStatus(TableStatus.AVAILABLE);
             tableRepository.save(table);
         }
+        
+        // Update order status to PAID once settled
+        order.setStatus(com.orders.order_management.core.enums.OrderStatus.PAID);
+        orderRepository.save(order);
+
 
         return new PaymentResponse(payment.getId(), orderId, amount, method, PaymentStatus.SUCCESS);
     }
@@ -400,7 +406,7 @@ public class TransactionService {
     public List<OrderResponse> getOrders(List<OrderStatus> statuses) {
         // If no status is provided, default to active restaurant workflows
         if (statuses == null || statuses.isEmpty()) {
-            statuses = List.of(OrderStatus.SOFT_ORDER, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.SERVED, OrderStatus.BILLED);
+            statuses = List.of(OrderStatus.SOFT_ORDER, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.SERVED, OrderStatus.BILLED, OrderStatus.PAID);
         }
 
         return orderRepository.findActiveOrdersByStatusIn(statuses).stream()
