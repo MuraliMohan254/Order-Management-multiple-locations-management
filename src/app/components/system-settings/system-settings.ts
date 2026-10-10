@@ -22,7 +22,10 @@ export class SystemSettingsComponent implements OnInit {
   kitchenWorkflowEnabled = signal<boolean>(true);
   taxRate = signal<number>(0.05); // 5% = 0.05
   taxName = signal<string>('GST');
-  defaultDiscountPercentage = signal<number>(0); // 0%
+  defaultDiscountPercentage = signal<number>(0);
+  thermalPrintingEnabled = signal<boolean>(false);
+  thermalPaperSize = signal<string>('80mm');
+  printerName = signal<string>(''); // 0%
 
   ngOnInit() {
     this.loadConfig();
