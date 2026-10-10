@@ -23,6 +23,9 @@ public class SystemConfigService {
                     .taxRate(new BigDecimal("0.05"))
                     .taxName("GST")
                     .defaultDiscountPercentage(BigDecimal.ZERO)
+                    .thermalPrintingEnabled(false)
+                    .thermalPaperSize("80mm")
+                    .printerName(null)
                     .build();
             repository.save(config);
         }
@@ -36,6 +39,9 @@ public class SystemConfigService {
                     .taxRate(new BigDecimal("0.05"))
                     .taxName("GST")
                     .defaultDiscountPercentage(BigDecimal.ZERO)
+                    .thermalPrintingEnabled(false)
+                    .thermalPaperSize("80mm")
+                    .printerName(null)
                     .build();
             return repository.save(config);
         });
@@ -47,6 +53,9 @@ public class SystemConfigService {
         config.setTaxRate(newConfig.getTaxRate());
         config.setTaxName(newConfig.getTaxName());
         config.setDefaultDiscountPercentage(newConfig.getDefaultDiscountPercentage());
+        config.setThermalPrintingEnabled(newConfig.isThermalPrintingEnabled());
+        config.setThermalPaperSize(newConfig.getThermalPaperSize());
+        config.setPrinterName(newConfig.getPrinterName());
         return repository.save(config);
     }
 }

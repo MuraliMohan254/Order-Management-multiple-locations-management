@@ -28,4 +28,12 @@ public class SystemConfig {
     private String taxName;
 
     private BigDecimal defaultDiscountPercentage; // E.g., 0.00
+    
+    @Builder.Default
+    private boolean thermalPrintingEnabled = false;
+    
+    @Builder.Default
+    private String thermalPaperSize = "80mm"; // 80mm or 58mm
+    
+    private String printerName; // null means default printer
 }

@@ -18,6 +18,7 @@ import com.orders.order_management.transaction.dto.TableResponse;
 import com.orders.order_management.transaction.entity.Order;
 import com.orders.order_management.transaction.entity.OrderItem;
 import com.orders.order_management.transaction.entity.Payment;
+import com.orders.order_management.transaction.service.PrinterService;
 import com.orders.order_management.transaction.entity.RestaurantTable;
 import com.orders.order_management.transaction.repository.OrderItemRepository;
 import com.orders.order_management.transaction.repository.OrderRepository;
@@ -506,12 +507,15 @@ public class TransactionService {
     }
 
     public Map<String, Object> getAppConfig() {
-        return Map.of(
+        return java.util.Map.of(
                 "taxRate", configService.getConfig().getTaxRate(),
                 "defaultDiscountPercentage", configService.getConfig().getDefaultDiscountPercentage(),
                 "kitchenWorkflowEnabled", configService.getConfig().isKitchenWorkflowEnabled(),
                 "taxName", configService.getConfig().getTaxName(),
-                "restaurantName", "WildBar"
+                "restaurantName", "WildBar",
+                "thermalPrintingEnabled", configService.getConfig().isThermalPrintingEnabled(),
+                "thermalPaperSize", configService.getConfig().getThermalPaperSize() != null ? configService.getConfig().getThermalPaperSize() : "80mm",
+                "printerName", configService.getConfig().getPrinterName() != null ? configService.getConfig().getPrinterName() : ""
         );
     }
 }
