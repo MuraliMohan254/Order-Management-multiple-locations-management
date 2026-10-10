@@ -207,10 +207,15 @@
                 <h4 class="font-bold text-slate-800 dark:text-slate-100 text-xs truncate">{{ item.name }}</h4>
                 <p class="text-blue-600 dark:text-blue-400 font-black text-xs mt-0.5">₹{{ (item.price * item.quantity) | number:'1.2-2' }}</p>
               </div>
-              <div class="flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-0.5 shadow-2xs">
-                <button (click)="updateQuantity(item.itemId, -1)" class="w-6 h-6 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-md font-bold text-xs cursor-pointer">-</button>
-                <span class="font-black text-slate-900 dark:text-white w-4 text-center text-xs">{{ item.quantity }}</span>
-                <button (click)="updateQuantity(item.itemId, 1)" class="w-6 h-6 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-md font-bold text-xs cursor-pointer">+</button>
+              <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-0.5 shadow-2xs">
+                  <button (click)="updateQuantity(item.itemId, -1)" class="w-6 h-6 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-md font-bold text-xs cursor-pointer">-</button>
+                  <span class="font-black text-slate-900 dark:text-white w-4 text-center text-xs">{{ item.quantity }}</span>
+                  <button (click)="updateQuantity(item.itemId, 1)" class="w-6 h-6 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-md font-bold text-xs cursor-pointer">+</button>
+                </div>
+                <button (click)="removeItem(item.itemId)" class="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer" title="Remove item">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
               </div>
             </div>
 

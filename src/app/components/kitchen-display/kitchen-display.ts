@@ -31,7 +31,7 @@ export class KitchenDisplayComponent implements OnInit, OnDestroy {
 
   getKitchenStage(order: OrderResponse): string {
     if (order.kitchenStatus) return order.kitchenStatus;
-    if (order.status && order.status !== 'BILLED') return order.status;
+    if (order.status && order.status !== 'BILLED' && order.status !== 'PAID') return order.status;
     return 'CONFIRMED';
   }
 
@@ -98,8 +98,8 @@ export class KitchenDisplayComponent implements OnInit, OnDestroy {
   loadActiveOrders(isInitial = false) {
     if (isInitial) this.isLoading.set(true);
 
-    // Active kitchen statuses: CONFIRMED, PREPARING, READY, plus BILLED (for pre-paid/express orders)
-    const statuses = ['CONFIRMED', 'PREPARING', 'READY', 'BILLED'];
+    // Active kitchen statuses: CONFIRMED, PREPARING, READY, plus BILLED and PAID (for pre-paid/express orders)
+    const statuses = ['CONFIRMED', 'PREPARING', 'READY', 'BILLED', 'PAID'];
     this.posService.getOrders(statuses).subscribe({
       next: (data) => {
         // Exclude orders where kitchen preparation is already SERVED or order is CANCELLED

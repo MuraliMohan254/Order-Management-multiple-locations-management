@@ -11,6 +11,7 @@ import { OrdersBillingComponent } from './components/orders-billing/orders-billi
 import { CustomerQrOrderComponent } from './components/customer-qr-order/customer-qr-order';
 import { KitchenDisplayComponent } from './components/kitchen-display/kitchen-display';
 import { BusinessAnalyticsComponent } from './components/business-analytics/business-analytics';
+import { UserManagementComponent } from './components/user-management/user-management';
 
 export const routes: Routes = [
   { 
@@ -70,6 +71,10 @@ export const routes: Routes = [
       {
         path: 'menu-management',
         component: MenuManagementComponent
+      },
+      {
+        path: 'users',
+        component: UserManagementComponent
       }
     ]
   },

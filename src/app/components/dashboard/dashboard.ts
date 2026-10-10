@@ -21,7 +21,8 @@ export class Dashboard implements OnInit {
 
   dashboardData = signal<SalesDashboardResponse | null>(null);
   isLoading = signal(true);
-  isExportingPdf = signal(false);
+  isExportingDetailed = signal(false);
+  isExportingSummary = signal(false);
 
   // Date Range Controls
   activePreset = signal<DatePreset>('MONTH');
@@ -94,15 +95,15 @@ export class Dashboard implements OnInit {
         this.dashboardData.set(res);
         this.isLoading.set(false);
       },
-      error: () => {
-        this.alertService.error('Failed to load dashboard statistics');
+      error: (err: any) => {
+        if (err && err.status !== 403) this.alertService.error('Failed to load dashboard statistics');
         this.isLoading.set(false);
       }
     });
   }
 
   exportPdfReport() {
-    this.isExportingPdf.set(true);
+    this.isExportingDetailed.set(true);
 
     const startIso = this.customStartDate() ? `${this.customStartDate()}T00:00:00Z` : undefined;
     const endIso = this.customEndDate() ? `${this.customEndDate()}T23:59:59Z` : undefined;
@@ -118,17 +119,17 @@ export class Dashboard implements OnInit {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
         this.alertService.success('Detailed sales report downloaded!');
-        this.isExportingPdf.set(false);
+        this.isExportingDetailed.set(false);
       },
-      error: () => {
+      error: (err: any) => {
         this.alertService.error('Failed to generate PDF report');
-        this.isExportingPdf.set(false);
+        this.isExportingDetailed.set(false);
       }
     });
   }
 
   exportSummaryPdfReport() {
-    this.isExportingPdf.set(true);
+    this.isExportingSummary.set(true);
 
     const startIso = this.customStartDate() ? `${this.customStartDate()}T00:00:00Z` : undefined;
     const endIso = this.customEndDate() ? `${this.customEndDate()}T23:59:59Z` : undefined;
@@ -144,11 +145,11 @@ export class Dashboard implements OnInit {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
         this.alertService.success('Sales summary report downloaded!');
-        this.isExportingPdf.set(false);
+        this.isExportingSummary.set(false);
       },
-      error: () => {
+      error: (err: any) => {
         this.alertService.error('Failed to generate summary PDF report');
-        this.isExportingPdf.set(false);
+        this.isExportingSummary.set(false);
       }
     });
   }

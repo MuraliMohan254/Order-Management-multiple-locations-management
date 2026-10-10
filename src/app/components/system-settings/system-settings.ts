@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 import { PosService } from '../../services/pos/pos.service';
 import { AlertService } from '../../services/alert.service';
 
@@ -16,6 +17,7 @@ export class SystemSettingsComponent implements OnInit {
   private alertService = inject(AlertService);
 
   isLoading = signal(true);
+  initialKitchenWorkflowEnabled: boolean = true;
   isSaving = signal(false);
 
   // Config State
@@ -36,10 +38,16 @@ export class SystemSettingsComponent implements OnInit {
     this.posService.getAppConfig().subscribe({
       next: (cfg) => {
         if (cfg) {
-          if (cfg.kitchenWorkflowEnabled !== undefined) this.kitchenWorkflowEnabled.set(cfg.kitchenWorkflowEnabled);
+          if (cfg.kitchenWorkflowEnabled !== undefined) {
+            this.kitchenWorkflowEnabled.set(cfg.kitchenWorkflowEnabled);
+            this.initialKitchenWorkflowEnabled = cfg.kitchenWorkflowEnabled;
+          }
           if (cfg.taxRate !== undefined) this.taxRate.set(Number(cfg.taxRate) * 100); // Display as 5, not 0.05
           if (cfg.taxName) this.taxName.set(cfg.taxName);
           if (cfg.defaultDiscountPercentage !== undefined) this.defaultDiscountPercentage.set(Number(cfg.defaultDiscountPercentage) * 100);
+          if (cfg.thermalPrintingEnabled !== undefined) this.thermalPrintingEnabled.set(cfg.thermalPrintingEnabled);
+          if (cfg.thermalPaperSize !== undefined) this.thermalPaperSize.set(cfg.thermalPaperSize);
+          if (cfg.printerName !== undefined) this.printerName.set(cfg.printerName || '');
         }
         this.isLoading.set(false);
       },
@@ -50,18 +58,42 @@ export class SystemSettingsComponent implements OnInit {
     });
   }
 
-  saveConfig() {
+  async saveConfig() {
     this.isSaving.set(true);
+    
+    if (this.initialKitchenWorkflowEnabled !== this.kitchenWorkflowEnabled()) {
+      const shouldClear = await this.alertService.confirm({
+        title: 'Clear Kitchen Queue?',
+        text: `You have ${this.kitchenWorkflowEnabled() ? 'enabled' : 'disabled'} the kitchen workflow. Do you want to clear the existing kitchen queue and start fresh? If you cancel, the old queue will be retained.`,
+        confirmButtonText: 'Yes, clear queue',
+        cancelButtonText: 'No, retain queue',
+        isDestructive: true
+      });
+
+      if (shouldClear) {
+        try {
+          await firstValueFrom(this.posService.clearKitchen());
+          this.alertService.success('Kitchen queue cleared.');
+        } catch (e) {
+          this.alertService.error('Failed to clear kitchen queue');
+        }
+      }
+    }
+
     const payload = {
       kitchenWorkflowEnabled: this.kitchenWorkflowEnabled(),
-      taxRate: this.taxRate() / 100, // Convert 5 back to 0.05
+      taxRate: this.taxRate() / 100,
       taxName: this.taxName(),
-      defaultDiscountPercentage: this.defaultDiscountPercentage() / 100
+      defaultDiscountPercentage: this.defaultDiscountPercentage() / 100,
+      thermalPrintingEnabled: this.thermalPrintingEnabled(),
+      thermalPaperSize: this.thermalPaperSize(),
+      printerName: this.printerName() || null
     };
 
     this.posService.updateAppConfig(payload).subscribe({
       next: () => {
         this.alertService.success('System configuration saved successfully.');
+        this.initialKitchenWorkflowEnabled = this.kitchenWorkflowEnabled();
         this.isSaving.set(false);
       },
       error: () => {

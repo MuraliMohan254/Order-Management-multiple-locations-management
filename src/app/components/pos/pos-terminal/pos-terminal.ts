@@ -300,11 +300,15 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
       return current.map(i => {
         if (i.itemId === itemId) {
           const newQ = i.quantity + delta;
-          return newQ > 0 ? { ...i, quantity: newQ } : i;
+          return { ...i, quantity: newQ };
         }
         return i;
       }).filter(i => i.quantity > 0);
     });
+  }
+
+  removeItem(itemId: string) {
+    this.cart.update(current => current.filter(i => i.itemId !== itemId));
   }
 
   openNoteModal(cartItem: CartItem) {
@@ -492,6 +496,8 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const changeDueAmount = this.quickBillChangeDue();
+
     this.isQuickBilling.set(true);
 
     const orderRequests: OrderItemRequest[] = this.cart().map(item => ({
@@ -517,8 +523,8 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
               this.showExistingItems.set(false);
               this.loadRunningOrders();
 
-              const changeMsg = (method === 'CASH' && this.quickBillChangeDue() > 0)
-                ? ` | Change Due: ₹${this.quickBillChangeDue().toFixed(2)}`
+              const changeMsg = (method === 'CASH' && changeDueAmount > 0)
+                ? ` | Change Due: ₹${changeDueAmount.toFixed(2)}`
                 : '';
               this.alertService.success(
                 `Order #${orderNumber} billed & paid via ${method} (₹${finalAmount.toFixed(2)})${changeMsg}! Sent to kitchen queue.`,

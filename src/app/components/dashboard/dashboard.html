@@ -36,9 +36,9 @@
       </a>
 
       <button (click)="exportPdfReport()" 
-              [disabled]="isExportingPdf()"
+              [disabled]="isExportingDetailed() || isExportingSummary()"
               class="px-4 py-2.5 bg-slate-900 hover:bg-black dark:bg-blue-600 dark:hover:bg-blue-500 text-white rounded-xl text-xs font-black transition-all shadow-md active:scale-98 flex items-center gap-2 disabled:opacity-50 cursor-pointer">
-        @if (isExportingPdf()) {
+        @if (isExportingDetailed()) {
           <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           <span>Generating...</span>
         } @else {
@@ -50,9 +50,9 @@
       </button>
 
       <button (click)="exportSummaryPdfReport()" 
-              [disabled]="isExportingPdf()"
+              [disabled]="isExportingDetailed() || isExportingSummary()"
               class="px-4 py-2.5 bg-slate-900 hover:bg-black dark:bg-rose-600 dark:hover:bg-rose-500 text-white rounded-xl text-xs font-black transition-all shadow-md active:scale-98 flex items-center gap-2 disabled:opacity-50 cursor-pointer">
-        @if (isExportingPdf()) {
+        @if (isExportingSummary()) {
           <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           <span>Generating...</span>
         } @else {

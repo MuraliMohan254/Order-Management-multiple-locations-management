@@ -338,5 +338,19 @@ export class OrdersBillingComponent implements OnInit, OnDestroy {
   printReceipt() {
     window.print();
   }
+
+  acceptOrder() {
+    const order = this.selectedOrder();
+    if (!order) return;
+
+    this.posService.updateOrderStatus(order.id, 'CONFIRMED').subscribe({
+      next: (updated) => {
+        this.alertService.success(`Order ${order.orderNumber} accepted and sent to kitchen`);
+        this.selectedOrder.set(updated);
+        this.resetAndLoadOrders();
+      },
+      error: () => this.alertService.error('Failed to accept order')
+    });
+  }
 }
 

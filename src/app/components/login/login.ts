@@ -46,7 +46,14 @@ export class LoginComponent {
     this.authService.login({ username, password }).subscribe({
       next: () => {
         this.alertService.success(`Welcome back to ${this.sharedService.appName}`, 'Login Successful');
-        this.router.navigate(['/dashboard']);
+                  const role = this.authService.getUserRole();
+          if (role === 'CASHIER') {
+            this.router.navigate(['/pos-sale']);
+          } else if (role === 'KITCHEN') {
+            this.router.navigate(['/kitchen']);
+          } else {
+            this.router.navigate(['/dashboard']);
+          }
       },
       error: (err) => {
         this.isLoading.set(false);
