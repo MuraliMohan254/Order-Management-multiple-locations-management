@@ -80,7 +80,7 @@ public class TransactionService {
             order = Order.builder()
                     .orderNumber("ORD-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0,4).toUpperCase())
                     .orderType(OrderType.DINE_IN)
-                    .status(OrderStatus.CONFIRMED)
+                    .status(OrderStatus.SOFT_ORDER)
                     .kitchenStatus(determineInitialKitchenStatus())
                     .table(table)
                     .subTotal(BigDecimal.ZERO)
@@ -249,8 +249,8 @@ public class TransactionService {
             throw new IllegalStateException("Cannot change status of a cancelled order.");
         }
 
-        // If the order is already BILLED, kitchen operations (PREPARING, READY, SERVED) update kitchenStatus
-        if (order.getStatus() == OrderStatus.BILLED) {
+        // If the order is already BILLED or PAID, kitchen operations (PREPARING, READY, SERVED) update only kitchenStatus
+        if (order.getStatus() == OrderStatus.BILLED || order.getStatus() == OrderStatus.PAID) {
             order.setKitchenStatus(newStatus.name());
             return mapToOrderResponse(orderRepository.save(order));
         }
@@ -324,10 +324,15 @@ public class TransactionService {
                 com.orders.order_management.core.enums.OrderStatus.CONFIRMED,
                 com.orders.order_management.core.enums.OrderStatus.PREPARING,
                 com.orders.order_management.core.enums.OrderStatus.READY,
-                com.orders.order_management.core.enums.OrderStatus.BILLED
+                com.orders.order_management.core.enums.OrderStatus.BILLED,
+                com.orders.order_management.core.enums.OrderStatus.PAID
         ));
         for (Order order : activeOrders) {
             order.setKitchenStatus("SERVED");
+            if (order.getStatus() != com.orders.order_management.core.enums.OrderStatus.BILLED && 
+                order.getStatus() != com.orders.order_management.core.enums.OrderStatus.PAID) {
+                order.setStatus(com.orders.order_management.core.enums.OrderStatus.SERVED);
+            }
         }
         orderRepository.saveAll(activeOrders);
     }

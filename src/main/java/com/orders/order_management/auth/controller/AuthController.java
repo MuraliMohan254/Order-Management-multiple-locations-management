@@ -3,6 +3,9 @@ package com.orders.order_management.auth.controller;
 
 import com.orders.order_management.auth.dto.AuthRequest;
 import com.orders.order_management.auth.dto.AuthResponse;
+import com.orders.order_management.auth.dto.CreateUserRequest;
+import com.orders.order_management.auth.dto.UpdateUserRequest;
+import java.util.Collections;
 import com.orders.order_management.auth.dto.ChangePasswordRequest;
 import com.orders.order_management.auth.dto.SubscriptionCheckResult;
 import com.orders.order_management.auth.dto.UsersResponse;
@@ -107,8 +110,8 @@ public class AuthController {
         // 2. Map Entities to DTOs
         List<UsersResponse> dtoList = userPage.getContent().stream().map(user -> {
             UsersResponse dto = new UsersResponse();
-            dto.setUserId(user.getId().intValue());
-            dto.setUserName(user.getUsername());
+            dto.setId(user.getId());
+            dto.setUsername(user.getUsername());
             dto.setActive(user.isActive());
             dto.setCreatedAt(user.getCreatedAt());
             dto.setLastLogin(user.getLastLogin());
@@ -116,7 +119,7 @@ public class AuthController {
             String roleString = user.getRoles().stream()
                     .map(Enum::name)
                     .collect(Collectors.joining(", "));
-            dto.setRole(roleString);
+            dto.setRoles(user.getRoles());
 
             return dto;
         }).collect(Collectors.toList());
@@ -157,6 +160,10 @@ public class AuthController {
             @PathVariable Long userId,
             @RequestBody ChangePasswordRequest request) {
 
+        if (request.getNewPassword() == null || request.getNewPassword().length() < 5) {
+            throw new RuntimeException("Password must be at least 5 characters long");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -167,7 +174,55 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
+
+    // Create User
+    @PostMapping("/users")
+    @Operation(summary = "Create User", description = "Admin creates a new user.")
+    @Tag(name = "User Management")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UsersResponse> createUser(@RequestBody CreateUserRequest request) {
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            throw new RuntimeException("Username already exists.");
+        }
+        if (request.getPassword() == null || request.getPassword().length() < 5) {
+            throw new RuntimeException("Password must be at least 5 characters long");
+        }
+        User user = User.builder()
+                .username(request.getUsername())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .roles(request.getRoles() != null ? request.getRoles() : Collections.singleton(com.orders.order_management.core.enums.Role.CASHIER))
+                .active(true)
+                .build();
+        user = userRepository.save(user);
+        return ResponseEntity.ok(new UsersResponse(user.getId(), user.getUsername(), user.getRoles(), user.isActive(), user.getCreatedAt(), user.getLastLogin()));
+    }
+
+    // Update User
+    @PutMapping("/users/{userId}")
+    @Operation(summary = "Update User", description = "Admin updates user roles or username.")
+    @Tag(name = "User Management")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UsersResponse> updateUser(
+            @PathVariable Long userId,
+            @RequestBody UpdateUserRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        if (request.getUsername() != null && !request.getUsername().equals(user.getUsername())) {
+            if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+                throw new RuntimeException("Username already exists.");
+            }
+            user.setUsername(request.getUsername());
+        }
+        if (request.getRoles() != null && !request.getRoles().isEmpty()) {
+            user.setRoles(request.getRoles());
+        }
+        user = userRepository.save(user);
+        return ResponseEntity.ok(new UsersResponse(user.getId(), user.getUsername(), user.getRoles(), user.isActive(), user.getCreatedAt(), user.getLastLogin()));
+    }
+
     // 4. Delete User
+
     @DeleteMapping("/users/{userId}")
     @Operation(summary = "Delete User", description = "Permanently removes a user from the database.")
     @Tag(name = "User Management")

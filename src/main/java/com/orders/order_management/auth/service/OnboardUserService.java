@@ -43,7 +43,7 @@ public class OnboardUserService {
         if (req.getRole() != null) {
             roles.add(req.getRole());
         } else {
-            roles.add(Role.SALES);
+            roles.add(Role.CASHIER);
         }
         user.setRoles(roles);
 

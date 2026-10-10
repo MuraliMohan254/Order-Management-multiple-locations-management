@@ -59,7 +59,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
     SELECT oi FROM OrderItem oi 
     JOIN FETCH oi.order o 
     JOIN FETCH oi.item i 
-    WHERE (o.status IN ('CONFIRMED', 'PREPARING') OR (o.status = 'BILLED' AND (o.kitchenStatus IS NULL OR o.kitchenStatus != 'SERVED')))
+    WHERE o.status IN ('CONFIRMED', 'PREPARING', 'BILLED', 'PAID') AND (o.kitchenStatus IS NULL OR o.kitchenStatus != 'SERVED')
     ORDER BY oi.createdAt ASC
 """)
     List<OrderItem> findActiveKitchenTickets();

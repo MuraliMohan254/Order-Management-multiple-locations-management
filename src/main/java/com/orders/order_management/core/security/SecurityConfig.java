@@ -133,7 +133,25 @@ public class SecurityConfig {
                                 "/uploads/**", "/api/auth/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/menu/**").permitAll()
-                        .anyRequest().permitAll()
+                        
+                        // KITCHEN Role Endpoints
+                        .requestMatchers("/api/v1/orders/kitchen/**").hasAnyRole("ADMIN", "KITCHEN")
+                        
+                        // Allow Kitchen read-only access to orders
+                        .requestMatchers(HttpMethod.GET, "/api/v1/orders/**").hasAnyRole("ADMIN", "CASHIER", "KITCHEN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/orders/**").hasAnyRole("ADMIN", "CASHIER", "KITCHEN")
+                        
+                        // CASHIER Role Endpoints (POS, Orders, Billing, Tables)
+                        .requestMatchers("/api/v1/orders/**").hasAnyRole("ADMIN", "CASHIER")
+                        .requestMatchers("/api/v1/tables/**").hasAnyRole("ADMIN", "CASHIER")
+                        
+                        // ADMIN Only Endpoints
+                        .requestMatchers("/api/v1/menu/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/config/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/analytics/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/users/**").hasRole("ADMIN")
+                        
+                        .anyRequest().authenticated()
                 )
 
                 // Our auth provider + JWT filter

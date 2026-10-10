@@ -17,9 +17,21 @@ public class GlobalExceptionHandler {
         Map<String, Object> errorBody = new HashMap<>();
         errorBody.put("timestamp", LocalDateTime.now());
         errorBody.put("error", ex.getMessage());
+        errorBody.put("message", ex.getMessage());
         errorBody.put("code", ex.getErrorCode());
         errorBody.put("status", HttpStatus.BAD_REQUEST.value());
         return new ResponseEntity<>(errorBody, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthenticationException(Exception ex) {
+        Map<String, Object> errorBody = new HashMap<>();
+        errorBody.put("timestamp", LocalDateTime.now());
+        errorBody.put("error", ex.getMessage());
+        errorBody.put("message", ex.getMessage());
+        errorBody.put("code", "UNAUTHORIZED");
+        errorBody.put("status", HttpStatus.UNAUTHORIZED.value());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).contentType(MediaType.APPLICATION_JSON).body(errorBody);
     }
 
     @ExceptionHandler(Exception.class)
@@ -27,6 +39,7 @@ public class GlobalExceptionHandler {
         Map<String, Object> errorBody = new HashMap<>();
         errorBody.put("timestamp", LocalDateTime.now());
         errorBody.put("error", ex.getMessage());
+        errorBody.put("message", ex.getMessage());
         errorBody.put("code", "INTERNAL_SERVER_ERROR");
         errorBody.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
 

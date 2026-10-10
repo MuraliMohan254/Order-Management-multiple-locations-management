@@ -23,6 +23,7 @@ public class UserDetailsConfig {
                 .map(u -> org.springframework.security.core.userdetails.User.builder()
                         .username(u.getUsername())
                         .password(u.getPassword())
+                        .disabled(!u.isActive())
                         .authorities(
                                 u.getRoles().stream()
                                         .map(r -> new SimpleGrantedAuthority("ROLE_" + r.name()))
