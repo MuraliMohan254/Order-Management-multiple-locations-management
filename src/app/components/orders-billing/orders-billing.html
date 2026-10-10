@@ -43,7 +43,7 @@
                 class="flex-1 py-1.5 rounded-lg transition-all cursor-pointer">Active</button>
         <button (click)="setFilter('BILLED')" 
                 [ngClass]="currentFilter() === 'BILLED' ? 'bg-white dark:bg-slate-700 shadow-xs text-blue-700 dark:text-white' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
-                class="flex-1 py-1.5 rounded-lg transition-all cursor-pointer">Billed</button>
+                class="flex-1 py-1.5 rounded-lg transition-all cursor-pointer">Billed / Paid</button>
         <button (click)="setFilter('CANCELLED')" 
                 [ngClass]="currentFilter() === 'CANCELLED' ? 'bg-white dark:bg-slate-700 shadow-xs text-blue-700 dark:text-white' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
                 class="flex-1 py-1.5 rounded-lg transition-all cursor-pointer">Cancelled</button>
@@ -249,83 +249,102 @@
               <!-- Grand Total -->
               <div class="flex justify-between text-base font-black text-slate-900 dark:text-white pt-3 border-t-2 border-dashed border-slate-200 dark:border-slate-700">
                 <span>Total Due</span>
-                <span class="text-xl text-blue-600 dark:text-blue-400">₹{{ (selectedOrder()!.grandTotal > 0 ? selectedOrder()!.grandTotal : (selectedOrder()!.subTotal + selectedOrder()!.taxAmount - selectedOrder()!.discountAmount)) | number:'1.2-2' }}</span>
+                <span class="text-xl text-blue-600 dark:text-blue-400">₹{{ (selectedOrder()!.status === 'BILLED' ? selectedOrder()!.grandTotal : (selectedOrder()!.subTotal + selectedOrder()!.taxAmount - discountInput())) | number:'1.2-2' }}</span>
               </div>
             </div>
 
-            <!-- Generate Bill Action -->
-            @if (selectedOrder()!.status !== 'BILLED' && selectedOrder()!.status !== 'CANCELLED') {
-              <button (click)="generateBill()" 
-                      [disabled]="isProcessing()"
-                      class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 cursor-pointer">
-                @if (isProcessing()) {
-                  <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Calculating Bill...</span>
-                } @else {
-                  <span>Generate Final Bill</span>
+            
+              </div>
+
+            <!-- Payment Settlement & Actions -->
+            @if (selectedOrder()!.status !== 'CANCELLED') {
+              <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border-2 shadow-sm space-y-4 transition-colors mt-4"
+                   [ngClass]="selectedOrder()!.status === 'PAID' ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/10' : 'border-emerald-500'">
+                
+                <h3 class="font-black text-emerald-800 dark:text-emerald-300 text-sm uppercase tracking-wide flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>Payment & Checkout</span>
+                  </div>
+                  @if (selectedOrder()!.status === 'PAID') {
+                    <span class="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-800/80 text-emerald-700 dark:text-emerald-300 rounded text-xs font-black flex items-center gap-1">
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                      PAID
+                    </span>
+                  }
+                </h3>
+
+                @if (selectedOrder()!.status !== 'PAID') {
+                  <!-- Payment Method Selector -->
+                  <div class="grid grid-cols-3 gap-2">
+                    <button (click)="paymentMethod.set('CASH')"
+                            class="py-2.5 rounded-xl border text-xs font-bold transition-all text-center cursor-pointer"
+                            [ngClass]="paymentMethod() === 'CASH' ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-800 dark:text-emerald-200 shadow-xs' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'">
+                      Cash
+                    </button>
+                    <button (click)="paymentMethod.set('CARD')"
+                            class="py-2.5 rounded-xl border text-xs font-bold transition-all text-center cursor-pointer"
+                            [ngClass]="paymentMethod() === 'CARD' ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-800 dark:text-emerald-200 shadow-xs' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'">
+                      Card
+                    </button>
+                    <button (click)="paymentMethod.set('UPI')"
+                            class="py-2.5 rounded-xl border text-xs font-bold transition-all text-center cursor-pointer"
+                            [ngClass]="paymentMethod() === 'UPI' ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-800 dark:text-emerald-200 shadow-xs' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'">
+                      UPI
+                    </button>
+                  </div>
+
+                  <div class="flex flex-col gap-2">
+                    @if (selectedOrder()!.status === 'BILLED') {
+                      <button (click)="settlePayment()"
+                              [disabled]="isProcessing()"
+                              class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        @if (isProcessing()) {
+                          <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Processing Payment...</span>
+                        } @else {
+                          <span>Settle {{ selectedOrder()!.grandTotal | number:'1.2-2' }} via {{ paymentMethod() }}</span>
+                        }
+                      </button>
+                    } @else {
+                      <button (click)="generateAndSettleBill()"
+                              [disabled]="isProcessing()"
+                              class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        @if (isProcessing()) {
+                          <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Processing...</span>
+                        } @else {
+                          <span>Generate & Settle via {{ paymentMethod() }}</span>
+                        }
+                      </button>
+                      <button (click)="generateBill()"
+                              [disabled]="isProcessing()"
+                              class="w-full py-2 bg-blue-50 dark:bg-blue-900/40 hover:bg-blue-100 dark:hover:bg-blue-800/60 text-blue-700 dark:text-blue-300 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer border border-blue-200 dark:border-blue-800">
+                        @if (isProcessing()) {
+                          <div class="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                          <span>Calculating...</span>
+                        } @else {
+                          <span>Print Bill Only (Pay Later)</span>
+                        }
+                      </button>
+                    }
+                  </div>
                 }
-              </button>
+
+                @if (selectedOrder()!.status === 'BILLED' || selectedOrder()!.status === 'PAID') {
+                  <button (click)="showReceiptModal.set(true)"
+                          class="w-full py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                    <svg class="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    <span>Print Bill Receipt</span>
+                  </button>
+                }
+              </div>
             }
           </div>
-
-          <!-- Payment Settlement (Available once billed or generated) -->
-          @if (selectedOrder()!.status === 'BILLED') {
-            <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border-2 border-emerald-500 shadow-sm space-y-4 transition-colors">
-              <h3 class="font-black text-emerald-800 dark:text-emerald-300 text-sm uppercase tracking-wide flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span>Payment Settlement</span>
-              </h3>
-
-              <!-- Payment Method Selector -->
-              <div class="grid grid-cols-3 gap-2">
-                <button (click)="paymentMethod.set('CASH')" 
-                        class="py-2.5 rounded-xl border text-xs font-bold transition-all text-center cursor-pointer"
-                        [ngClass]="paymentMethod() === 'CASH' ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-800 dark:text-emerald-200 shadow-xs' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'">
-                  💵 Cash
-                </button>
-                <button (click)="paymentMethod.set('CARD')" 
-                        class="py-2.5 rounded-xl border text-xs font-bold transition-all text-center cursor-pointer"
-                        [ngClass]="paymentMethod() === 'CARD' ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-800 dark:text-emerald-200 shadow-xs' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'">
-                  💳 Card
-                </button>
-                <button (click)="paymentMethod.set('UPI')" 
-                        class="py-2.5 rounded-xl border text-xs font-bold transition-all text-center cursor-pointer"
-                        [ngClass]="paymentMethod() === 'UPI' ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-800 dark:text-emerald-200 shadow-xs' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'">
-                  📱 UPI
-                </button>
-              </div>
-
-              <!-- Settle Button -->
-              <button (click)="settlePayment()" 
-                      [disabled]="isProcessing()"
-                      class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
-                @if (isProcessing()) {
-                  <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Processing Payment...</span>
-                } @else {
-                  <span>Settle ₹{{ selectedOrder()!.grandTotal | number:'1.2-2' }} via {{ paymentMethod() }}</span>
-                }
-              </button>
-
-              <button (click)="showReceiptModal.set(true)" 
-                      class="w-full py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer">
-                <svg class="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                <span>Print Bill Receipt</span>
-              </button>
-            </div>
-          }
-
-        </div>
-
       </div>
-    }
-  </div>
+  }
 
-</div>
-
-<!-- ========================================== -->
-<!-- THERMAL RECEIPT PRINT MODAL -->
-<!-- ========================================== -->
+  <!-- ========================================== -->
 @if (showReceiptModal() && selectedOrder(); as order) {
   <div class="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
@@ -495,4 +514,6 @@
     </div>
   </div>
 }
+
+
 

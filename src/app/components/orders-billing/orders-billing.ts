@@ -59,6 +59,7 @@ export class OrdersBillingComponent implements OnInit, OnDestroy {
 
   taxRate = signal<number>(0.05);
   taxName = signal<string>('GST');
+  defaultDiscountPercentage = signal<number>(0);
 
   ngOnInit() {
     this.posService.getAppConfig().subscribe({
@@ -66,6 +67,9 @@ export class OrdersBillingComponent implements OnInit, OnDestroy {
         if (cfg) {
           if (cfg.taxRate !== undefined) this.taxRate.set(Number(cfg.taxRate));
           if (cfg.taxName) this.taxName.set(cfg.taxName);
+            if (cfg.defaultDiscountPercentage !== undefined && cfg.defaultDiscountPercentage > 0) {
+              this.defaultDiscountPercentage.set(Number(cfg.defaultDiscountPercentage));
+            }
         }
       },
       error: () => {}
@@ -107,7 +111,7 @@ export class OrdersBillingComponent implements OnInit, OnDestroy {
     if (this.currentFilter() === 'ACTIVE') {
       return ['SOFT_ORDER', 'CONFIRMED', 'PREPARING', 'READY', 'SERVED'];
     } else if (this.currentFilter() === 'BILLED') {
-      return ['BILLED'];
+      return ['BILLED', 'PAID'];
     } else if (this.currentFilter() === 'CANCELLED') {
       return ['CANCELLED'];
     }
@@ -176,9 +180,48 @@ export class OrdersBillingComponent implements OnInit, OnDestroy {
     this.billingService.getOrderById(orderId).subscribe({
       next: (order) => {
         this.selectedOrder.set(order);
-        this.discountInput.set(order.discountAmount || 0); 
+        if (order.discountAmount > 0) {
+          this.discountInput.set(order.discountAmount);
+        } else if (this.defaultDiscountPercentage() > 0 && order.status !== 'BILLED') {
+          const autoDiscount = (order.subTotal + order.taxAmount) * this.defaultDiscountPercentage();
+          this.discountInput.set(Math.round(autoDiscount));
+        } else {
+          this.discountInput.set(0);
+        } 
       },
       error: () => this.alertService.error('Failed to fetch order details')
+    });
+  }
+  
+  
+  generateAndSettleBill() {
+    const order = this.selectedOrder();
+    if (!order) return;
+    
+    this.isProcessing.set(true);
+    this.billingService.generateBill(order.id, this.discountInput()).subscribe({
+      next: (billedOrder) => {
+        this.alertService.success(`Bill generated for ${billedOrder.orderNumber}`);
+        const amountToPay = billedOrder.grandTotal > 0 ? billedOrder.grandTotal : billedOrder.subTotal;
+        this.billingService.settlePayment(billedOrder.id, this.paymentMethod(), amountToPay).subscribe({
+          next: () => {
+            this.alertService.success(`Payment of ₹${amountToPay.toFixed(2)} settled via ${this.paymentMethod()}!`);
+            this.showReceiptModal.set(true);
+            this.resetAndLoadOrders();
+            this.isProcessing.set(false);
+          },
+          error: () => {
+            this.alertService.error('Bill generated, but payment failed. Please try settling again.');
+            this.selectedOrder.set(billedOrder);
+            this.resetAndLoadOrders();
+            this.isProcessing.set(false);
+          }
+        });
+      },
+      error: () => {
+        this.alertService.error('Failed to generate bill');
+        this.isProcessing.set(false);
+      }
     });
   }
 
@@ -296,3 +339,4 @@ export class OrdersBillingComponent implements OnInit, OnDestroy {
     window.print();
   }
 }
+
