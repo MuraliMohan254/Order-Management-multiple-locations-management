@@ -24,7 +24,10 @@ import java.util.List;
         @Index(name = "idx_orders_order_number", columnList = "order_number"),
         @Index(name = "idx_orders_table_id", columnList = "table_id"),
         @Index(name = "idx_orders_order_type", columnList = "order_type"),
-        @Index(name = "idx_orders_kitchen_status", columnList = "kitchen_status")
+        @Index(name = "idx_orders_kitchen_status", columnList = "kitchen_status"),
+        @Index(name = "idx_orders_outlet_created_at_status", columnList = "outlet_id, created_at, status"),
+        @Index(name = "idx_orders_outlet_status_kitchen", columnList = "outlet_id, status, kitchen_status"),
+        @Index(name = "idx_orders_table_status", columnList = "table_id, status")
 })
 @Getter
 @Setter

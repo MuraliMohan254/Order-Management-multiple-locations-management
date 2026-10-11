@@ -19,6 +19,8 @@ import java.util.UUID;
 @Filter(name = "outletFilter", condition = "outlet_id = :outletId")
 @Table(name = "restaurant_tables", uniqueConstraints = {
         @UniqueConstraint(name = "uk_tables_number_outlet", columnNames = {"table_number", "outlet_id"})
+}, indexes = {
+        @Index(name = "idx_restaurant_tables_outlet_status", columnList = "outlet_id, status")
 })
 @Getter
 @Setter

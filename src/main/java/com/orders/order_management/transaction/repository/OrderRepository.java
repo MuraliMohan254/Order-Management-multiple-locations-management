@@ -98,6 +98,9 @@ public interface OrderRepository extends JpaRepository<Order, UUID>, JpaSpecific
     @Query("SELECT o FROM Order o LEFT JOIN FETCH o.table LEFT JOIN FETCH o.outlet WHERE o.createdAt >= :startDate AND o.createdAt <= :endDate AND (:outletId IS NULL OR o.outlet.id = :outletId) ORDER BY o.createdAt DESC")
     List<Order> findOrdersBetween(@Param("startDate") Instant startDate, @Param("endDate") Instant endDate, @Param("outletId") String outletId);
 
+    @Query("SELECT o FROM Order o LEFT JOIN FETCH o.table LEFT JOIN FETCH o.outlet WHERE o.createdAt >= :startDate AND o.createdAt <= :endDate AND (:outletId IS NULL OR o.outlet.id = :outletId) ORDER BY o.createdAt DESC")
+    List<Order> findRecentOrdersBetween(@Param("startDate") Instant startDate, @Param("endDate") Instant endDate, @Param("outletId") String outletId, Pageable pageable);
+
     default List<Order> findOrdersBetween(Instant startDate, Instant endDate) {
         return findOrdersBetween(startDate, endDate, null);
     }

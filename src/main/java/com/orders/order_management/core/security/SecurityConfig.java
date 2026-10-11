@@ -137,11 +137,11 @@ public class SecurityConfig {
                         // KITCHEN Role Endpoints
                         .requestMatchers("/api/v1/orders/kitchen/**").hasAnyRole("ADMIN", "KITCHEN", "CASHIER")
                         
-                        // Allow Kitchen read-only access to orders
+                        // Allow Kitchen read-only access to orders and only status updates
                         .requestMatchers(HttpMethod.GET, "/api/v1/orders/**").hasAnyRole("ADMIN", "CASHIER", "KITCHEN")
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/orders/**").hasAnyRole("ADMIN", "CASHIER", "KITCHEN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/orders/*/status").hasAnyRole("ADMIN", "CASHIER", "KITCHEN")
                         
-                        // CASHIER Role Endpoints (POS, Orders, Billing, Tables)
+                        // CASHIER Role Endpoints (POS, Orders, Billing, Tables, and Order Mutations like Cancel/Void)
                         .requestMatchers("/api/v1/orders/**").hasAnyRole("ADMIN", "CASHIER")
                         .requestMatchers("/api/v1/tables/**").hasAnyRole("ADMIN", "CASHIER")
                         

@@ -16,9 +16,13 @@ import java.math.BigDecimal;
 @Entity
 @FilterDef(name = "outletFilter", parameters = {@ParamDef(name = "outletId", type = String.class)})
 @Filter(name = "outletFilter", condition = "outlet_id = :outletId")
-@Table(name = "payments")
-@FilterDef(name = "outletFilter", parameters = {@ParamDef(name = "outletId", type = String.class)})
-@Filter(name = "outletFilter", condition = "outlet_id = :outletId")
+@Table(name = "payments", indexes = {
+        @Index(name = "idx_payments_outlet_created_status", columnList = "outlet_id, created_at, payment_status"),
+        @Index(name = "idx_payments_order_status", columnList = "order_id, payment_status"),
+        @Index(name = "idx_payments_settled_by_id", columnList = "settled_by_id")
+})
+
+
 @Getter
 @Setter
 @NoArgsConstructor

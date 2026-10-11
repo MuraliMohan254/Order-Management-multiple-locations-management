@@ -13,15 +13,10 @@ import com.orders.order_management.transaction.repository.OrderItemRepository;
 import com.orders.order_management.transaction.repository.OrderRepository;
 import com.orders.order_management.transaction.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -95,9 +90,9 @@ public class AnalyticsService {
                         .build())
                 .toList();
 
-        // Recent orders
-        List<OrderResponse> recentOrders = orderRepository.findOrdersBetween(startDate, endDate, effectiveOutletId).stream()
-                .limit(20)
+        // Recent orders (fetch top 20 at database level to avoid memory saturation)
+        List<OrderResponse> recentOrders = orderRepository.findRecentOrdersBetween(
+                        startDate, endDate, effectiveOutletId, PageRequest.of(0, 20)).stream()
                 .map(this::mapOrderSummary)
                 .toList();
 

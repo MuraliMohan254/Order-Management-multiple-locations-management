@@ -103,32 +103,32 @@
                 <graphicElement><pen lineWidth="0.0"/></graphicElement>
             </rectangle>
             <staticText>
-                <reportElement x="5" y="0" width="105" height="25" forecolor="#FFFFFF"/>
+                <reportElement x="5" y="0" width="145" height="25" forecolor="#FFFFFF"/>
                 <textElement textAlignment="Left" verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
                 <text><![CDATA[Order Number]]></text>
             </staticText>
             <staticText>
-                <reportElement x="115" y="0" width="110" height="25" forecolor="#FFFFFF"/>
+                <reportElement x="155" y="0" width="95" height="25" forecolor="#FFFFFF"/>
                 <textElement textAlignment="Left" verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
                 <text><![CDATA[Outlet Name]]></text>
             </staticText>
             <staticText>
-                <reportElement x="230" y="0" width="65" height="25" forecolor="#FFFFFF"/>
+                <reportElement x="255" y="0" width="50" height="25" forecolor="#FFFFFF"/>
                 <textElement textAlignment="Left" verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
                 <text><![CDATA[Type]]></text>
             </staticText>
             <staticText>
-                <reportElement x="300" y="0" width="95" height="25" forecolor="#FFFFFF"/>
+                <reportElement x="310" y="0" width="85" height="25" forecolor="#FFFFFF"/>
                 <textElement textAlignment="Left" verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
                 <text><![CDATA[Time]]></text>
             </staticText>
             <staticText>
-                <reportElement x="400" y="0" width="70" height="25" forecolor="#FFFFFF"/>
+                <reportElement x="400" y="0" width="50" height="25" forecolor="#FFFFFF"/>
                 <textElement textAlignment="Left" verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
                 <text><![CDATA[Payment]]></text>
             </staticText>
             <staticText>
-                <reportElement x="475" y="0" width="75" height="25" forecolor="#FFFFFF"/>
+                <reportElement x="455" y="0" width="95" height="25" forecolor="#FFFFFF"/>
                 <textElement textAlignment="Right" verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
                 <text><![CDATA[Total Amount]]></text>
             </staticText>
@@ -138,32 +138,32 @@
     <detail>
         <band height="25">
             <textField>
-                <reportElement x="5" y="0" width="105" height="20"/>
+                <reportElement x="5" y="0" width="145" height="20"/>
                 <textElement verticalAlignment="Middle"><font size="8"/></textElement>
                 <textFieldExpression><![CDATA[$F{orderNumber}]]></textFieldExpression>
             </textField>
             <textField>
-                <reportElement x="115" y="0" width="110" height="20"/>
+                <reportElement x="155" y="0" width="95" height="20"/>
                 <textElement verticalAlignment="Middle"><font size="8"/></textElement>
                 <textFieldExpression><![CDATA[$F{outletName} != null ? $F{outletName} : "-"]]></textFieldExpression>
             </textField>
             <textField>
-                <reportElement x="230" y="0" width="65" height="20"/>
+                <reportElement x="255" y="0" width="50" height="20"/>
                 <textElement verticalAlignment="Middle"><font size="8"/></textElement>
                 <textFieldExpression><![CDATA[$F{orderType}]]></textFieldExpression>
             </textField>
             <textField>
-                <reportElement x="300" y="0" width="95" height="20"/>
+                <reportElement x="310" y="0" width="85" height="20"/>
                 <textElement verticalAlignment="Middle"><font size="8"/></textElement>
                 <textFieldExpression><![CDATA[$F{createdAt}]]></textFieldExpression>
             </textField>
             <textField>
-                <reportElement x="400" y="0" width="70" height="20"/>
+                <reportElement x="400" y="0" width="50" height="20"/>
                 <textElement verticalAlignment="Middle"><font size="8"/></textElement>
                 <textFieldExpression><![CDATA[$F{paymentMethod} != null ? $F{paymentMethod} : "-"]]></textFieldExpression>
             </textField>
             <textField pattern="₹#,##0.00">
-                <reportElement x="475" y="0" width="75" height="20"/>
+                <reportElement x="455" y="0" width="95" height="20"/>
                 <textElement textAlignment="Right" verticalAlignment="Middle"><font size="8"/></textElement>
                 <textFieldExpression><![CDATA[$F{grandTotal}]]></textFieldExpression>
             </textField>

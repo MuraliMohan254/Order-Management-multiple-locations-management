@@ -55,26 +55,33 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (username != null && org.springframework.security.core.context.SecurityContextHolder
                 .getContext().getAuthentication() == null) {
 
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            try {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-            if (jwtService.isTokenValid(jwt, userDetails.getUsername())) {
-                String outletId = jwtService.extractOutletId(jwt);
-                if (outletId != null) {
-                    request.setAttribute("outletId", outletId);
+                if (jwtService.isTokenValid(jwt, userDetails.getUsername())) {
+                    String outletId = jwtService.extractOutletId(jwt);
+                    if (outletId != null) {
+                        request.setAttribute("outletId", outletId);
+                    }
+
+                    List<SimpleGrantedAuthority> authorities =
+                            jwtService.extractRoles(jwt).stream()
+                                    .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
+                                    .collect(Collectors.toList());
+
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails, null, authorities);
+
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    org.springframework.security.core.context.SecurityContextHolder.getContext()
+                            .setAuthentication(authToken);
                 }
-
-                List<SimpleGrantedAuthority> authorities =
-                        jwtService.extractRoles(jwt).stream()
-                                .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
-                                .collect(Collectors.toList());
-
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails, null, authorities);
-
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                org.springframework.security.core.context.SecurityContextHolder.getContext()
-                        .setAuthentication(authToken);
+            } catch (org.springframework.security.core.userdetails.UsernameNotFoundException e) {
+                // User in token no longer exists in DB (e.g. database recreated or deleted user).
+                // Continue filter chain unauthenticated so Spring Security responds with 401 Unauthorized.
+                filterChain.doFilter(request, response);
+                return;
             }
         }
         filterChain.doFilter(request, response);
