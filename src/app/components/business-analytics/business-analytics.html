@@ -506,6 +506,10 @@
                 ₹{{ item.totalRevenue | number:'1.2-2' }}
               </div>
             </div>
+          } @empty {
+            <div class="py-8 text-center text-xs text-slate-400 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+              No top revenue items recorded for this period
+            </div>
           }
         </div>
       </div>
@@ -540,6 +544,10 @@
                 ₹{{ item.totalRevenue | number:'1.2-2' }}
               </div>
             </div>
+          } @empty {
+            <div class="py-8 text-center text-xs text-slate-400 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+              No bottom moving items recorded for this period
+            </div>
           }
         </div>
       </div>
@@ -555,7 +563,7 @@
           <h2 class="text-base font-bold text-slate-900 dark:text-white">Table Turnover & Seating Performance</h2>
           <p class="text-xs text-slate-500 dark:text-slate-400">Order count and revenue generated across dining zones</p>
         </div>
-        <div class="text-xs font-bold text-slate-500">{{ d.tableMetrics.length }} Active Tables</div>
+        <div class="text-xs font-bold text-slate-500">{{ d.tableMetrics.length > 0 ? (d.tableMetrics.length + ' Active Tables') : 'No Active Tables' }}</div>
       </div>
 
       <div class="overflow-x-auto custom-scrollbar">
@@ -585,6 +593,22 @@
                 </td>
                 <td class="py-3.5 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400">
                   ₹{{ (t.orderCount > 0 ? t.totalRevenue / t.orderCount : 0) | number:'1.2-2' }}
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="4" class="py-12 text-center text-slate-400 dark:text-slate-500">
+                  <div class="flex flex-col items-center justify-center gap-2.5">
+                    <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center text-slate-400 dark:text-slate-500">
+                      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 10h18M3 14h18m-9-4v8m-7 4h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-xs font-bold text-slate-700 dark:text-slate-300">No Table Turnover Data Available</p>
+                      <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">No billed dine-in table transactions recorded for this period.</p>
+                    </div>
+                  </div>
                 </td>
               </tr>
             }
