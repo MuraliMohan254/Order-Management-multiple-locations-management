@@ -21,12 +21,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.orders.order_management.transaction.service.KitchenEventService;
+import org.springframework.http.MediaType;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
 @RestController
 @RequestMapping("${api.prefix}")
 @RequiredArgsConstructor
 public class TransactionController {
 
     private final TransactionService transactionService;
+    private final KitchenEventService kitchenEventService;
 
     @PostMapping("/tables")
     public ResponseEntity<TableResponse> createTable(
@@ -38,7 +43,7 @@ public class TransactionController {
     @PostMapping("/public/qr-order/{qrToken}")
     public ResponseEntity<OrderResponse> processQrOrder(
             @PathVariable UUID qrToken,
-            @Valid @RequestBody List<OrderItemRequest> items) {
+            @RequestBody List<@Valid OrderItemRequest> items) {
         return ResponseEntity.ok(transactionService.processQrOrder(qrToken, items));
     }
 
@@ -66,7 +71,7 @@ public class TransactionController {
     @PostMapping("/orders/{orderId}/items")
     public ResponseEntity<OrderResponse> addItemsToOrder(
             @PathVariable UUID orderId,
-            @Valid @RequestBody List<OrderItemRequest> items) {
+            @RequestBody List<@Valid OrderItemRequest> items) {
         return ResponseEntity.ok(transactionService.appendItemsToOrder(orderId, items));
     }
 
@@ -87,7 +92,7 @@ public class TransactionController {
 
     @PostMapping("/orders/take-away")
     public ResponseEntity<OrderResponse> createTakeAwayOrder(
-            @Valid @RequestBody List<OrderItemRequest> items,
+            @RequestBody List<@Valid OrderItemRequest> items,
             @RequestParam(required = false) String outletId) {
         return ResponseEntity.status(HttpStatus.CREATED).body(transactionService.createTakeAwayOrder(items, outletId));
     }
@@ -122,6 +127,22 @@ public class TransactionController {
     @GetMapping("/orders/kitchen/active")
     public ResponseEntity<List<KitchenTicketResponse>> getActiveKitchenTickets() {
         return ResponseEntity.ok(transactionService.getActiveKitchenTickets());
+    }
+
+    @GetMapping(value = "/orders/kitchen/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamKitchenOrders(
+            @RequestParam(required = false) String outletId) {
+        try {
+            String effectiveOutletId = outletId;
+            if (!com.orders.order_management.core.security.SecurityUtils.isCurrentUserAdmin()) {
+                effectiveOutletId = com.orders.order_management.core.security.SecurityUtils.getCurrentOutletId();
+            }
+            return kitchenEventService.subscribe(effectiveOutletId);
+        } catch (Exception e) {
+            SseEmitter errorEmitter = new SseEmitter();
+            errorEmitter.completeWithError(e);
+            return errorEmitter;
+        }
     }
 
     @PostMapping("/orders/{targetOrderId}/merge")
@@ -160,7 +181,7 @@ public class TransactionController {
     @PostMapping("/orders/dine-in")
     public ResponseEntity<OrderResponse> createPosDineInOrder(
             @RequestParam UUID tableId,
-            @Valid @RequestBody List<OrderItemRequest> items) {
+            @RequestBody List<@Valid OrderItemRequest> items) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(transactionService.createPosDineInOrder(tableId, items));
     }

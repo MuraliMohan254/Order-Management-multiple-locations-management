@@ -135,7 +135,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/menu/**").permitAll()
                         
                         // KITCHEN Role Endpoints
-                        .requestMatchers("/api/v1/orders/kitchen/**").hasAnyRole("ADMIN", "KITCHEN")
+                        .requestMatchers("/api/v1/orders/kitchen/**").hasAnyRole("ADMIN", "KITCHEN", "CASHIER")
                         
                         // Allow Kitchen read-only access to orders
                         .requestMatchers(HttpMethod.GET, "/api/v1/orders/**").hasAnyRole("ADMIN", "CASHIER", "KITCHEN")

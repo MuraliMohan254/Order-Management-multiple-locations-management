@@ -5,6 +5,8 @@ import com.orders.order_management.core.entity.SystemConfig;
 import com.orders.order_management.core.repository.SystemConfigRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -40,6 +42,7 @@ public class SystemConfigService {
         }
     }
 
+    @Cacheable(value = "systemConfig", key = "'global'")
     public SystemConfig getConfig() {
         return repository.findById(1L).orElseGet(() -> {
             SystemConfig config = SystemConfig.builder()
@@ -58,8 +61,9 @@ public class SystemConfigService {
         });
     }
 
+    @CacheEvict(value = "systemConfig", allEntries = true)
     public SystemConfig updateConfig(SystemConfig newConfig) {
-        SystemConfig config = getConfig();
+        SystemConfig config = repository.findById(1L).orElseGet(this::getConfig);
         config.setKitchenWorkflowEnabled(newConfig.isKitchenWorkflowEnabled());
         config.setTaxRate(newConfig.getTaxRate());
         config.setTaxName(newConfig.getTaxName());

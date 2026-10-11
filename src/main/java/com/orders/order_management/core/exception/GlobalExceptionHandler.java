@@ -35,7 +35,15 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGeneralException(Exception ex) {
+    public ResponseEntity<?> handleGeneralException(Exception ex, jakarta.servlet.http.HttpServletRequest request) {
+        String accept = request != null ? request.getHeader("Accept") : null;
+        if (accept != null && accept.contains(MediaType.TEXT_EVENT_STREAM_VALUE)) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(ex.getMessage() != null ? ex.getMessage() : "SSE Stream error");
+        }
+
         Map<String, Object> errorBody = new HashMap<>();
         errorBody.put("timestamp", LocalDateTime.now());
         errorBody.put("error", ex.getMessage());
@@ -43,11 +51,9 @@ public class GlobalExceptionHandler {
         errorBody.put("code", "INTERNAL_SERVER_ERROR");
         errorBody.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
 
-        // --- CHANGE STARTS HERE ---
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(errorBody);
-        // --- CHANGE ENDS HERE ---
     }
 }

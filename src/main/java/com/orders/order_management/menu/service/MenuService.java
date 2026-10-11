@@ -10,6 +10,8 @@ import com.orders.order_management.menu.entity.Item;
 import com.orders.order_management.menu.repository.CategoryRepository;
 import com.orders.order_management.menu.repository.ItemRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -27,6 +29,7 @@ public class MenuService {
     // CATEGORY CRUD OPERATIONS
     // ==========================================
 
+    @CacheEvict(value = {"menuCategories", "menuItems"}, allEntries = true)
     public CategoryResponse createCategory(CategoryRequest request) {
         Category category = Category.builder()
                 .name(request.getName())
@@ -37,6 +40,7 @@ public class MenuService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "menuCategories", key = "'active_all'")
     public List<CategoryResponse> getActiveCategories() {
         return categoryRepository.findAllByIsActiveTrue().stream()
                 .map(this::mapToCategoryResponse).toList();
@@ -49,6 +53,7 @@ public class MenuService {
         return mapToCategoryResponse(category);
     }
 
+    @CacheEvict(value = {"menuCategories", "menuItems"}, allEntries = true)
     public CategoryResponse updateCategory(UUID id, CategoryRequest request) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found"));
@@ -58,6 +63,7 @@ public class MenuService {
         return mapToCategoryResponse(categoryRepository.save(category));
     }
 
+    @CacheEvict(value = {"menuCategories", "menuItems"}, allEntries = true)
     public void deleteCategory(UUID id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found"));
@@ -68,6 +74,7 @@ public class MenuService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "menuCategories", key = "'active_' + (#search != null ? #search.trim().toLowerCase() : '')")
     public List<CategoryResponse> getActiveCategories(String search) {
         if (search != null && !search.trim().isEmpty()) {
             return categoryRepository.findByNameContainingIgnoreCaseAndIsActive(search.trim(), true).stream()
@@ -78,6 +85,7 @@ public class MenuService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "menuCategories", key = "'all_' + #active + '_' + (#search != null ? #search.trim().toLowerCase() : '')")
     public List<CategoryResponse> getCategories(String search, boolean active) {
         if (search != null && !search.trim().isEmpty()) {
             return categoryRepository.findByNameContainingIgnoreCaseAndIsActive(search.trim(), active).stream()
@@ -90,6 +98,7 @@ public class MenuService {
     // ITEM CRUD OPERATIONS
     // ==========================================
 
+    @CacheEvict(value = {"menuItems", "menuCategories"}, allEntries = true)
     public ItemResponse createItem(ItemRequest request) {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new IllegalArgumentException("Category not found"));
@@ -113,12 +122,14 @@ public class MenuService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "menuItems", key = "'cat_' + #categoryId")
     public List<ItemResponse> getItemsByCategory(UUID categoryId) {
         // Assumes you added findByCategoryIdAndIsAvailableTrue to ItemRepository
         return itemRepository.findByCategoryIdAndIsAvailableTrue(categoryId).stream()
                 .map(this::mapToItemResponse).toList();
     }
 
+    @CacheEvict(value = {"menuItems", "menuCategories"}, allEntries = true)
     public ItemResponse updateItem(UUID id, ItemRequest request) {
         Item item = itemRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Item not found"));
@@ -137,6 +148,7 @@ public class MenuService {
         return mapToItemResponse(itemRepository.save(item));
     }
 
+    @CacheEvict(value = {"menuItems", "menuCategories"}, allEntries = true)
     public void deleteItem(UUID id) {
         Item item = itemRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Item not found"));
@@ -171,10 +183,11 @@ public class MenuService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "menuItems", key = "'cat_' + #categoryId + '_' + (#search != null ? #search.trim().toLowerCase() : '')")
     public List<ItemResponse> getItemsByCategory(UUID categoryId, String search) {
         if (search != null && !search.trim().isEmpty()) {
             return itemRepository.findByCategoryIdAndNameContainingIgnoreCaseAndIsAvailableTrue(categoryId, search.trim()).stream()
-                    .map(this::mapToItemResponse).toList();
+                .map(this::mapToItemResponse).toList();
         }
         return itemRepository.findByCategoryId(categoryId).stream()
                 .map(this::mapToItemResponse).toList();
@@ -182,6 +195,7 @@ public class MenuService {
 
     // Global item search (returns all available items if search is empty)
     @Transactional(readOnly = true)
+    @Cacheable(value = "menuItems", key = "'all_' + (#search != null ? #search.trim().toLowerCase() : '')")
     public List<ItemResponse> getAllAvailableItems(String search) {
         if (search != null && !search.trim().isEmpty()) {
             return itemRepository.findByNameContainingIgnoreCaseAndIsAvailableTrue(search.trim()).stream()

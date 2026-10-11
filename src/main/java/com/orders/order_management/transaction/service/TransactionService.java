@@ -53,6 +53,7 @@ public class TransactionService {
     private final com.orders.order_management.core.service.SystemConfigService configService;
     private final com.orders.order_management.core.repository.OutletRepository outletRepository;
     private final com.orders.order_management.auth.repository.UserRepository userRepository;
+    private final KitchenEventService kitchenEventService;
 
     public com.orders.order_management.core.entity.Outlet resolveTargetOutlet(String requestedOutletId) {
         if (requestedOutletId != null && !requestedOutletId.isBlank() 
@@ -133,7 +134,9 @@ public class TransactionService {
         }
 
         appendItemsToOrder(order, itemRequests);
-        return mapToOrderResponse(orderRepository.save(order));
+        OrderResponse response = mapToOrderResponse(orderRepository.save(order));
+        kitchenEventService.publishOrderUpdate(response);
+        return response;
     }
 
     public OrderResponse appendItemsToOrder(UUID orderId, List<OrderItemRequest> requests) {
@@ -145,7 +148,9 @@ public class TransactionService {
         }
 
         appendItemsToOrder(order, requests);
-        return mapToOrderResponse(orderRepository.save(order));
+        OrderResponse response = mapToOrderResponse(orderRepository.save(order));
+        kitchenEventService.publishOrderUpdate(response);
+        return response;
     }
 
     private void appendItemsToOrder(Order order, List<OrderItemRequest> requests) {
@@ -171,7 +176,32 @@ public class TransactionService {
         order.setSubTotal(runningSubTotal);
         BigDecimal effectiveTaxRate = configService.getConfig().getTaxRate();
         order.setTaxAmount(order.getSubTotal().multiply(effectiveTaxRate).setScale(2, java.math.RoundingMode.HALF_UP));
-        BigDecimal discount = order.getDiscountAmount() != null ? order.getDiscountAmount() : BigDecimal.ZERO;
+
+        BigDecimal defaultPct = configService.getConfig().getDefaultDiscountPercentage();
+        BigDecimal effectivePct = BigDecimal.ZERO;
+        if (defaultPct != null && defaultPct.compareTo(BigDecimal.ZERO) > 0) {
+            effectivePct = defaultPct.compareTo(BigDecimal.ONE) > 0
+                    ? defaultPct.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP)
+                    : defaultPct;
+        }
+
+        BigDecimal discount = order.getDiscountAmount();
+        // If discount not set yet, or if it's a soft order / QR order with 0 or null discount, calculate from default percentage
+        if (discount == null || (order.getStatus() == OrderStatus.SOFT_ORDER && discount.compareTo(BigDecimal.ZERO) == 0)) {
+            if (effectivePct.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal gross = order.getSubTotal().add(order.getTaxAmount());
+                discount = gross.multiply(effectivePct).setScale(2, RoundingMode.HALF_UP);
+                order.setDiscountAmount(discount);
+            } else {
+                discount = BigDecimal.ZERO;
+                order.setDiscountAmount(BigDecimal.ZERO);
+            }
+        } else if (order.getStatus() == OrderStatus.SOFT_ORDER && effectivePct.compareTo(BigDecimal.ZERO) > 0) {
+            // When additional items are appended to a customer QR order, recalculate default promo discount on new gross
+            BigDecimal gross = order.getSubTotal().add(order.getTaxAmount());
+            discount = gross.multiply(effectivePct).setScale(2, RoundingMode.HALF_UP);
+            order.setDiscountAmount(discount);
+        }
         order.setGrandTotal(order.getSubTotal().add(order.getTaxAmount()).subtract(discount));
 
         // If order was already completed or served, reset back to CONFIRMED so newly appended items route to the kitchen
@@ -187,7 +217,7 @@ public class TransactionService {
 
         BigDecimal effectiveTaxRate = configService.getConfig().getTaxRate();
         BigDecimal taxAmount = order.getSubTotal().multiply(effectiveTaxRate).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal finalDiscount = discount != null ? discount : BigDecimal.ZERO;
+        BigDecimal finalDiscount = discount != null ? discount : (order.getDiscountAmount() != null ? order.getDiscountAmount() : BigDecimal.ZERO);
 
         BigDecimal grandTotal = order.getSubTotal()
                 .add(taxAmount)
@@ -202,7 +232,9 @@ public class TransactionService {
         }
         order.setStatus(OrderStatus.BILLED);
 
-        return mapToOrderResponse(orderRepository.save(order));
+        OrderResponse response = mapToOrderResponse(orderRepository.save(order));
+        kitchenEventService.publishOrderUpdate(response);
+        return response;
     }
 
     public PaymentResponse settlePayment(UUID orderId, PaymentMethod method, BigDecimal amount) {
@@ -239,7 +271,8 @@ public class TransactionService {
         
         // Update order status to PAID once settled
         order.setStatus(com.orders.order_management.core.enums.OrderStatus.PAID);
-        orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
+        kitchenEventService.publishOrderUpdate(mapToOrderResponse(savedOrder));
 
         return PaymentResponse.builder()
                 .id(payment.getId())
@@ -305,7 +338,7 @@ public class TransactionService {
                 .settledBy(settledBy)
                 .subTotal(order.getSubTotal())
                 .taxAmount(order.getTaxAmount())
-                .discountAmount(order.getDiscountAmount())
+                .discountAmount(order.getDiscountAmount() != null ? order.getDiscountAmount() : BigDecimal.ZERO)
                 .grandTotal(order.getGrandTotal())
                 .createdAt(order.getCreatedAt())
                 .items(itemResponses)
@@ -328,7 +361,9 @@ public class TransactionService {
         order = orderRepository.save(order);
         appendItemsToOrder(order, itemRequests);
 
-        return mapToOrderResponse(orderRepository.save(order));
+        OrderResponse response = mapToOrderResponse(orderRepository.save(order));
+        kitchenEventService.publishOrderUpdate(response);
+        return response;
     }
 
     public OrderResponse createTakeAwayOrder(List<OrderItemRequest> itemRequests) {
@@ -346,12 +381,16 @@ public class TransactionService {
         // If the order is already BILLED or PAID, kitchen operations (PREPARING, READY, SERVED) update only kitchenStatus
         if (order.getStatus() == OrderStatus.BILLED || order.getStatus() == OrderStatus.PAID) {
             order.setKitchenStatus(newStatus.name());
-            return mapToOrderResponse(orderRepository.save(order));
+            OrderResponse response = mapToOrderResponse(orderRepository.save(order));
+            kitchenEventService.publishOrderUpdate(response);
+            return response;
         }
 
         order.setStatus(newStatus);
         order.setKitchenStatus(newStatus.name());
-        return mapToOrderResponse(orderRepository.save(order));
+        OrderResponse response = mapToOrderResponse(orderRepository.save(order));
+        kitchenEventService.publishOrderUpdate(response);
+        return response;
     }
 
     // --- 2. CANCEL ENTIRE ORDER ---
@@ -372,7 +411,9 @@ public class TransactionService {
             tableRepository.save(table);
         }
 
-        return mapToOrderResponse(orderRepository.save(order));
+        OrderResponse response = mapToOrderResponse(orderRepository.save(order));
+        kitchenEventService.publishOrderUpdate(response);
+        return response;
     }
 
     // --- 3. VOID/REMOVE SPECIFIC ITEM (Return before billing) ---
@@ -414,7 +455,9 @@ public class TransactionService {
             }
         }
 
-        return mapToOrderResponse(orderRepository.save(order));
+        OrderResponse response = mapToOrderResponse(orderRepository.save(order));
+        kitchenEventService.publishOrderUpdate(response);
+        return response;
     }
 
     public void clearKitchenQueue() {
@@ -433,6 +476,7 @@ public class TransactionService {
             }
         }
         orderRepository.saveAll(activeOrders);
+        kitchenEventService.publishQueueCleared(com.orders.order_management.core.security.SecurityUtils.getCurrentOutletId());
     }
 
     public List<KitchenTicketResponse> getActiveKitchenTickets() {
@@ -520,7 +564,9 @@ public class TransactionService {
 
         // Append the new items to the order
         appendItemsToOrder(order, itemRequests);
-        return mapToOrderResponse(orderRepository.save(order));
+        OrderResponse response = mapToOrderResponse(orderRepository.save(order));
+        kitchenEventService.publishOrderUpdate(response);
+        return response;
     }
 
     public OrderResponse getOrderById(UUID orderId) {
@@ -645,7 +691,25 @@ public class TransactionService {
         targetOrder.setSubTotal(newSubtotal);
         BigDecimal effectiveTaxRate = configService.getConfig().getTaxRate();
         targetOrder.setTaxAmount(targetOrder.getSubTotal().multiply(effectiveTaxRate).setScale(2, java.math.RoundingMode.HALF_UP));
-        BigDecimal discount = targetOrder.getDiscountAmount() != null ? targetOrder.getDiscountAmount() : BigDecimal.ZERO;
+        BigDecimal defaultPct = configService.getConfig().getDefaultDiscountPercentage();
+        BigDecimal effectivePct = BigDecimal.ZERO;
+        if (defaultPct != null && defaultPct.compareTo(BigDecimal.ZERO) > 0) {
+            effectivePct = defaultPct.compareTo(BigDecimal.ONE) > 0
+                    ? defaultPct.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP)
+                    : defaultPct;
+        }
+
+        BigDecimal discount = targetOrder.getDiscountAmount();
+        if (discount == null || (targetOrder.getStatus() == OrderStatus.SOFT_ORDER && discount.compareTo(BigDecimal.ZERO) == 0)) {
+            if (effectivePct.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal gross = targetOrder.getSubTotal().add(targetOrder.getTaxAmount());
+                discount = gross.multiply(effectivePct).setScale(2, RoundingMode.HALF_UP);
+                targetOrder.setDiscountAmount(discount);
+            } else {
+                discount = BigDecimal.ZERO;
+                targetOrder.setDiscountAmount(BigDecimal.ZERO);
+            }
+        }
         targetOrder.setGrandTotal(targetOrder.getSubTotal().add(targetOrder.getTaxAmount()).subtract(discount));
 
         // If target order was already marked served/ready, reset to CONFIRMED for newly merged items to be visible in kitchen
@@ -664,7 +728,11 @@ public class TransactionService {
         }
 
         orderRepository.save(sourceOrder);
-        return mapToOrderResponse(orderRepository.save(targetOrder));
+        kitchenEventService.publishOrderUpdate(mapToOrderResponse(sourceOrder));
+
+        OrderResponse targetResponse = mapToOrderResponse(orderRepository.save(targetOrder));
+        kitchenEventService.publishOrderUpdate(targetResponse);
+        return targetResponse;
     }
 
     public Map<String, Object> getAppConfig() {
