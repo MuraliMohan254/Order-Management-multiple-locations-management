@@ -22,13 +22,18 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
         FROM order_items oi
         JOIN items i ON oi.item_id = i.id
         JOIN orders o ON oi.order_id = o.id
-        WHERE o.status = 'BILLED' 
+        WHERE o.status IN ('BILLED', 'PAID')
         AND o.created_at >= CURRENT_DATE - INTERVAL '30 days'
+        AND (CAST(:outletId AS VARCHAR) IS NULL OR o.outlet_id = CAST(:outletId AS VARCHAR))
         GROUP BY i.name
         ORDER BY totalSold DESC
         LIMIT 10
     """, nativeQuery = true)
-    List<FastMovingItemProjection> getFastMovingItemsLast30Days();
+    List<FastMovingItemProjection> getFastMovingItemsLast30Days(@Param("outletId") String outletId);
+
+    default List<FastMovingItemProjection> getFastMovingItemsLast30Days() {
+        return getFastMovingItemsLast30Days(null);
+    }
 
     // Spring Data JPA Projection to map the native query results
     interface FastMovingItemProjection {
@@ -41,13 +46,18 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
         FROM order_items oi
         JOIN items i ON oi.item_id = i.id
         JOIN orders o ON oi.order_id = o.id
-        WHERE o.status = 'BILLED' 
+        WHERE o.status IN ('BILLED', 'PAID')
         AND o.created_at >= :startDate AND o.created_at <= :endDate
+        AND (CAST(:outletId AS VARCHAR) IS NULL OR o.outlet_id = CAST(:outletId AS VARCHAR))
         GROUP BY i.name
         ORDER BY totalSold DESC
         LIMIT 10
     """, nativeQuery = true)
-    List<FastMovingItemWithRevenueProjection> getFastMovingItemsBetween(@Param("startDate") java.time.Instant startDate, @Param("endDate") java.time.Instant endDate);
+    List<FastMovingItemWithRevenueProjection> getFastMovingItemsBetween(@Param("startDate") java.time.Instant startDate, @Param("endDate") java.time.Instant endDate, @Param("outletId") String outletId);
+
+    default List<FastMovingItemWithRevenueProjection> getFastMovingItemsBetween(java.time.Instant startDate, java.time.Instant endDate) {
+        return getFastMovingItemsBetween(startDate, endDate, null);
+    }
 
     interface FastMovingItemWithRevenueProjection {
         String getItemName();
@@ -70,12 +80,17 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
         JOIN items i ON oi.item_id = i.id
         JOIN categories c ON i.category_id = c.id
         JOIN orders o ON oi.order_id = o.id
-        WHERE o.status = 'BILLED'
+        WHERE o.status IN ('BILLED', 'PAID')
         AND o.created_at >= :startDate AND o.created_at <= :endDate
+        AND (CAST(:outletId AS VARCHAR) IS NULL OR o.outlet_id = CAST(:outletId AS VARCHAR))
         GROUP BY c.name
         ORDER BY revenue DESC
     """, nativeQuery = true)
-    List<CategorySalesProjection> getCategorySalesBetween(@Param("startDate") java.time.Instant startDate, @Param("endDate") java.time.Instant endDate);
+    List<CategorySalesProjection> getCategorySalesBetween(@Param("startDate") java.time.Instant startDate, @Param("endDate") java.time.Instant endDate, @Param("outletId") String outletId);
+
+    default List<CategorySalesProjection> getCategorySalesBetween(java.time.Instant startDate, java.time.Instant endDate) {
+        return getCategorySalesBetween(startDate, endDate, null);
+    }
 
     interface CategorySalesProjection {
         String getCategoryName();
@@ -87,11 +102,16 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
         SELECT i.name as itemName, COALESCE(SUM(oi.quantity), 0) as totalSold, COALESCE(SUM(oi.total_price), 0) as totalRevenue
         FROM items i
         LEFT JOIN order_items oi ON oi.item_id = i.id
-        LEFT JOIN orders o ON oi.order_id = o.id AND o.status = 'BILLED' AND o.created_at >= :startDate AND o.created_at <= :endDate
+        LEFT JOIN orders o ON oi.order_id = o.id AND o.status IN ('BILLED', 'PAID') AND o.created_at >= :startDate AND o.created_at <= :endDate
+            AND (CAST(:outletId AS VARCHAR) IS NULL OR o.outlet_id = CAST(:outletId AS VARCHAR))
         WHERE i.is_available = true
         GROUP BY i.name
         ORDER BY totalRevenue ASC
         LIMIT 5
     """, nativeQuery = true)
-    List<FastMovingItemWithRevenueProjection> getSlowMovingItemsBetween(@Param("startDate") java.time.Instant startDate, @Param("endDate") java.time.Instant endDate);
+    List<FastMovingItemWithRevenueProjection> getSlowMovingItemsBetween(@Param("startDate") java.time.Instant startDate, @Param("endDate") java.time.Instant endDate, @Param("outletId") String outletId);
+
+    default List<FastMovingItemWithRevenueProjection> getSlowMovingItemsBetween(java.time.Instant startDate, java.time.Instant endDate) {
+        return getSlowMovingItemsBetween(startDate, endDate, null);
+    }
 }

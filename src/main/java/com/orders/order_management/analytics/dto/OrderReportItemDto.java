@@ -21,4 +21,6 @@ public class OrderReportItemDto {
     private String createdAt;
     private String dateGroup;
     private String paymentMethod;
+    private String outletName;
+    private String outletCode;
 }

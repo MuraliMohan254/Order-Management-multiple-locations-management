@@ -16,4 +16,10 @@ public class TableResponse {
     private String tableNumber;
     private UUID qrToken;
     private String status;
+    private String outletId;
+    private String outletName;
+
+    public TableResponse(UUID id, String tableNumber, UUID qrToken, String status) {
+        this(id, tableNumber, qrToken, status, null, null);
+    }
 }

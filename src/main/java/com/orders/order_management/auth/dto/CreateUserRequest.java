@@ -6,7 +6,10 @@ import java.util.Set;
 
 @Data
 public class CreateUserRequest {
+
+    private String outletId;
     private String username;
     private String password;
     private Set<Role> roles;
 }
+

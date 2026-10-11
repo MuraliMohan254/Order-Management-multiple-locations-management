@@ -52,6 +52,26 @@ public class TransactionService {
     private final PaymentRepository paymentRepository;
     private final OrderItemRepository orderItemRepository;
     private final com.orders.order_management.core.service.SystemConfigService configService;
+    private final com.orders.order_management.core.repository.OutletRepository outletRepository;
+    private final com.orders.order_management.auth.repository.UserRepository userRepository;
+
+    public com.orders.order_management.core.entity.Outlet resolveTargetOutlet(String requestedOutletId) {
+        if (requestedOutletId != null && !requestedOutletId.isBlank() 
+                && !"all".equalsIgnoreCase(requestedOutletId) && !"consolidated".equalsIgnoreCase(requestedOutletId)
+                && !"null".equalsIgnoreCase(requestedOutletId) && !"undefined".equalsIgnoreCase(requestedOutletId)) {
+            return outletRepository.findById(requestedOutletId.trim())
+                    .orElseThrow(() -> new IllegalArgumentException("Outlet not found with id: " + requestedOutletId));
+        }
+        String currentOutletId = com.orders.order_management.core.security.SecurityUtils.getCurrentOutletId();
+        if (currentOutletId != null) {
+            return outletRepository.findById(currentOutletId)
+                    .orElseThrow(() -> new IllegalArgumentException("Outlet not found with id: " + currentOutletId));
+        }
+        // Fallback for Admin when no outlet specified: pick first active outlet
+        return outletRepository.findByIsActiveTrue().stream().findFirst()
+                .orElseGet(() -> outletRepository.findAll().stream().findFirst()
+                        .orElseThrow(() -> new IllegalStateException("No outlets exist in system. Please configure an outlet first.")));
+    }
 
     private String determineInitialKitchenStatus() {
         if (!configService.getConfig().isKitchenWorkflowEnabled()) {
@@ -60,13 +80,35 @@ public class TransactionService {
         return com.orders.order_management.core.enums.OrderStatus.CONFIRMED.name();
     }
 
-    public TableResponse createTable(String tableNumber) {
+    private String getOutletCodePrefix(com.orders.order_management.core.entity.Outlet outlet) {
+        if (outlet != null && outlet.getCode() != null && !outlet.getCode().isBlank()) {
+            String clean = outlet.getCode().trim().toUpperCase().replaceAll("[^A-Z0-9]", "");
+            if (!clean.isEmpty()) {
+                return clean.length() > 3 ? clean.substring(0, 3) : clean;
+            }
+        }
+        if (outlet != null && outlet.getName() != null && !outlet.getName().isBlank()) {
+            String clean = outlet.getName().trim().toUpperCase().replaceAll("[^A-Z0-9]", "");
+            if (!clean.isEmpty()) {
+                return clean.length() > 3 ? clean.substring(0, 3) : clean;
+            }
+        }
+        return "IND";
+    }
+
+    public TableResponse createTable(String tableNumber, String requestedOutletId) {
+        com.orders.order_management.core.entity.Outlet targetOutlet = resolveTargetOutlet(requestedOutletId);
         RestaurantTable table = RestaurantTable.builder()
                 .tableNumber(tableNumber)
                 .qrToken(UUID.randomUUID())
                 .status(TableStatus.AVAILABLE)
+                .outlet(targetOutlet)
                 .build();
         return mapToTableResponse(tableRepository.save(table));
+    }
+
+    public TableResponse createTable(String tableNumber) {
+        return createTable(tableNumber, null);
     }
 
     public OrderResponse processQrOrder(UUID qrToken, List<OrderItemRequest> itemRequests) {
@@ -78,11 +120,12 @@ public class TransactionService {
 
         if (order == null) {
             order = Order.builder()
-                    .orderNumber("ORD-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0,4).toUpperCase())
+                    .orderNumber("ORD-" + getOutletCodePrefix(table.getOutlet()) + "-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0,4).toUpperCase())
                     .orderType(OrderType.DINE_IN)
                     .status(OrderStatus.SOFT_ORDER)
                     .kitchenStatus(determineInitialKitchenStatus())
                     .table(table)
+                    .outlet(table.getOutlet())
                     .subTotal(BigDecimal.ZERO)
                     .build();
             table.setStatus(TableStatus.OCCUPIED);
@@ -167,15 +210,27 @@ public class TransactionService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
+        String currentUser = com.orders.order_management.core.security.SecurityUtils.getCurrentUsername();
+        com.orders.order_management.auth.entity.User userEntity = null;
+        if (currentUser != null && !"Staff".equalsIgnoreCase(currentUser)) {
+            userEntity = userRepository.findByUsername(currentUser).orElse(null);
+        }
+        Long settledById = userEntity != null ? userEntity.getId() : null;
+
         Payment payment = Payment.builder()
                 .order(order)
+                .outlet(order.getOutlet())
                 .amountPaid(amount)
                 .paymentMethod(method)
                 .paymentStatus(PaymentStatus.SUCCESS)
+                .settledBy(currentUser)
+                .settledByUser(userEntity)
                 .build();
 
         paymentRepository.save(payment);
-
+        if (order.getPayments() != null) {
+            order.getPayments().add(payment);
+        }
 
         if (amount.compareTo(order.getGrandTotal()) >= 0 && order.getTable() != null) {
             RestaurantTable table = order.getTable();
@@ -187,12 +242,26 @@ public class TransactionService {
         order.setStatus(com.orders.order_management.core.enums.OrderStatus.PAID);
         orderRepository.save(order);
 
-
-        return new PaymentResponse(payment.getId(), orderId, amount, method, PaymentStatus.SUCCESS);
+        return PaymentResponse.builder()
+                .id(payment.getId())
+                .orderId(orderId)
+                .amountPaid(amount)
+                .paymentMethod(method)
+                .paymentStatus(PaymentStatus.SUCCESS)
+                .settledById(settledById)
+                .settledBy(currentUser)
+                .build();
     }
 
     private TableResponse mapToTableResponse(RestaurantTable table) {
-        return new TableResponse(table.getId(), table.getTableNumber(), table.getQrToken(), table.getStatus().name());
+        return TableResponse.builder()
+                .id(table.getId())
+                .tableNumber(table.getTableNumber())
+                .qrToken(table.getQrToken())
+                .status(table.getStatus().name())
+                .outletId(table.getOutlet() != null ? table.getOutlet().getId() : null)
+                .outletName(table.getOutlet() != null ? table.getOutlet().getName() : null)
+                .build();
     }
 
     private OrderResponse mapToOrderResponse(Order order) {
@@ -208,6 +277,21 @@ public class TransactionService {
                         .build()).toList()
                 : Collections.emptyList();
 
+        String settledBy = null;
+        Long settledById = null;
+        if (order.getPayments() != null && !order.getPayments().isEmpty()) {
+            Payment latestSuccessful = order.getPayments().stream()
+                    .filter(p -> p.getPaymentStatus() == PaymentStatus.SUCCESS && p.getSettledBy() != null && !p.getSettledBy().isBlank())
+                    .reduce((first, second) -> second)
+                    .orElse(null);
+            if (latestSuccessful != null) {
+                settledBy = latestSuccessful.getSettledBy();
+                if (latestSuccessful.getSettledByUser() != null) {
+                    settledById = latestSuccessful.getSettledByUser().getId();
+                }
+            }
+        }
+
         return OrderResponse.builder()
                 .id(order.getId())
                 .orderNumber(order.getOrderNumber())
@@ -216,6 +300,10 @@ public class TransactionService {
                 .kitchenStatus(order.getKitchenStatus() != null ? order.getKitchenStatus() : (order.getStatus() != null ? order.getStatus().name() : "PENDING"))
                 .tableId(order.getTable() != null ? order.getTable().getId() : null)
                 .tableNumber(order.getTable() != null ? order.getTable().getTableNumber() : null)
+                .outletId(order.getOutlet() != null ? order.getOutlet().getId() : null)
+                .outletName(order.getOutlet() != null ? order.getOutlet().getName() : null)
+                .settledById(settledById)
+                .settledBy(settledBy)
                 .subTotal(order.getSubTotal())
                 .taxAmount(order.getTaxAmount())
                 .discountAmount(order.getDiscountAmount())
@@ -225,13 +313,16 @@ public class TransactionService {
                 .build();
     }
 
-    public OrderResponse createTakeAwayOrder(List<OrderItemRequest> itemRequests) {
+    public OrderResponse createTakeAwayOrder(List<OrderItemRequest> itemRequests, String requestedOutletId) {
+        com.orders.order_management.core.entity.Outlet targetOutlet = resolveTargetOutlet(requestedOutletId);
+
         Order order = Order.builder()
-                .orderNumber("TA-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0,4).toUpperCase())
+                .orderNumber("TA-" + getOutletCodePrefix(targetOutlet) + "-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0,4).toUpperCase())
                 .orderType(OrderType.TAKE_AWAY)
                 .status(OrderStatus.CONFIRMED) // Take-aways usually go straight to kitchen
                 .kitchenStatus(determineInitialKitchenStatus())
                 .table(null) // No table required
+                .outlet(targetOutlet)
                 .subTotal(BigDecimal.ZERO)
                 .build();
 
@@ -239,6 +330,10 @@ public class TransactionService {
         appendItemsToOrder(order, itemRequests);
 
         return mapToOrderResponse(orderRepository.save(order));
+    }
+
+    public OrderResponse createTakeAwayOrder(List<OrderItemRequest> itemRequests) {
+        return createTakeAwayOrder(itemRequests, null);
     }
 
     public OrderResponse updateOrderStatus(UUID orderId, OrderStatus newStatus) {
@@ -286,8 +381,12 @@ public class TransactionService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
-        if (order.getStatus() == OrderStatus.BILLED) {
-            throw new IllegalStateException("Cannot void items from a billed order.");
+        if (order.getStatus() == OrderStatus.BILLED 
+                || order.getStatus() == OrderStatus.PAID 
+                || order.getStatus() == OrderStatus.SERVED 
+                || "SERVED".equalsIgnoreCase(order.getKitchenStatus())
+                || order.getStatus() == OrderStatus.CANCELLED) {
+            throw new IllegalStateException("Cannot void items from an order that is served, billed, paid, or cancelled.");
         }
 
         OrderItem itemToRemove = order.getItems().stream()
@@ -353,10 +452,24 @@ public class TransactionService {
                 .toList();
     }
     // --- 1. Fetch all tables for the POS Grid ---
-    public List<TableResponse> getAllTables() {
+    // --- 1. Fetch all tables for the POS Grid ---
+    public List<TableResponse> getAllTables(String requestedOutletId) {
+        if (com.orders.order_management.core.security.SecurityUtils.isCurrentUserAdmin()) {
+            if (requestedOutletId != null && !requestedOutletId.isBlank()
+                    && !"all".equalsIgnoreCase(requestedOutletId) && !"consolidated".equalsIgnoreCase(requestedOutletId)
+                    && !"null".equalsIgnoreCase(requestedOutletId) && !"undefined".equalsIgnoreCase(requestedOutletId)) {
+                return tableRepository.findByOutletId(requestedOutletId.trim()).stream()
+                        .map(this::mapToTableResponse)
+                        .toList();
+            }
+        }
         return tableRepository.findAll().stream()
                 .map(this::mapToTableResponse)
                 .toList();
+    }
+
+    public List<TableResponse> getAllTables() {
+        return getAllTables(null);
     }
 
     public TableResponse getTableByQrToken(UUID qrToken) {
@@ -379,6 +492,13 @@ public class TransactionService {
         RestaurantTable table = tableRepository.findById(tableId)
                 .orElseThrow(() -> new IllegalArgumentException("Table not found"));
 
+        if (!com.orders.order_management.core.security.SecurityUtils.isCurrentUserAdmin()) {
+            String staffOutletId = com.orders.order_management.core.security.SecurityUtils.getCurrentOutletId();
+            if (table.getOutlet() != null && !table.getOutlet().getId().equals(staffOutletId)) {
+                throw new org.springframework.security.access.AccessDeniedException("Unauthorized table access for your assigned outlet");
+            }
+        }
+
         // Check if there is already an active order for this table
         Order order = orderRepository.findByTableIdAndStatusIn(
                 table.getId(), List.of(OrderStatus.SOFT_ORDER, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.SERVED)).orElse(null);
@@ -386,11 +506,12 @@ public class TransactionService {
         // If no active order exists, create a new one and occupy the table
         if (order == null) {
             order = Order.builder()
-                    .orderNumber("POS-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0,4).toUpperCase())
+                    .orderNumber("POS-" + getOutletCodePrefix(table.getOutlet()) + "-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0,4).toUpperCase())
                     .orderType(OrderType.DINE_IN)
                     .status(OrderStatus.CONFIRMED) // Cashier orders bypass SOFT_ORDER directly to CONFIRMED
                     .kitchenStatus(determineInitialKitchenStatus())
                     .table(table)
+                    .outlet(table.getOutlet())
                     .subTotal(BigDecimal.ZERO)
                     .build();
             table.setStatus(TableStatus.OCCUPIED);
@@ -409,15 +530,60 @@ public class TransactionService {
         return mapToOrderResponse(order);
     }
 
-    public List<OrderResponse> getOrders(List<OrderStatus> statuses) {
+    public List<OrderResponse> getOrders(List<OrderStatus> statuses, String requestedOutletId) {
         // If no status is provided, default to active restaurant workflows
         if (statuses == null || statuses.isEmpty()) {
             statuses = List.of(OrderStatus.SOFT_ORDER, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.SERVED, OrderStatus.BILLED, OrderStatus.PAID);
         }
 
-        return orderRepository.findActiveOrdersByStatusIn(statuses).stream()
+        List<Order> orders = orderRepository.findActiveOrdersByStatusIn(statuses);
+        if (com.orders.order_management.core.security.SecurityUtils.isCurrentUserAdmin()
+                && requestedOutletId != null && !requestedOutletId.isBlank()
+                && !"all".equalsIgnoreCase(requestedOutletId) && !"consolidated".equalsIgnoreCase(requestedOutletId)) {
+            orders = orders.stream()
+                    .filter(o -> o.getOutlet() != null && requestedOutletId.trim().equals(o.getOutlet().getId()))
+                    .toList();
+        }
+
+        return orders.stream()
                 .map(this::mapToOrderResponse)
                 .toList();
+    }
+
+    public List<OrderResponse> getOrders(List<OrderStatus> statuses) {
+        return getOrders(statuses, null);
+    }
+
+    public PagedResponse<OrderResponse> getPagedOrders(
+            List<OrderStatus> statuses,
+            OrderType orderType,
+            String search,
+            String requestedOutletId,
+            int page,
+            int size,
+            String sortBy,
+            String sortDirection) {
+
+        String effectiveOutletId = null;
+        if (com.orders.order_management.core.security.SecurityUtils.isCurrentUserAdmin()) {
+            if (requestedOutletId != null && !requestedOutletId.isBlank()
+                    && !"all".equalsIgnoreCase(requestedOutletId) && !"consolidated".equalsIgnoreCase(requestedOutletId)
+                    && !"null".equalsIgnoreCase(requestedOutletId) && !"undefined".equalsIgnoreCase(requestedOutletId)) {
+                effectiveOutletId = requestedOutletId.trim();
+            }
+        } else {
+            effectiveOutletId = com.orders.order_management.core.security.SecurityUtils.getCurrentOutletId();
+        }
+
+        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        String property = sanitizeSortProperty(sortBy);
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size), Sort.by(direction, property));
+
+        Specification<Order> spec = OrderSpecification.filter(statuses, orderType, search, effectiveOutletId);
+        Page<Order> orderPage = orderRepository.findAll(spec, pageable);
+
+        Page<OrderResponse> responsePage = orderPage.map(this::mapToOrderResponse);
+        return PagedResponse.of(responsePage);
     }
 
     public PagedResponse<OrderResponse> getPagedOrders(
@@ -428,16 +594,7 @@ public class TransactionService {
             int size,
             String sortBy,
             String sortDirection) {
-
-        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
-        String property = sanitizeSortProperty(sortBy);
-        Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size), Sort.by(direction, property));
-
-        Specification<Order> spec = OrderSpecification.filter(statuses, orderType, search);
-        Page<Order> orderPage = orderRepository.findAll(spec, pageable);
-
-        Page<OrderResponse> responsePage = orderPage.map(this::mapToOrderResponse);
-        return PagedResponse.of(responsePage);
+        return getPagedOrders(statuses, orderType, search, null, page, size, sortBy, sortDirection);
     }
 
     private String sanitizeSortProperty(String sortBy) {
@@ -517,7 +674,7 @@ public class TransactionService {
                 "defaultDiscountPercentage", configService.getConfig().getDefaultDiscountPercentage(),
                 "kitchenWorkflowEnabled", configService.getConfig().isKitchenWorkflowEnabled(),
                 "taxName", configService.getConfig().getTaxName(),
-                "restaurantName", "WildBar",
+                "restaurantName", configService.getConfig().getRestaurantName() != null ? configService.getConfig().getRestaurantName() : "WildBar",
                 "thermalPrintingEnabled", configService.getConfig().isThermalPrintingEnabled(),
                 "thermalPaperSize", configService.getConfig().getThermalPaperSize() != null ? configService.getConfig().getThermalPaperSize() : "80mm",
                 "printerName", configService.getConfig().getPrinterName() != null ? configService.getConfig().getPrinterName() : ""

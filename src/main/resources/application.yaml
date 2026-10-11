@@ -29,7 +29,7 @@ api:
 jwt:
   # Use a 256-bit+ Base64-encoded secret (example shown; replace in real apps)
   secret: ${JWT_SECRET:yAhmxRTWRPeFvmZhr2hcd6om8rOm+5n3REZgiKt4EJY=}
-  expirationMillis: 3600000  # 1hr
+  expirationMillis: 36000000  # 10hr
 app:
   subscription:
     url: https://7yhnrcm91a.execute-api.us-east-1.amazonaws.com/bkp-prod/bkp-subscription

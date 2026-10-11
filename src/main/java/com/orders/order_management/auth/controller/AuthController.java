@@ -12,6 +12,8 @@ import com.orders.order_management.auth.dto.UsersResponse;
 import com.orders.order_management.auth.entity.User;
 import com.orders.order_management.auth.repository.UserRepository;
 import com.orders.order_management.auth.service.SubscriptionService;
+import com.orders.order_management.core.entity.Outlet;
+import com.orders.order_management.core.repository.OutletRepository;
 import com.orders.order_management.core.security.JwtService;
 import com.orders.order_management.core.utils.PaginatedResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,6 +23,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -46,6 +49,8 @@ public class AuthController {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private SubscriptionService subscriptionService;
+    @Autowired
+    private OutletRepository outletRepository;
 
     public AuthController(AuthenticationManager authenticationManager, JwtService jwtService,UserRepository userRepository) {
         this.authenticationManager = authenticationManager;
@@ -90,7 +95,11 @@ public class AuthController {
                 .map(a -> a.replace("ROLE_", ""))
                 .collect(Collectors.toSet());
 
-        String jwtToken = jwtService.generateToken(req.getUsername(), roles);
+        String jwtToken = jwtService.generateToken(
+                req.getUsername(), 
+                roles, 
+                user.getOutlet() != null ? user.getOutlet().getId() : null
+        );
         // If you updated JwtService to accept email/fullName, pass 'user' here instead of req.getUsername()
         return new AuthResponse(jwtToken, "ACTIVE", "26-05-2100","26-05-2100");
     }
@@ -110,6 +119,10 @@ public class AuthController {
         // 2. Map Entities to DTOs
         List<UsersResponse> dtoList = userPage.getContent().stream().map(user -> {
             UsersResponse dto = new UsersResponse();
+            if (user.getOutlet() != null) {
+                dto.setOutletId(user.getOutlet().getId());
+                dto.setOutletName(user.getOutlet().getName());
+            }
             dto.setId(user.getId());
             dto.setUsername(user.getUsername());
             dto.setActive(user.isActive());
@@ -137,6 +150,7 @@ public class AuthController {
     }
 
     // 2. Update Active Status
+    @Transactional
     @PatchMapping("/users/{userId}/status")
     @Operation(summary = "Toggle User Status", description = "Enable or disable a user account.")
     @Tag(name = "User Management")
@@ -152,6 +166,7 @@ public class AuthController {
     }
 
     // 3. Change Password (Admin Reset)
+    @Transactional
     @PutMapping("/users/{userId}/password")
     @Operation(summary = "Reset Password", description = "Admin forces a password change for a specific user.")
     @Tag(name = "User Management")
@@ -176,6 +191,7 @@ public class AuthController {
 
 
     // Create User
+    @Transactional
     @PostMapping("/users")
     @Operation(summary = "Create User", description = "Admin creates a new user.")
     @Tag(name = "User Management")
@@ -193,11 +209,32 @@ public class AuthController {
                 .roles(request.getRoles() != null ? request.getRoles() : Collections.singleton(com.orders.order_management.core.enums.Role.CASHIER))
                 .active(true)
                 .build();
-        user = userRepository.save(user);
-        return ResponseEntity.ok(new UsersResponse(user.getId(), user.getUsername(), user.getRoles(), user.isActive(), user.getCreatedAt(), user.getLastLogin()));
+                
+        if (request.getOutletId() != null && !request.getOutletId().trim().isEmpty()) {
+            Outlet outlet = outletRepository.findById(request.getOutletId().trim())
+                    .orElseThrow(() -> new RuntimeException("Outlet not found with id: " + request.getOutletId()));
+            user.setOutlet(outlet);
+        }
+        
+        user = userRepository.saveAndFlush(user);
+
+        String outletId = user.getOutlet() != null ? user.getOutlet().getId() : null;
+        String outletName = user.getOutlet() != null ? user.getOutlet().getName() : null;
+
+        return ResponseEntity.ok(UsersResponse.builder()
+                .outletId(outletId)
+                .outletName(outletName)
+                .id(user.getId())
+                .username(user.getUsername())
+                .roles(user.getRoles())
+                .active(user.isActive())
+                .createdAt(user.getCreatedAt())
+                .lastLogin(user.getLastLogin())
+                .build());
     }
 
     // Update User
+    @Transactional
     @PutMapping("/users/{userId}")
     @Operation(summary = "Update User", description = "Admin updates user roles or username.")
     @Tag(name = "User Management")
@@ -208,7 +245,7 @@ public class AuthController {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
-        if (request.getUsername() != null && !request.getUsername().equals(user.getUsername())) {
+        if (request.getUsername() != null && !request.getUsername().isBlank() && !request.getUsername().equals(user.getUsername())) {
             if (userRepository.findByUsername(request.getUsername()).isPresent()) {
                 throw new RuntimeException("Username already exists.");
             }
@@ -217,12 +254,32 @@ public class AuthController {
         if (request.getRoles() != null && !request.getRoles().isEmpty()) {
             user.setRoles(request.getRoles());
         }
-        user = userRepository.save(user);
-        return ResponseEntity.ok(new UsersResponse(user.getId(), user.getUsername(), user.getRoles(), user.isActive(), user.getCreatedAt(), user.getLastLogin()));
+        if (request.getOutletId() != null && !request.getOutletId().trim().isEmpty()) {
+            Outlet outlet = outletRepository.findById(request.getOutletId().trim())
+                    .orElseThrow(() -> new RuntimeException("Outlet not found with id: " + request.getOutletId()));
+            user.setOutlet(outlet);
+        } else {
+            user.setOutlet(null);
+        }
+        user = userRepository.saveAndFlush(user);
+
+        String outletId = user.getOutlet() != null ? user.getOutlet().getId() : null;
+        String outletName = user.getOutlet() != null ? user.getOutlet().getName() : null;
+
+        return ResponseEntity.ok(UsersResponse.builder()
+                .outletId(outletId)
+                .outletName(outletName)
+                .id(user.getId())
+                .username(user.getUsername())
+                .roles(user.getRoles())
+                .active(user.isActive())
+                .createdAt(user.getCreatedAt())
+                .lastLogin(user.getLastLogin())
+                .build());
     }
 
     // 4. Delete User
-
+    @Transactional
     @DeleteMapping("/users/{userId}")
     @Operation(summary = "Delete User", description = "Permanently removes a user from the database.")
     @Tag(name = "User Management")
@@ -244,4 +301,5 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 }
+
 

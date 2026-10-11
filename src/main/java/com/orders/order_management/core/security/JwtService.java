@@ -25,10 +25,13 @@ public class JwtService {
         this.expirationMillis = expirationMillis;
     }
 
-    public String generateToken(String username, Collection<String> roles) {
+    public String generateToken(String username, Collection<String> roles, String outletId) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("roles", roles); // e.g., ["ADMIN","SALES","MANAGER"]
+        claims.put("roles", roles); 
         claims.put("username", username);
+        if (outletId != null) {
+            claims.put("outletId", outletId);
+        }
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMillis);
 
@@ -43,6 +46,11 @@ public class JwtService {
 
     public String extractUsername(String token) {
         return parseAllClaims(token).getSubject();
+    }
+
+    public String extractOutletId(String token) {
+        Object raw = parseAllClaims(token).get("outletId");
+        return raw != null ? String.valueOf(raw) : null;
     }
 
     public List<String> extractRoles(String token) {

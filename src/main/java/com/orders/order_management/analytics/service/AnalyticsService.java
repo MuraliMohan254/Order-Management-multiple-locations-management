@@ -40,40 +40,54 @@ public class AnalyticsService {
     private final OrderItemRepository orderItemRepository;
     private final PaymentRepository paymentRepository;
 
-    public SalesDashboardResponse getSalesDashboard(Instant customStart, Instant customEnd) {
+    public String resolveEffectiveOutletId(String requestedOutletId) {
+        if (com.orders.order_management.core.security.SecurityUtils.isCurrentUserAdmin()) {
+            if (requestedOutletId != null && !requestedOutletId.isBlank()
+                    && !"all".equalsIgnoreCase(requestedOutletId) && !"consolidated".equalsIgnoreCase(requestedOutletId)
+                    && !"null".equalsIgnoreCase(requestedOutletId) && !"undefined".equalsIgnoreCase(requestedOutletId)) {
+                return requestedOutletId.trim();
+            }
+            return null; // Admin consolidated: query all outlets
+        }
+        return com.orders.order_management.core.security.SecurityUtils.getCurrentOutletId();
+    }
+
+    public SalesDashboardResponse getSalesDashboard(Instant customStart, Instant customEnd, String requestedOutletId) {
+        String effectiveOutletId = resolveEffectiveOutletId(requestedOutletId);
         Instant now = Instant.now();
+        ZoneId zone = ZoneId.systemDefault();
 
         // Default to last 30 days if not provided
-        Instant startDate = customStart != null ? customStart : ZonedDateTime.ofInstant(now, ZoneId.of("UTC")).minusDays(30).toInstant();
+        Instant startDate = customStart != null ? customStart : ZonedDateTime.ofInstant(now, zone).minusDays(30).toInstant();
         Instant endDate = customEnd != null ? customEnd : now;
 
-        // Daily, Monthly, Yearly Baselines
-        Instant startOfDay = ZonedDateTime.ofInstant(now, ZoneId.of("UTC")).truncatedTo(ChronoUnit.DAYS).toInstant();
-        Instant startOfMonth = ZonedDateTime.ofInstant(now, ZoneId.of("UTC")).withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS).toInstant();
-        Instant startOfYear = ZonedDateTime.ofInstant(now, ZoneId.of("UTC")).withDayOfYear(1).truncatedTo(ChronoUnit.DAYS).toInstant();
+        // Daily, Monthly, Yearly Baselines using local restaurant system timezone
+        Instant startOfDay = ZonedDateTime.ofInstant(now, zone).truncatedTo(ChronoUnit.DAYS).toInstant();
+        Instant startOfMonth = ZonedDateTime.ofInstant(now, zone).withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS).toInstant();
+        Instant startOfYear = ZonedDateTime.ofInstant(now, zone).withDayOfYear(1).truncatedTo(ChronoUnit.DAYS).toInstant();
 
-        BigDecimal dailySales = orderRepository.calculateTotalSales(startOfDay, now);
-        BigDecimal monthlySales = orderRepository.calculateTotalSales(startOfMonth, now);
-        BigDecimal yearlySales = orderRepository.calculateTotalSales(startOfYear, now);
+        BigDecimal dailySales = orderRepository.calculateTotalSales(startOfDay, now, effectiveOutletId);
+        BigDecimal monthlySales = orderRepository.calculateTotalSales(startOfMonth, now, effectiveOutletId);
+        BigDecimal yearlySales = orderRepository.calculateTotalSales(startOfYear, now, effectiveOutletId);
 
         // Period specific stats
-        BigDecimal periodSales = orderRepository.calculateTotalSales(startDate, endDate);
-        long totalOrders = orderRepository.countOrdersBetween(startDate, endDate);
-        long billedOrders = orderRepository.countBilledOrdersBetween(startDate, endDate);
-        long dineInOrders = orderRepository.countByOrderTypeBetween(OrderType.DINE_IN, startDate, endDate);
-        long takeAwayOrders = orderRepository.countByOrderTypeBetween(OrderType.TAKE_AWAY, startDate, endDate);
+        BigDecimal periodSales = orderRepository.calculateTotalSales(startDate, endDate, effectiveOutletId);
+        long totalOrders = orderRepository.countOrdersBetween(startDate, endDate, effectiveOutletId);
+        long billedOrders = orderRepository.countBilledOrdersBetween(startDate, endDate, effectiveOutletId);
+        long dineInOrders = orderRepository.countByOrderTypeBetween(OrderType.DINE_IN, startDate, endDate, effectiveOutletId);
+        long takeAwayOrders = orderRepository.countByOrderTypeBetween(OrderType.TAKE_AWAY, startDate, endDate, effectiveOutletId);
 
         BigDecimal averageOrderValue = billedOrders > 0 
                 ? periodSales.divide(BigDecimal.valueOf(billedOrders), 2, RoundingMode.HALF_UP) 
                 : BigDecimal.ZERO;
 
-        Double avgTurnaround = orderRepository.getAverageTurnaroundMinutesBetween(startDate, endDate);
+        Double avgTurnaround = orderRepository.getAverageTurnaroundMinutesBetween(startDate, endDate, effectiveOutletId);
         if (avgTurnaround == null || avgTurnaround <= 0.0) {
-            avgTurnaround = orderRepository.getAverageTurnaroundTimeMinutesLast30Days();
+            avgTurnaround = orderRepository.getAverageTurnaroundTimeMinutesLast30Days(effectiveOutletId);
         }
 
         // Top moving items
-        List<TopItemDto> fastMovingItems = orderItemRepository.getFastMovingItemsBetween(startDate, endDate).stream()
+        List<TopItemDto> fastMovingItems = orderItemRepository.getFastMovingItemsBetween(startDate, endDate, effectiveOutletId).stream()
                 .map(p -> TopItemDto.builder()
                         .itemName(p.getItemName())
                         .totalSold(p.getTotalSold())
@@ -82,7 +96,7 @@ public class AnalyticsService {
                 .toList();
 
         // Recent orders
-        List<OrderResponse> recentOrders = orderRepository.findOrdersBetween(startDate, endDate).stream()
+        List<OrderResponse> recentOrders = orderRepository.findOrdersBetween(startDate, endDate, effectiveOutletId).stream()
                 .limit(20)
                 .map(this::mapOrderSummary)
                 .toList();
@@ -103,6 +117,10 @@ public class AnalyticsService {
                 .build();
     }
 
+    public SalesDashboardResponse getSalesDashboard(Instant customStart, Instant customEnd) {
+        return getSalesDashboard(customStart, customEnd, null);
+    }
+
     private OrderResponse mapOrderSummary(Order order) {
         return OrderResponse.builder()
                 .id(order.getId())
@@ -120,18 +138,20 @@ public class AnalyticsService {
                 .build();
     }
 
-    public BusinessInsightsResponse getBusinessInsights(Instant customStart, Instant customEnd) {
+    public BusinessInsightsResponse getBusinessInsights(Instant customStart, Instant customEnd, String requestedOutletId) {
+        String effectiveOutletId = resolveEffectiveOutletId(requestedOutletId);
         Instant now = Instant.now();
-        Instant startDate = customStart != null ? customStart : ZonedDateTime.ofInstant(now, ZoneId.of("UTC")).minusDays(30).toInstant();
+        ZoneId zone = ZoneId.systemDefault();
+        Instant startDate = customStart != null ? customStart : ZonedDateTime.ofInstant(now, zone).minusDays(30).toInstant();
         Instant endDate = customEnd != null ? customEnd : now;
 
-        BigDecimal netSales = orderRepository.calculateTotalSales(startDate, endDate);
-        BigDecimal totalDiscounts = orderRepository.calculateTotalDiscounts(startDate, endDate);
+        BigDecimal netSales = orderRepository.calculateTotalSales(startDate, endDate, effectiveOutletId);
+        BigDecimal totalDiscounts = orderRepository.calculateTotalDiscounts(startDate, endDate, effectiveOutletId);
         BigDecimal grossSales = netSales.add(totalDiscounts);
 
-        long totalOrders = orderRepository.countOrdersBetween(startDate, endDate);
-        long billedOrders = orderRepository.countBilledOrdersBetween(startDate, endDate);
-        long cancelledOrders = orderRepository.countCancelledOrdersBetween(startDate, endDate);
+        long totalOrders = orderRepository.countOrdersBetween(startDate, endDate, effectiveOutletId);
+        long billedOrders = orderRepository.countBilledOrdersBetween(startDate, endDate, effectiveOutletId);
+        long cancelledOrders = orderRepository.countCancelledOrdersBetween(startDate, endDate, effectiveOutletId);
 
         BigDecimal overallAov = billedOrders > 0
                 ? netSales.divide(BigDecimal.valueOf(billedOrders), 2, RoundingMode.HALF_UP)
@@ -142,10 +162,10 @@ public class AnalyticsService {
                 : 0.0;
 
         // Channel breakdown
-        long dineInCount = orderRepository.countByOrderTypeBetween(OrderType.DINE_IN, startDate, endDate);
-        long takeAwayCount = orderRepository.countByOrderTypeBetween(OrderType.TAKE_AWAY, startDate, endDate);
-        BigDecimal dineInRevenue = orderRepository.calculateSalesByOrderType(OrderType.DINE_IN, startDate, endDate);
-        BigDecimal takeAwayRevenue = orderRepository.calculateSalesByOrderType(OrderType.TAKE_AWAY, startDate, endDate);
+        long dineInCount = orderRepository.countByOrderTypeBetween(OrderType.DINE_IN, startDate, endDate, effectiveOutletId);
+        long takeAwayCount = orderRepository.countByOrderTypeBetween(OrderType.TAKE_AWAY, startDate, endDate, effectiveOutletId);
+        BigDecimal dineInRevenue = orderRepository.calculateSalesByOrderType(OrderType.DINE_IN, startDate, endDate, effectiveOutletId);
+        BigDecimal takeAwayRevenue = orderRepository.calculateSalesByOrderType(OrderType.TAKE_AWAY, startDate, endDate, effectiveOutletId);
 
         BigDecimal dineInAov = dineInCount > 0
                 ? dineInRevenue.divide(BigDecimal.valueOf(dineInCount), 2, RoundingMode.HALF_UP)
@@ -155,8 +175,8 @@ public class AnalyticsService {
                 : BigDecimal.ZERO;
 
         // Turnaround & SLA
-        Double avgTurnaround = orderRepository.getAverageTurnaroundMinutesBetween(startDate, endDate);
-        OrderRepository.TurnaroundSlaProjection sla = orderRepository.getTurnaroundSlaBetween(startDate, endDate);
+        Double avgTurnaround = orderRepository.getAverageTurnaroundMinutesBetween(startDate, endDate, effectiveOutletId);
+        OrderRepository.TurnaroundSlaProjection sla = orderRepository.getTurnaroundSlaBetween(startDate, endDate, effectiveOutletId);
         long fastCount = sla != null && sla.getFastCount() != null ? sla.getFastCount() : 0L;
         long standardCount = sla != null && sla.getStandardCount() != null ? sla.getStandardCount() : 0L;
         long delayedCount = sla != null && sla.getDelayedCount() != null ? sla.getDelayedCount() : 0L;
@@ -166,7 +186,7 @@ public class AnalyticsService {
                 : 100.0;
 
         // Category breakdown
-        List<OrderItemRepository.CategorySalesProjection> rawCat = orderItemRepository.getCategorySalesBetween(startDate, endDate);
+        List<OrderItemRepository.CategorySalesProjection> rawCat = orderItemRepository.getCategorySalesBetween(startDate, endDate, effectiveOutletId);
         BigDecimal totalCatRev = rawCat.stream()
                 .map(OrderItemRepository.CategorySalesProjection::getRevenue)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -185,7 +205,7 @@ public class AnalyticsService {
                 }).toList();
 
         // Hourly traffic
-        List<OrderRepository.HourlyTrafficProjection> rawHours = orderRepository.getHourlyTrafficBetween(startDate, endDate);
+        List<OrderRepository.HourlyTrafficProjection> rawHours = orderRepository.getHourlyTrafficBetween(startDate, endDate, effectiveOutletId);
         List<BusinessInsightsResponse.HourlyTrafficDto> hourlyTraffic = rawHours.stream().map(h -> {
             int hr = h.getHour() != null ? h.getHour() : 0;
             String label = hr == 0 ? "12 AM" : hr < 12 ? hr + " AM" : hr == 12 ? "12 PM" : (hr - 12) + " PM";
@@ -198,7 +218,7 @@ public class AnalyticsService {
         }).toList();
 
         // Payment splits
-        List<PaymentRepository.PaymentMethodProjection> rawPay = paymentRepository.getPaymentMethodsBetween(startDate, endDate);
+        List<PaymentRepository.PaymentMethodProjection> rawPay = paymentRepository.getPaymentMethodsBetween(startDate, endDate, effectiveOutletId);
         BigDecimal totalPayAmount = rawPay.stream()
                 .map(PaymentRepository.PaymentMethodProjection::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -216,7 +236,7 @@ public class AnalyticsService {
         }).toList();
 
         // Top earners & Slow movers
-        List<TopItemDto> topEarners = orderItemRepository.getFastMovingItemsBetween(startDate, endDate).stream()
+        List<TopItemDto> topEarners = orderItemRepository.getFastMovingItemsBetween(startDate, endDate, effectiveOutletId).stream()
                 .limit(5)
                 .map(p -> TopItemDto.builder()
                         .itemName(p.getItemName())
@@ -224,7 +244,7 @@ public class AnalyticsService {
                         .totalRevenue(p.getTotalRevenue())
                         .build()).toList();
 
-        List<TopItemDto> slowMovers = orderItemRepository.getSlowMovingItemsBetween(startDate, endDate).stream()
+        List<TopItemDto> slowMovers = orderItemRepository.getSlowMovingItemsBetween(startDate, endDate, effectiveOutletId).stream()
                 .map(p -> TopItemDto.builder()
                         .itemName(p.getItemName())
                         .totalSold(p.getTotalSold() != null ? p.getTotalSold() : 0)
@@ -232,7 +252,7 @@ public class AnalyticsService {
                         .build()).toList();
 
         // Table performance
-        List<BusinessInsightsResponse.TablePerformanceDto> tableMetrics = orderRepository.getTablePerformanceBetween(startDate, endDate).stream()
+        List<BusinessInsightsResponse.TablePerformanceDto> tableMetrics = orderRepository.getTablePerformanceBetween(startDate, endDate, effectiveOutletId).stream()
                 .map(t -> BusinessInsightsResponse.TablePerformanceDto.builder()
                         .tableNumber(t.getTableNumber())
                         .orderCount(t.getOrderCount() != null ? t.getOrderCount() : 0L)
@@ -266,5 +286,9 @@ public class AnalyticsService {
                 .slowMovers(slowMovers)
                 .tableMetrics(tableMetrics)
                 .build();
+    }
+
+    public BusinessInsightsResponse getBusinessInsights(Instant customStart, Instant customEnd) {
+        return getBusinessInsights(customStart, customEnd, null);
     }
 }

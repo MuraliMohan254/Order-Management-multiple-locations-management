@@ -29,8 +29,10 @@ public class TransactionController {
     private final TransactionService transactionService;
 
     @PostMapping("/tables")
-    public ResponseEntity<TableResponse> createTable(@RequestParam String tableNumber) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(transactionService.createTable(tableNumber));
+    public ResponseEntity<TableResponse> createTable(
+            @RequestParam String tableNumber,
+            @RequestParam(required = false) String outletId) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(transactionService.createTable(tableNumber, outletId));
     }
 
     @PostMapping("/public/qr-order/{qrToken}")
@@ -85,8 +87,9 @@ public class TransactionController {
 
     @PostMapping("/orders/take-away")
     public ResponseEntity<OrderResponse> createTakeAwayOrder(
-            @Valid @RequestBody List<OrderItemRequest> items) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(transactionService.createTakeAwayOrder(items));
+            @Valid @RequestBody List<OrderItemRequest> items,
+            @RequestParam(required = false) String outletId) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(transactionService.createTakeAwayOrder(items, outletId));
     }
 
     // ==========================================
@@ -149,8 +152,9 @@ public class TransactionController {
     // ==========================================
 
     @GetMapping("/tables")
-    public ResponseEntity<List<TableResponse>> getTables() {
-        return ResponseEntity.ok(transactionService.getAllTables());
+    public ResponseEntity<List<TableResponse>> getTables(
+            @RequestParam(required = false) String outletId) {
+        return ResponseEntity.ok(transactionService.getAllTables(outletId));
     }
 
     @PostMapping("/orders/dine-in")
@@ -167,8 +171,9 @@ public class TransactionController {
 
     @GetMapping("/orders")
     public ResponseEntity<List<OrderResponse>> getOrders(
-            @RequestParam(required = false) List<OrderStatus> statuses) {
-        return ResponseEntity.ok(transactionService.getOrders(statuses));
+            @RequestParam(required = false) List<OrderStatus> statuses,
+            @RequestParam(required = false) String outletId) {
+        return ResponseEntity.ok(transactionService.getOrders(statuses, outletId));
     }
 
     @GetMapping("/orders/paged")
@@ -176,6 +181,7 @@ public class TransactionController {
             @RequestParam(required = false) List<String> statuses,
             @RequestParam(required = false) String orderType,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) String outletId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
@@ -200,6 +206,6 @@ public class TransactionController {
             } catch (IllegalArgumentException ignored) {}
         }
 
-        return ResponseEntity.ok(transactionService.getPagedOrders(statusEnums, orderTypeEnum, search, page, size, sortBy, sortDirection));
+        return ResponseEntity.ok(transactionService.getPagedOrders(statusEnums, orderTypeEnum, search, outletId, page, size, sortBy, sortDirection));
     }
 }

@@ -8,7 +8,10 @@ public class TestJasper {
     public void runtest() {
         try {
             JasperCompileManager.compileReportToFile("src/main/resources/reports/transactions_detail.jrxml", "src/main/resources/reports/transactions_detail.jasper");
-            System.out.println("Detail compiled");
+            JasperCompileManager.compileReportToFile("src/main/resources/reports/transactions_summary.jrxml", "src/main/resources/reports/transactions_summary.jasper");
+            JasperCompileManager.compileReportToFile("src/main/resources/reports/multi_outlet_daily_sales.jrxml", "src/main/resources/reports/multi_outlet_daily_sales.jasper");
+            JasperCompileManager.compileReportToFile("src/main/resources/reports/multi_outlet_monthly_sales.jrxml", "src/main/resources/reports/multi_outlet_monthly_sales.jasper");
+            System.out.println("All reports compiled successfully!");
         } catch (Exception e) {
             System.err.println("JASPER ERROR: " + e.getMessage());
             if (e.getCause() != null) {

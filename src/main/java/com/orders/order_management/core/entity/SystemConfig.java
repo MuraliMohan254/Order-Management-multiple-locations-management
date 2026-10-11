@@ -1,8 +1,12 @@
 package com.orders.order_management.core.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.*;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,11 +16,28 @@ import java.math.BigDecimal;
 
 @Entity
 @Table(name = "system_config")
+@FilterDef(name = "outletFilter", parameters = {@ParamDef(name = "outletId", type = String.class)})
+@Filter(name = "outletFilter", condition = "outlet_id = :outletId")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class SystemConfig {
+
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "outlet_id")
+    private Outlet outlet;
+
+    @JsonProperty("outletId")
+    public String getOutletId() {
+        if (outlet == null) return null;
+        if (outlet instanceof org.hibernate.proxy.HibernateProxy proxy) {
+            return (String) proxy.getHibernateLazyInitializer().getIdentifier();
+        }
+        return outlet.getId();
+    }
 
     @Id
     private Long id;
@@ -36,4 +57,18 @@ public class SystemConfig {
     private String thermalPaperSize = "80mm"; // 80mm or 58mm
     
     private String printerName; // null means default printer
+
+    @Builder.Default
+    @Column(name = "restaurant_name")
+    private String restaurantName = "WildBar";
+
+    @PrePersist
+    public void onPrePersistTenant() {
+        if (this.outlet == null) {
+            String currentOutletId = com.orders.order_management.core.security.SecurityUtils.getCurrentOutletId();
+            Outlet o = new Outlet();
+            o.setId(currentOutletId != null ? currentOutletId : "default-outlet-123");
+            this.outlet = o;
+        }
+    }
 }

@@ -21,4 +21,6 @@ public class PaymentResponse {
     private BigDecimal amountPaid;
     private PaymentMethod paymentMethod;
     private PaymentStatus paymentStatus;
+    private Long settledById;
+    private String settledBy;
 }

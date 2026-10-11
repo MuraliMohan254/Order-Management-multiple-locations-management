@@ -27,5 +27,9 @@ public class OrderResponse {
     private BigDecimal grandTotal;
     private Instant createdAt;
     private String kitchenStatus;
+    private String outletId;
+    private String outletName;
+    private Long settledById;
+    private String settledBy;
     private List<OrderItemDetailResponse> items;
 }

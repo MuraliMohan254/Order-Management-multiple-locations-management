@@ -1,2 +1,0 @@
-﻿ALTER TABLE orders DROP CONSTRAINT orders_status_check;
-ALTER TABLE orders ADD CONSTRAINT orders_status_check CHECK (((status)::text = ANY ((ARRAY['SOFT_ORDER'::character varying, 'CONFIRMED'::character varying, 'PREPARING'::character varying, 'READY'::character varying, 'SERVED'::character varying, 'BILLED'::character varying, 'PAID'::character varying, 'CANCELLED'::character varying])::text[])));

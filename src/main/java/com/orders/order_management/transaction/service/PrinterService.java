@@ -45,7 +45,9 @@ public class PrinterService {
         StringBuilder sb = new StringBuilder();
         
         // Centered Header
-        sb.append(centerText("=== WILDBAR ===", width)).append("\n");
+        String restaurantTitle = config.getRestaurantName() != null && !config.getRestaurantName().isBlank()
+                ? config.getRestaurantName().toUpperCase() : "WILDBAR";
+        sb.append(centerText("=== " + restaurantTitle + " ===", width)).append("\n");
         sb.append(centerText("Order: " + order.getOrderNumber(), width)).append("\n");
         
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").withZone(ZoneId.systemDefault());

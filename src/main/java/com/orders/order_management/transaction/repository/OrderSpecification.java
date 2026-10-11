@@ -21,6 +21,14 @@ public class OrderSpecification {
             List<OrderStatus> statuses,
             OrderType orderType,
             String search) {
+        return filter(statuses, orderType, search, null);
+    }
+
+    public static Specification<Order> filter(
+            List<OrderStatus> statuses,
+            OrderType orderType,
+            String search,
+            String outletId) {
 
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -33,6 +41,11 @@ public class OrderSpecification {
             // 2. Order Type Filter (DINE_IN vs TAKE_AWAY)
             if (orderType != null) {
                 predicates.add(cb.equal(root.get("orderType"), orderType));
+            }
+
+            // 2.1 Outlet Filter (when specifically requested)
+            if (outletId != null && !outletId.isBlank() && !"all".equalsIgnoreCase(outletId) && !"consolidated".equalsIgnoreCase(outletId)) {
+                predicates.add(cb.equal(root.get("outlet").get("id"), outletId.trim()));
             }
 
             // 3. Search Filter across order number, table number, grand total, items, order type, and status

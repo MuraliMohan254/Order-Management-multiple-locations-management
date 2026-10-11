@@ -3,6 +3,12 @@
               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" 
               name="TransactionsSummaryReport" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+    
+    <parameter name="DATE_RANGE" class="java.lang.String"/>
+    <parameter name="GENERATED_AT" class="java.lang.String"/>
+    <parameter name="OUTLET_FILTER" class="java.lang.String"/>
+    <parameter name="RESTAURANT_NAME" class="java.lang.String"/>
+
     <field name="date" class="java.lang.String"/>
     <field name="orderCount" class="java.lang.Long"/>
     <field name="totalRevenue" class="java.math.BigDecimal"/>
@@ -17,27 +23,34 @@
     </variable>
 
     <title>
-        <band height="70">
+        <band height="80">
             <rectangle>
-                <reportElement mode="Opaque" x="-20" y="-20" width="595" height="70" backcolor="#27AE60"/>
+                <reportElement mode="Opaque" x="-20" y="-20" width="595" height="85" backcolor="#27AE60"/>
                 <graphicElement>
                     <pen lineWidth="0.0"/>
                 </graphicElement>
             </rectangle>
-            <staticText>
-                <reportElement x="0" y="0" width="555" height="30" forecolor="#FFFFFF"/>
+            <textField>
+                <reportElement x="0" y="-10" width="555" height="26" forecolor="#FFFFFF"/>
                 <textElement textAlignment="Center" verticalAlignment="Middle">
-                    <font size="22" isBold="true"/>
+                    <font size="18" isBold="true"/>
                 </textElement>
-                <text><![CDATA[WildBar Restaurant]]></text>
-            </staticText>
+                <textFieldExpression><![CDATA[($P{RESTAURANT_NAME} != null ? $P{RESTAURANT_NAME} : "WildBar") + " Restaurant"]]></textFieldExpression>
+            </textField>
             <staticText>
-                <reportElement x="0" y="30" width="555" height="20" forecolor="#ECF0F1"/>
+                <reportElement x="0" y="16" width="555" height="18" forecolor="#ECF0F1"/>
                 <textElement textAlignment="Center" verticalAlignment="Middle">
-                    <font size="12"/>
+                    <font size="11" isBold="true"/>
                 </textElement>
                 <text><![CDATA[Consolidated Sales Summary (Day-wise)]]></text>
             </staticText>
+            <textField>
+                <reportElement x="0" y="36" width="555" height="14" forecolor="#E8F8F5"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font size="8"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Period: " + ($P{DATE_RANGE} != null ? $P{DATE_RANGE} : "Custom Range") + "  |  Filter: " + ($P{OUTLET_FILTER} != null ? $P{OUTLET_FILTER} : "Consolidated") + "  |  Generated: " + ($P{GENERATED_AT} != null ? $P{GENERATED_AT} : "")]]></textFieldExpression>
+            </textField>
         </band>
     </title>
     

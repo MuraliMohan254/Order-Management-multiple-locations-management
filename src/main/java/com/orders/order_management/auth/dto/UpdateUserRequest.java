@@ -6,6 +6,9 @@ import java.util.Set;
 
 @Data
 public class UpdateUserRequest {
+
+    private String outletId;
     private String username;
     private Set<Role> roles;
 }
+

@@ -1,15 +1,22 @@
 package com.orders.order_management.transaction.entity;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.orders.order_management.core.entity.BaseEntity;
 import com.orders.order_management.core.enums.OrderStatus;
 import com.orders.order_management.core.enums.OrderType;
 import jakarta.persistence.*;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
+import com.orders.order_management.core.entity.Outlet;
 import lombok.*;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 @Entity
+@FilterDef(name = "outletFilter", parameters = {@ParamDef(name = "outletId", type = String.class)})
+@Filter(name = "outletFilter", condition = "outlet_id = :outletId")
 @Table(name = "orders", indexes = {
         @Index(name = "idx_orders_status", columnList = "status"),
         @Index(name = "idx_orders_created_at", columnList = "created_at"),
@@ -25,6 +32,11 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Order extends BaseEntity {
+
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "outlet_id")
+    private Outlet outlet;
 
     @Column(name = "order_number", nullable = false, unique = true, length = 50)
     private String orderNumber;
@@ -74,4 +86,18 @@ public class Order extends BaseEntity {
         items.add(item);
         item.setOrder(this);
     }
+
+    @PrePersist
+    public void onPrePersistTenant() {
+        if (this.outlet == null) {
+            String currentOutletId = com.orders.order_management.core.security.SecurityUtils.getCurrentOutletId();
+            if (currentOutletId != null) {
+                Outlet o = new Outlet();
+                o.setId(currentOutletId);
+                this.outlet = o;
+            }
+        }
+    }
 }
+
+
