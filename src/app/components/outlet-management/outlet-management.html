@@ -1,0 +1,925 @@
+<div class="space-y-6 font-sans text-slate-800 dark:text-slate-100 transition-colors duration-200 p-2 sm:p-4 md:p-6">
+
+  <!-- ========================================== -->
+  <!-- 1. TOP HEADER & REPORTING ACTIONS -->
+  <!-- ========================================== -->
+  <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs transition-colors">
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-black shadow-md shadow-blue-500/20">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+        </svg>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Outlets Monitoring & Command Center</h1>
+          <span class="px-2 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
+            Multi-Branch Hub
+          </span>
+        </div>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Live telemetry, branch health, grouped daily/monthly reporting, and network management</p>
+      </div>
+    </div>
+
+    <!-- Actions: Refresh, 1-Click Reports, Reports Suite, Add Outlet -->
+    <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto justify-start xl:justify-end">
+      <!-- Refresh Telemetry -->
+      <button (click)="resetAndLoadOutlets()" 
+              class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all shadow-xs cursor-pointer"
+              title="Refresh Telemetry">
+        <svg class="w-4 h-4" [ngClass]="{'animate-spin': isLoading()}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+      </button>
+
+      <!-- 1-Click Multi-Outlet Daily Report (PDF & XLSX) -->
+      <div class="inline-flex rounded-xl shadow-xs overflow-hidden border border-slate-200 dark:border-slate-700">
+        <button (click)="downloadQuickDailyReport('PDF')"
+                [disabled]="isDownloading('quick-daily')"
+                class="px-3 py-2 bg-slate-900 hover:bg-black dark:bg-blue-600 dark:hover:bg-blue-500 text-white text-xs font-black transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                title="Download Day-by-Day Multi-Outlet Grouped Sales Report (PDF)">
+          @if (isDownloading('quick-daily-PDF')) {
+            <div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          } @else {
+            <svg class="w-3.5 h-3.5 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          }
+          <span>Daily</span>
+        </button>
+        <button (click)="downloadQuickDailyReport('XLSX')"
+                [disabled]="isDownloading('quick-daily')"
+                class="px-2 py-2 bg-slate-800 hover:bg-slate-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-emerald-400 text-[10px] font-black border-l border-slate-700 transition-all disabled:opacity-50 cursor-pointer"
+                title="Export Daily Report to Excel (.xlsx)">
+          @if (isDownloading('quick-daily-XLSX')) {
+            <div class="w-3 h-3 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
+          } @else {
+            XLS
+          }
+        </button>
+      </div>
+
+      <!-- 1-Click Multi-Outlet Monthly Report (PDF & XLSX) -->
+      <div class="inline-flex rounded-xl shadow-xs overflow-hidden border border-slate-200 dark:border-slate-700">
+        <button (click)="downloadQuickMonthlyReport('PDF')"
+                [disabled]="isDownloading('quick-monthly')"
+                class="px-3 py-2 bg-slate-900 hover:bg-black dark:bg-purple-600 dark:hover:bg-purple-500 text-white text-xs font-black transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                title="Download Month-by-Month Multi-Outlet Consolidated Report (PDF)">
+          @if (isDownloading('quick-monthly-PDF')) {
+            <div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          } @else {
+            <svg class="w-3.5 h-3.5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          }
+          <span>Monthly</span>
+        </button>
+        <button (click)="downloadQuickMonthlyReport('XLSX')"
+                [disabled]="isDownloading('quick-monthly')"
+                class="px-2 py-2 bg-slate-800 hover:bg-slate-700 dark:bg-purple-700 dark:hover:bg-purple-800 text-emerald-400 text-[10px] font-black border-l border-slate-700 transition-all disabled:opacity-50 cursor-pointer"
+                title="Export Monthly Report to Excel (.xlsx)">
+          @if (isDownloading('quick-monthly-XLSX')) {
+            <div class="w-3 h-3 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
+          } @else {
+            XLS
+          }
+        </button>
+      </div>
+
+      <!-- Advanced Executive Reporting Suite Button -->
+      <button (click)="openReportModal()"
+              class="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-black transition-all shadow-sm active:scale-98 flex items-center gap-1.5 cursor-pointer"
+              title="Custom Date Range & Multi-Outlet Report Builder">
+        <svg class="w-3.5 h-3.5 text-emerald-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <span>Report Builder</span>
+      </button>
+
+      <!-- Add New Outlet -->
+      <button (click)="openCreateModal()" 
+              class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black transition-all shadow-md shadow-blue-500/20 active:scale-98 flex items-center gap-1.5 cursor-pointer">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        <span>Add Outlet</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 2. CONSOLIDATED KPI STATS RIBBON -->
+  <!-- ========================================== -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <!-- Today's Network Revenue -->
+    <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between transition-colors">
+      <div class="flex justify-between items-start">
+        <div>
+          <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Network Sales (Today)</span>
+          <h3 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1">
+            ₹{{ (monitoringData()?.consolidatedTodaySales || 0) | number:'1.2-2' }}
+          </h3>
+        </div>
+        <div class="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+      </div>
+      <div class="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+        <span>Across all active outlets</span>
+        <span class="text-emerald-600 dark:text-emerald-400 font-bold">Consolidated</span>
+      </div>
+    </div>
+
+    <!-- Today's Network Orders -->
+    <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between transition-colors">
+      <div class="flex justify-between items-start">
+        <div>
+          <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Orders (Today)</span>
+          <h3 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1">
+            {{ monitoringData()?.consolidatedTodayOrders || 0 }}
+          </h3>
+        </div>
+        <div class="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        </div>
+      </div>
+      <div class="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+        <span>Billed transactions today</span>
+        <span class="text-blue-600 dark:text-blue-400 font-bold">Volume</span>
+      </div>
+    </div>
+
+    <!-- Active Pipeline Orders -->
+    <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between transition-colors">
+      <div class="flex justify-between items-start">
+        <div>
+          <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Active Pipeline</span>
+          <h3 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1">
+            {{ monitoringData()?.consolidatedActiveOrders || 0 }}
+          </h3>
+        </div>
+        <div class="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+      </div>
+      <div class="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+        <span>In kitchen / Running tabs</span>
+        <span class="text-amber-600 dark:text-amber-400 font-bold">Live Load</span>
+      </div>
+    </div>
+
+    <!-- Table Occupancy -->
+    <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between transition-colors">
+      <div class="flex justify-between items-start">
+        <div>
+          <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Network Occupancy</span>
+          <h3 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1">
+            {{ monitoringData()?.consolidatedOccupiedTables || 0 }} / {{ monitoringData()?.consolidatedTotalTables || 0 }}
+          </h3>
+        </div>
+        <div class="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+        </div>
+      </div>
+      <div class="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+        <span>Dine-In seating utilization</span>
+        <span class="text-purple-600 dark:text-purple-400 font-bold">Tables</span>
+      </div>
+    </div>
+
+    <!-- Outlets Status -->
+    <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between transition-colors">
+      <div class="flex justify-between items-start">
+        <div>
+          <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Outlets Online</span>
+          <h3 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1">
+            {{ monitoringData()?.activeOutlets || 0 }} / {{ monitoringData()?.totalOutlets || 0 }}
+          </h3>
+        </div>
+        <div class="p-2.5 rounded-xl bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/></svg>
+        </div>
+      </div>
+      <div class="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+        <span>Active branch network</span>
+        <span class="text-teal-600 dark:text-teal-400 font-bold">Branches</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 3. CONTROLS BAR: SEARCH, FILTERS & VIEW MODE -->
+  <!-- ========================================== -->
+  <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 transition-colors">
+    <!-- Search Bar -->
+    <div class="relative flex-1 max-w-md">
+      <input type="text" 
+             [ngModel]="searchQuery()" 
+             (input)="onSearchInput($any($event.target).value)"
+             placeholder="Search outlets by name, code, or address..."
+             class="w-full pl-9 pr-8 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+      <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      @if (searchQuery()) {
+        <button (click)="clearSearch()" class="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" title="Clear search">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      }
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
+      <!-- Status Filter Tabs -->
+      <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold">
+        <button (click)="setStatusFilter('ALL')" 
+                class="px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                [ngClass]="statusFilter() === 'ALL' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+          All
+        </button>
+        <button (click)="setStatusFilter('ACTIVE')" 
+                class="px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                [ngClass]="statusFilter() === 'ACTIVE' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+          Active
+        </button>
+        <button (click)="setStatusFilter('INACTIVE')" 
+                class="px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                [ngClass]="statusFilter() === 'INACTIVE' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+          Inactive
+        </button>
+      </div>
+
+      <!-- View Switcher -->
+      <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold">
+        <button (click)="viewMode.set('GRID')" 
+                class="p-1.5 rounded-lg transition-all cursor-pointer"
+                [ngClass]="viewMode() === 'GRID' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs' : 'text-slate-400 hover:text-slate-600'"
+                title="Grid View">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+        </button>
+        <button (click)="viewMode.set('TABLE')" 
+                class="p-1.5 rounded-lg transition-all cursor-pointer"
+                [ngClass]="viewMode() === 'TABLE' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs' : 'text-slate-400 hover:text-slate-600'"
+                title="Table View">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="flex flex-col items-center justify-center py-20 text-slate-400">
+      <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+      <p class="text-xs font-bold tracking-wider uppercase">Loading Multi-Outlet Telemetry...</p>
+    </div>
+  } @else {
+
+    <!-- ========================================== -->
+    <!-- 4. GRID VIEW: RICH OUTLET MONITORING CARDS -->
+    <!-- ========================================== -->
+    <!-- Scrollable Outlets Container with Infinite Scroll -->
+    <div class="overflow-y-auto max-h-[calc(100vh-210px)] pr-1 space-y-4"
+         appInfiniteScroll
+         [infiniteScrollDistance]="150"
+         [infiniteScrollDisabled]="isLoading() || isLoadingMore() || isLastPage()"
+         (appInfiniteScroll)="onScroll()">
+
+      <!-- ========================================== -->
+      <!-- 4. GRID VIEW: RICH OUTLET MONITORING CARDS -->
+      <!-- ========================================== -->
+      @if (viewMode() === 'GRID') {
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          @for (outlet of outlets(); track outlet.id) {
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-blue-400 dark:hover:border-blue-500/60 transition-all flex flex-col justify-between overflow-hidden group">
+              
+              <!-- Card Header -->
+              <div class="p-5 pb-4">
+                <div class="flex justify-between items-start gap-2 mb-3">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <h3 class="text-lg font-black text-slate-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        {{ outlet.name }}
+                      </h3>
+                    </div>
+                    <div class="flex items-center gap-2 mt-1">
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        Code: {{ outlet.code }}
+                      </span>
+                      <button type="button" (click)="toggleOutletStatus(outlet)"
+                              title="Click to toggle active/inactive status"
+                              class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer hover:opacity-80 transition-opacity"
+                              [ngClass]="outlet.active ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'">
+                        <span class="w-1.5 h-1.5 rounded-full" [ngClass]="outlet.active ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'"></span>
+                        {{ outlet.active ? 'Active' : 'Inactive' }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Edit & Delete Icons -->
+                  <div class="flex items-center gap-1">
+                    <button (click)="openEditModal(outlet)" 
+                            class="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                            title="Edit Outlet Details">
+                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </button>
+                    <button (click)="deleteOutlet(outlet.id, outlet.name)" 
+                            class="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                            title="Delete Outlet">
+                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Address & Phone -->
+                <div class="space-y-1 text-xs text-slate-500 dark:text-slate-400 mb-4 bg-slate-50/70 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <p class="flex items-center truncate">
+                    <svg class="w-3.5 h-3.5 mr-2 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                    <span>{{ outlet.contactNumber || 'No phone recorded' }}</span>
+                  </p>
+                  <p class="flex items-start truncate">
+                    <svg class="w-3.5 h-3.5 mr-2 text-slate-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <span class="truncate">{{ outlet.address || 'No address specified' }}</span>
+                  </p>
+                </div>
+
+                <!-- Live Outlet KPI Telemetry Grid -->
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                  <!-- Today's Sales -->
+                  <div class="bg-slate-50 dark:bg-slate-800/70 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Today's Sales</span>
+                    <span class="text-sm font-black text-emerald-600 dark:text-emerald-400">₹{{ outlet.todaySales | number:'1.2-2' }}</span>
+                  </div>
+                  <!-- Orders Count -->
+                  <div class="bg-slate-50 dark:bg-slate-800/70 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Today's Orders</span>
+                    <span class="text-sm font-black text-slate-800 dark:text-white">{{ outlet.todayOrders }} orders</span>
+                  </div>
+                  <!-- Occupied Tables -->
+                  <div class="bg-slate-50 dark:bg-slate-800/70 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Table Occupancy</span>
+                    <span class="text-sm font-black text-purple-600 dark:text-purple-400">{{ outlet.occupiedTables }} / {{ outlet.totalTables }}</span>
+                  </div>
+                  <!-- Active Orders -->
+                  <div class="bg-slate-50 dark:bg-slate-800/70 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Active Pipeline</span>
+                    <span class="text-sm font-black text-amber-600 dark:text-amber-400">{{ outlet.activeOrders }} active</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card Actions Bar: Dashboards, Insights & PDF/XLSX Reports -->
+              <div class="bg-slate-50/80 dark:bg-slate-800/50 p-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                <div class="grid grid-cols-2 gap-2">
+                  <!-- Go to Operational Dashboard -->
+                  <button (click)="navigateToDashboard(outlet.id)" 
+                          class="px-3 py-2 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer"
+                          title="Open Live Operations Dashboard for this Outlet">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    <span>Operations</span>
+                  </button>
+
+                  <!-- Go to Executive Insights -->
+                  <button (click)="navigateToBusinessAnalytics(outlet.id)" 
+                          class="px-3 py-2 bg-white dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-slate-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-600 rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer"
+                          title="Open Executive Business Insights for this Outlet">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                    <span>Insights</span>
+                  </button>
+                </div>
+
+                <!-- Outlet Report Downloads (Daily, Monthly, Detailed with PDF & XLS Options) -->
+                <div class="grid grid-cols-3 gap-1.5 pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
+                  <!-- Daily PDF & XLS -->
+                  <div class="flex items-center rounded-lg bg-slate-100 dark:bg-slate-700 overflow-hidden border border-slate-200/60 dark:border-slate-600/60">
+                    <button (click)="downloadOutletReport(outlet, 'daily', 'PDF')" 
+                            [disabled]="isDownloading(outlet.id + '-daily')"
+                            class="flex-1 py-1.5 px-1 bg-transparent hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-[10px] font-bold transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"
+                            title="Daily Grouped Report (PDF)">
+                      @if (isDownloading(outlet.id + '-daily-PDF')) {
+                        <div class="w-2.5 h-2.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                      } @else {
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                      }
+                      <span>Daily</span>
+                    </button>
+                    <button (click)="downloadOutletReport(outlet, 'daily', 'XLSX')" 
+                            [disabled]="isDownloading(outlet.id + '-daily')"
+                            class="px-1.5 py-1.5 bg-slate-200/50 hover:bg-emerald-100 dark:bg-slate-800 dark:hover:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 text-[9px] font-black border-l border-slate-200 dark:border-slate-600 transition-all disabled:opacity-50 cursor-pointer"
+                            title="Export Daily Report to Excel (.xlsx)">
+                      @if (isDownloading(outlet.id + '-daily-XLSX')) {
+                        <div class="w-2.5 h-2.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                      } @else {
+                        XLS
+                      }
+                    </button>
+                  </div>
+
+                  <!-- Monthly PDF & XLS -->
+                  <div class="flex items-center rounded-lg bg-slate-100 dark:bg-slate-700 overflow-hidden border border-slate-200/60 dark:border-slate-600/60">
+                    <button (click)="downloadOutletReport(outlet, 'monthly', 'PDF')" 
+                            [disabled]="isDownloading(outlet.id + '-monthly')"
+                            class="flex-1 py-1.5 px-1 bg-transparent hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-[10px] font-bold transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"
+                            title="Monthly Grouped Report (PDF)">
+                      @if (isDownloading(outlet.id + '-monthly-PDF')) {
+                        <div class="w-2.5 h-2.5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                      } @else {
+                        <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                      }
+                      <span>Monthly</span>
+                    </button>
+                    <button (click)="downloadOutletReport(outlet, 'monthly', 'XLSX')" 
+                            [disabled]="isDownloading(outlet.id + '-monthly')"
+                            class="px-1.5 py-1.5 bg-slate-200/50 hover:bg-emerald-100 dark:bg-slate-800 dark:hover:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 text-[9px] font-black border-l border-slate-200 dark:border-slate-600 transition-all disabled:opacity-50 cursor-pointer"
+                            title="Export Monthly Report to Excel (.xlsx)">
+                      @if (isDownloading(outlet.id + '-monthly-XLSX')) {
+                        <div class="w-2.5 h-2.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                      } @else {
+                        XLS
+                      }
+                    </button>
+                  </div>
+
+                  <!-- Detailed PDF & XLS -->
+                  <div class="flex items-center rounded-lg bg-slate-100 dark:bg-slate-700 overflow-hidden border border-slate-200/60 dark:border-slate-600/60">
+                    <button (click)="downloadOutletReport(outlet, 'detailed', 'PDF')" 
+                            [disabled]="isDownloading(outlet.id + '-detailed')"
+                            class="flex-1 py-1.5 px-1 bg-transparent hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-[10px] font-bold transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"
+                            title="Detailed Orders Log (PDF)">
+                      @if (isDownloading(outlet.id + '-detailed-PDF')) {
+                        <div class="w-2.5 h-2.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                      } @else {
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      }
+                      <span>Detail</span>
+                    </button>
+                    <button (click)="downloadOutletReport(outlet, 'detailed', 'XLSX')" 
+                            [disabled]="isDownloading(outlet.id + '-detailed')"
+                            class="px-1.5 py-1.5 bg-slate-200/50 hover:bg-emerald-100 dark:bg-slate-800 dark:hover:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 text-[9px] font-black border-l border-slate-200 dark:border-slate-600 transition-all disabled:opacity-50 cursor-pointer"
+                            title="Export Detailed Orders to Excel (.xlsx)">
+                      @if (isDownloading(outlet.id + '-detailed-XLSX')) {
+                        <div class="w-2.5 h-2.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                      } @else {
+                        XLS
+                      }
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ========================================== -->
+      <!-- 5. TABLE DIRECTORY VIEW -->
+      <!-- ========================================== -->
+      @if (viewMode() === 'TABLE') {
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+                <tr>
+                  <th class="p-4">Outlet Info</th>
+                  <th class="p-4">Contact</th>
+                  <th class="p-4">Status</th>
+                  <th class="p-4 text-right">Today Sales</th>
+                  <th class="p-4 text-right">Orders</th>
+                  <th class="p-4 text-center">Tables Occupied</th>
+                  <th class="p-4 text-center">Reports & Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                @for (outlet of outlets(); track outlet.id) {
+                  <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                    <td class="p-4 font-bold text-slate-900 dark:text-white">
+                      <div>{{ outlet.name }}</div>
+                      <span class="text-[10px] text-slate-400 font-mono">CODE: {{ outlet.code }}</span>
+                    </td>
+                    <td class="p-4 text-slate-600 dark:text-slate-300">
+                      <div>{{ outlet.contactNumber || '-' }}</div>
+                      <div class="text-[10px] text-slate-400 truncate max-w-xs">{{ outlet.address }}</div>
+                    </td>
+                    <td class="p-4">
+                      <button type="button" (click)="toggleOutletStatus(outlet)"
+                              title="Click to toggle active/inactive status"
+                              class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold cursor-pointer hover:opacity-80 transition-opacity"
+                              [ngClass]="outlet.active ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'">
+                        <span class="w-1.5 h-1.5 rounded-full" [ngClass]="outlet.active ? 'bg-emerald-500' : 'bg-rose-500'"></span>
+                        {{ outlet.active ? 'Active' : 'Inactive' }}
+                      </button>
+                    </td>
+                    <td class="p-4 text-right font-black text-emerald-600 dark:text-emerald-400">
+                      ₹{{ outlet.todaySales | number:'1.2-2' }}
+                    </td>
+                    <td class="p-4 text-right font-bold text-slate-800 dark:text-slate-200">
+                      {{ outlet.todayOrders }}
+                    </td>
+                    <td class="p-4 text-center font-bold text-purple-600 dark:text-purple-400">
+                      {{ outlet.occupiedTables }} / {{ outlet.totalTables }}
+                    </td>
+                    <td class="p-4">
+                      <div class="flex items-center justify-center gap-1">
+                        <button (click)="navigateToDashboard(outlet.id)" 
+                                class="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg cursor-pointer" 
+                                title="Operations Dashboard">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        </button>
+                        <button (click)="navigateToBusinessAnalytics(outlet.id)" 
+                                class="p-1.5 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/40 rounded-lg cursor-pointer" 
+                                title="Executive Insights">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                        </button>
+                        <!-- Daily PDF / XLS -->
+                        <button (click)="downloadOutletReport(outlet, 'daily', 'PDF')" 
+                                class="p-1.5 text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40 rounded-lg cursor-pointer" 
+                                title="Daily PDF Report">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        </button>
+                        <button (click)="downloadOutletReport(outlet, 'daily', 'XLSX')" 
+                                class="px-1 py-0.5 text-emerald-600 font-black text-[10px] hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded cursor-pointer" 
+                                title="Daily Excel (.xlsx)">
+                          XLS
+                        </button>
+                        <!-- Monthly PDF / XLS -->
+                        <button (click)="downloadOutletReport(outlet, 'monthly', 'PDF')" 
+                                class="p-1.5 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/40 rounded-lg cursor-pointer" 
+                                title="Monthly PDF Report">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        </button>
+                        <button (click)="downloadOutletReport(outlet, 'monthly', 'XLSX')" 
+                                class="px-1 py-0.5 text-emerald-600 font-black text-[10px] hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded cursor-pointer" 
+                                title="Monthly Excel (.xlsx)">
+                          XLS
+                        </button>
+                        <button (click)="openEditModal(outlet)" 
+                                class="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg cursor-pointer" 
+                                title="Edit">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </button>
+                        <button (click)="deleteOutlet(outlet.id, outlet.name)" 
+                                class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg cursor-pointer" 
+                                title="Delete">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- Empty Results -->
+      @if (outlets().length === 0) {
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-12 text-center">
+          <div class="w-12 h-12 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+          </div>
+          <h4 class="text-sm font-black text-slate-800 dark:text-slate-200">No Outlets Found</h4>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Try adjusting your search query or status filter.</p>
+          @if (searchQuery()) {
+            <button (click)="clearSearch()" class="mt-3 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-lg font-bold text-xs border border-blue-200 dark:border-blue-800 cursor-pointer">Reset Search</button>
+          }
+        </div>
+      }
+
+      <!-- Infinite Scroll Loading More & Finished Footer Indicators -->
+      @if (isLoadingMore()) {
+        <div class="flex items-center justify-center py-6 text-xs text-slate-500 dark:text-slate-400 gap-2">
+          <div class="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <span>Loading more outlets...</span>
+        </div>
+      }
+      @if (isLastPage() && outlets().length > 0) {
+        <div class="text-center py-4 text-[11px] text-slate-400 dark:text-slate-500 font-medium border-t border-slate-100 dark:border-slate-800/80 mt-4">
+          ✓ Showing all {{ totalElements() }} outlets
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ========================================== -->
+  <!-- ========================================== -->
+  <!-- 6. EXECUTIVE REPORT BUILDER MODAL -->
+  <!-- ========================================== -->
+  @if (isReportModalOpen()) {
+    <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5 sm:py-6 overflow-hidden animate-in fade-in duration-150">
+      <div class="relative w-full max-w-4xl lg:max-w-5xl max-h-[92vh] flex flex-col border border-slate-200/80 dark:border-slate-700/80 shadow-2xl rounded-3xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white overflow-hidden animate-in zoom-in-95 duration-150">
+        
+        <!-- Modal Header (Fixed at top) -->
+        <div class="shrink-0 px-6 py-4.5 sm:px-8 sm:py-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/70 dark:bg-slate-850/70">
+          <div class="flex items-center gap-3">
+            <div class="p-2.5 bg-gradient-to-br from-emerald-500/10 to-teal-500/20 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-500/20">
+              <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">Executive Business Report Builder</h3>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                  Jasper Engine
+                </span>
+              </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Generate production-grade JasperReports PDF & multi-sheet Excel reports with custom date & outlet scopes
+              </p>
+            </div>
+          </div>
+          <button (click)="closeReportModal()" 
+                  class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                  title="Close (Esc)">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        <!-- Modal Body (Scrollable with custom scrollbar, 2-column on lg) -->
+        <div class="flex-1 overflow-y-auto px-6 py-5 sm:px-8 sm:py-6 custom-scrollbar">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- Left Column: Report Type Selector & Live Preview (lg:col-span-7) -->
+            <div class="lg:col-span-7 space-y-4">
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                  1. Choose Report Type
+                </label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  
+                  <!-- Daily Multi-Outlet Breakdown -->
+                  <div (click)="reportType.set('DAILY_BREAKDOWN')"
+                       class="border-2 p-3.5 rounded-2xl cursor-pointer flex flex-col justify-between transition-all select-none"
+                       [ngClass]="reportType() === 'DAILY_BREAKDOWN' 
+                         ? 'border-blue-600 bg-blue-50/60 dark:bg-blue-950/40 dark:border-blue-500 shadow-sm' 
+                         : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-850/50'">
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="flex items-center gap-2">
+                        <span class="text-base">📅</span>
+                        <span class="font-black text-xs text-slate-900 dark:text-white">Daily Multi-Outlet</span>
+                      </div>
+                      <input type="radio" name="rptType" value="DAILY_BREAKDOWN" 
+                             [checked]="reportType() === 'DAILY_BREAKDOWN'" 
+                             class="text-blue-600 cursor-pointer pointer-events-none">
+                    </div>
+                    <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-2 leading-snug">
+                      Grouped by day and branch with daily revenue subtotals & grand totals.
+                    </p>
+                  </div>
+
+                  <!-- Monthly Consolidated -->
+                  <div (click)="reportType.set('MONTHLY_CONSOLIDATED')"
+                       class="border-2 p-3.5 rounded-2xl cursor-pointer flex flex-col justify-between transition-all select-none"
+                       [ngClass]="reportType() === 'MONTHLY_CONSOLIDATED' 
+                         ? 'border-purple-600 bg-purple-50/60 dark:bg-purple-950/40 dark:border-purple-500 shadow-sm' 
+                         : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-850/50'">
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="flex items-center gap-2">
+                        <span class="text-base">📊</span>
+                        <span class="font-black text-xs text-slate-900 dark:text-white">Monthly Consolidated</span>
+                      </div>
+                      <input type="radio" name="rptType" value="MONTHLY_CONSOLIDATED" 
+                             [checked]="reportType() === 'MONTHLY_CONSOLIDATED'" 
+                             class="text-purple-600 cursor-pointer pointer-events-none">
+                    </div>
+                    <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-2 leading-snug">
+                      Month-by-month high-level executive performance summary across branches.
+                    </p>
+                  </div>
+
+                  <!-- Detailed Transactions -->
+                  <div (click)="reportType.set('DETAILED_TRANSACTIONS')"
+                       class="border-2 p-3.5 rounded-2xl cursor-pointer flex flex-col justify-between transition-all select-none"
+                       [ngClass]="reportType() === 'DETAILED_TRANSACTIONS' 
+                         ? 'border-emerald-600 bg-emerald-50/60 dark:bg-emerald-950/40 dark:border-emerald-500 shadow-sm' 
+                         : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-850/50'">
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="flex items-center gap-2">
+                        <span class="text-base">🧾</span>
+                        <span class="font-black text-xs text-slate-900 dark:text-white">Detailed Orders Log</span>
+                      </div>
+                      <input type="radio" name="rptType" value="DETAILED_TRANSACTIONS" 
+                             [checked]="reportType() === 'DETAILED_TRANSACTIONS'" 
+                             class="text-emerald-600 cursor-pointer pointer-events-none">
+                    </div>
+                    <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-2 leading-snug">
+                      Complete order-by-order audit log with payment methods, tables, and branch info.
+                    </p>
+                  </div>
+
+                  <!-- Sales Summary -->
+                  <div (click)="reportType.set('SALES_SUMMARY')"
+                       class="border-2 p-3.5 rounded-2xl cursor-pointer flex flex-col justify-between transition-all select-none"
+                       [ngClass]="reportType() === 'SALES_SUMMARY' 
+                         ? 'border-rose-600 bg-rose-50/60 dark:bg-rose-950/40 dark:border-rose-500 shadow-sm' 
+                         : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-850/50'">
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="flex items-center gap-2">
+                        <span class="text-base">📈</span>
+                        <span class="font-black text-xs text-slate-900 dark:text-white">Sales Summary</span>
+                      </div>
+                      <input type="radio" name="rptType" value="SALES_SUMMARY" 
+                             [checked]="reportType() === 'SALES_SUMMARY'" 
+                             class="text-rose-600 cursor-pointer pointer-events-none">
+                    </div>
+                    <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-2 leading-snug">
+                      Condensed daily transaction volume, total revenue, and average ticket size.
+                    </p>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- Live Report Preview Card -->
+              <div class="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-2">
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 shrink-0">
+                    Live Header Preview
+                  </span>
+                  <h4 class="font-black text-slate-900 dark:text-white text-xs truncate">{{ reportTitlePreview() }}</h4>
+                </div>
+                <p class="text-[11px] text-slate-600 dark:text-slate-400 font-normal leading-relaxed">
+                  {{ reportPurposeDescription() }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Right Column: Format, Outlet Scope, Dates (lg:col-span-5) -->
+            <div class="lg:col-span-5 space-y-4 bg-slate-50/70 dark:bg-slate-800/40 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-700/70">
+              
+              <!-- 2. Format Selector -->
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                  2. Choose Format
+                </label>
+                <div class="grid grid-cols-2 gap-2.5">
+                  <button type="button" (click)="reportFormat.set('PDF')"
+                          class="px-3 py-2.5 rounded-xl border-2 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                          [ngClass]="reportFormat() === 'PDF' 
+                            ? 'border-red-500 bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 shadow-sm ring-2 ring-red-400/20' 
+                            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'">
+                    <svg class="w-4 h-4 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+                    <span>Adobe PDF</span>
+                  </button>
+                  <button type="button" (click)="reportFormat.set('XLSX')"
+                          class="px-3 py-2.5 rounded-xl border-2 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                          [ngClass]="reportFormat() === 'XLSX' 
+                            ? 'border-emerald-500 bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm ring-2 ring-emerald-400/20' 
+                            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'">
+                    <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 4a3 3 0 00-3 3v6a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3H5zm-1 9v-1h5v2H5a1 1 0 01-1-1zm7 1h4a1 1 0 001-1v-1h-5v2zm5-4h-5V8h4a1 1 0 011 1v1zm-7-2v2H4V9a1 1 0 011-1h5z" clip-rule="evenodd"/></svg>
+                    <span>Excel (.xlsx)</span>
+                  </button>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-1.5 font-normal">
+                  {{ reportFormat() === 'XLSX' ? '✓ Generates unpaginated, full-dataset Excel workbook' : '✓ Generates high-res printable JasperReports PDF' }}
+                </p>
+              </div>
+
+              <!-- 3. Target Outlet Scope -->
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                  3. Target Outlet Scope
+                </label>
+                <app-custom-select
+                  [options]="reportOutletOptions()"
+                  [selected]="reportSelectedOutletId()"
+                  (selectedChange)="reportSelectedOutletId.set($event)"
+                  placeholder="Consolidated (All Outlets)"
+                  searchPlaceholder="Search outlet...">
+                </app-custom-select>
+              </div>
+
+              <!-- 4. Date Range & Presets -->
+              <div>
+                <div class="flex justify-between items-center mb-1.5">
+                  <label class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    4. Date Range
+                  </label>
+                  <div class="flex items-center gap-1 bg-white dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px]">
+                    <button type="button" (click)="setReportPreset('TODAY')" class="px-2 py-0.5 rounded cursor-pointer transition-all" [ngClass]="reportDatePreset() === 'TODAY' ? 'bg-slate-900 text-white dark:bg-slate-600 font-bold' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'">Today</button>
+                    <button type="button" (click)="setReportPreset('WEEK')" class="px-2 py-0.5 rounded cursor-pointer transition-all" [ngClass]="reportDatePreset() === 'WEEK' ? 'bg-slate-900 text-white dark:bg-slate-600 font-bold' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'">7D</button>
+                    <button type="button" (click)="setReportPreset('MONTH')" class="px-2 py-0.5 rounded cursor-pointer transition-all" [ngClass]="reportDatePreset() === 'MONTH' ? 'bg-slate-900 text-white dark:bg-slate-600 font-bold' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'">30D</button>
+                    <button type="button" (click)="reportDatePreset.set('CUSTOM')" class="px-2 py-0.5 rounded cursor-pointer transition-all" [ngClass]="reportDatePreset() === 'CUSTOM' ? 'bg-slate-900 text-white dark:bg-slate-600 font-bold' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'">Custom</button>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mt-2">
+                  <div>
+                    <span class="text-[10px] text-slate-400 block mb-0.5 font-bold uppercase">From:</span>
+                    <input type="date" [ngModel]="reportStartDate()" (ngModelChange)="reportStartDate.set($event); reportDatePreset.set('CUSTOM')"
+                           class="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none font-bold">
+                  </div>
+                  <div>
+                    <span class="text-[10px] text-slate-400 block mb-0.5 font-bold uppercase">To:</span>
+                    <input type="date" [ngModel]="reportEndDate()" (ngModelChange)="reportEndDate.set($event); reportDatePreset.set('CUSTOM')"
+                           class="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none font-bold">
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Modal Footer Actions (Fixed at bottom) -->
+        <div class="shrink-0 px-6 py-4 sm:px-8 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-3 bg-slate-50/80 dark:bg-slate-850/80">
+          <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Target: <strong class="text-slate-800 dark:text-slate-200">{{ reportSelectedOutletId() ? 'Filtered Branch' : 'Consolidated' }}</strong> ({{ reportFormat() }})</span>
+          </div>
+          
+          <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+            <button type="button" (click)="closeReportModal()" 
+                    class="px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+              Cancel
+            </button>
+            <button type="button" (click)="generateAndDownloadReport()" [disabled]="isGeneratingReport()" 
+                    class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-black shadow-md shadow-emerald-600/20 active:scale-98 flex items-center gap-2 disabled:opacity-50 transition-all cursor-pointer">
+              @if (isGeneratingReport()) {
+                <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Generating {{ reportFormat() === 'XLSX' ? 'Excel...' : 'Jasper PDF...' }}</span>
+              } @else {
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <span>Export to {{ reportFormat() === 'XLSX' ? 'Excel (.xlsx)' : 'PDF' }}</span>
+              }
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  }
+
+  <!-- ========================================== -->
+  <!-- 7. ADD / EDIT OUTLET MODAL -->
+  <!-- ========================================== -->
+  @if (isModalOpen()) {
+    <div class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+      <div class="relative mx-auto p-6 border border-slate-200 dark:border-slate-700 w-full max-w-md shadow-2xl rounded-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+        <div class="flex justify-between items-center mb-5 pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div class="flex items-center gap-2.5">
+            <div class="p-2 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-xl">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            </div>
+            <h3 class="text-base font-black">{{ isEditing() ? 'Edit Outlet Profile' : 'Register New Outlet' }}</h3>
+          </div>
+          <button (click)="closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        <form [formGroup]="outletForm" (ngSubmit)="saveOutlet()" class="space-y-4 text-xs font-bold">
+          <div>
+            <label class="block text-slate-700 dark:text-slate-300 mb-1">Outlet Name *</label>
+            <input type="text" formControlName="name" 
+                   class="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2.5 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" 
+                   placeholder="e.g. Downtown Branch">
+          </div>
+
+          <div>
+            <label class="block text-slate-700 dark:text-slate-300 mb-1">Outlet Code *</label>
+            <input type="text" formControlName="code" 
+                   class="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2.5 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all uppercase" 
+                   placeholder="e.g. DT01">
+          </div>
+
+          <div>
+            <label class="block text-slate-700 dark:text-slate-300 mb-1">Contact Phone *</label>
+            <input type="text" formControlName="contactNumber" 
+                   class="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2.5 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" 
+                   placeholder="e.g. +91 9876543210">
+          </div>
+
+          <div>
+            <label class="block text-slate-700 dark:text-slate-300 mb-1">Address *</label>
+            <textarea formControlName="address" rows="3" 
+                      class="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" 
+                      placeholder="Full physical address"></textarea>
+          </div>
+
+          <div class="flex items-center gap-2 pt-1">
+            <input type="checkbox" formControlName="active" id="activeOutlet" 
+                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded cursor-pointer">
+            <label for="activeOutlet" class="text-slate-800 dark:text-slate-200 cursor-pointer">Branch is active and taking orders</label>
+          </div>
+
+          <div class="mt-6 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2.5">
+            <button type="button" (click)="closeModal()" 
+                    class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
+              Cancel
+            </button>
+            <button type="submit" [disabled]="outletForm.invalid" 
+                    class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
+              {{ isEditing() ? 'Save Changes' : 'Register Outlet' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+</div>

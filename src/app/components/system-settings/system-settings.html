@@ -24,6 +24,19 @@
   } @else {
     <div class="max-w-3xl grid grid-cols-1 gap-6">
       
+      <!-- Restaurant Branding Card -->
+      <div class="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700/80">
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Restaurant & Brand Identity</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Set your business or restaurant title. This name is dynamically reflected across all invoices, thermal receipts, customer QR views, and executive Jasper reports.</p>
+        
+        <div>
+          <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Restaurant / Business Name</label>
+          <input type="text" [ngModel]="restaurantName()" (ngModelChange)="restaurantName.set($event)"
+                 class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                 placeholder="e.g. WildBar">
+        </div>
+      </div>
+
       <!-- Kitchen Workflow Card -->
       <div class="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700/80">
         <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Kitchen Display (KDS) Workflow</h2>
@@ -94,11 +107,13 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 animate-fade-in-up">
             <div>
               <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Paper Size</label>
-              <select [ngModel]="thermalPaperSize()" (ngModelChange)="thermalPaperSize.set($event)"
-                      class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none cursor-pointer">
-                <option value="80mm">80mm (Standard POS)</option>
-                <option value="58mm">58mm (Compact POS)</option>
-              </select>
+              <app-custom-select
+                [options]="paperSizeOptions"
+                [selected]="thermalPaperSize()"
+                (selectedChange)="thermalPaperSize.set($event)"
+                placeholder="Select paper size"
+                [searchable]="false"
+              ></app-custom-select>
             </div>
             <div>
               <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Printer Name (Optional)</label>

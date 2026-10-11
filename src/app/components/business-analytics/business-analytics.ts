@@ -1,17 +1,20 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { AnalyticsService } from '../../services/analytics/analytics.service';
 import { AlertService } from '../../services/alert.service';
 import { BusinessInsightsResponse } from '../../models/analytics.models';
+import { AuthService } from '../../services/auth.service';
+import { OutletService, Outlet } from '../../services/outlet/outlet';
+import { CustomSelectComponent, SelectOption } from '../../shared/components/custom-select';
 
 type DatePreset = 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM';
 
 @Component({
   selector: 'app-business-analytics',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, CustomSelectComponent],
   templateUrl: './business-analytics.html',
   styleUrls: ['./business-analytics.css']
 })
@@ -21,7 +24,32 @@ export class BusinessAnalyticsComponent implements OnInit {
 
   insightsData = signal<BusinessInsightsResponse | null>(null);
   isLoading = signal(true);
+  private authService = inject(AuthService);
+  private outletService = inject(OutletService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  
+  isAdmin = signal(false);
+  outlets = signal<Outlet[]>([]);
+  outletsLoading = signal<boolean>(false);
+  selectedOutletId = signal<string | null>(null);
   isExportingPdf = signal(false);
+
+  outletOptions = computed<SelectOption[]>(() => {
+    const list: SelectOption[] = [
+      { value: null, label: 'Consolidated (All Outlets)', icon: '🌐' }
+    ];
+    this.outlets().forEach(o => {
+      list.push({
+        value: o.id,
+        label: o.name,
+        sublabel: o.code ? `Code: ${o.code}` : undefined,
+        badge: o.active ? 'Active' : 'Inactive',
+        icon: '📍'
+      });
+    });
+    return list;
+  });
 
   // Date Range Controls
   activePreset = signal<DatePreset>('MONTH');
@@ -60,7 +88,44 @@ export class BusinessAnalyticsComponent implements OnInit {
   });
 
   ngOnInit() {
+    this.isAdmin.set(this.authService.getUserRole() === 'ADMIN');
+    if (this.isAdmin()) {
+      this.searchOutlets('');
+    }
     this.initDefaultDates();
+
+    this.route.queryParams.subscribe(params => {
+      const qOutlet = params['outletId'];
+      if (qOutlet && qOutlet !== 'all' && qOutlet !== 'null') {
+        this.selectedOutletId.set(qOutlet);
+      } else if (qOutlet === 'all' || qOutlet === 'null') {
+        this.selectedOutletId.set(null);
+      }
+      this.loadInsights();
+    });
+  }
+
+  searchOutlets(query: string = '') {
+    this.outletsLoading.set(true);
+    this.outletService.getActiveOutlets(query, 50).subscribe({
+      next: (data) => {
+        this.outlets.set(data || []);
+        this.outletsLoading.set(false);
+      },
+      error: () => this.outletsLoading.set(false)
+    });
+  }
+
+  onOutletChange(newOutletId?: string | null) {
+    if (newOutletId !== undefined) {
+      this.selectedOutletId.set(newOutletId);
+    }
+    const currentId = this.selectedOutletId();
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { outletId: currentId || null },
+      queryParamsHandling: 'merge'
+    });
     this.loadInsights();
   }
 
@@ -108,7 +173,7 @@ export class BusinessAnalyticsComponent implements OnInit {
     const startIso = this.customStartDate() ? `${this.customStartDate()}T00:00:00Z` : undefined;
     const endIso = this.customEndDate() ? `${this.customEndDate()}T23:59:59Z` : undefined;
 
-    this.analyticsService.getBusinessInsights(startIso, endIso).subscribe({
+    this.analyticsService.getBusinessInsights(startIso, endIso, this.selectedOutletId() || undefined).subscribe({
       next: (res) => {
         this.insightsData.set(res);
         this.isLoading.set(false);
@@ -126,7 +191,7 @@ export class BusinessAnalyticsComponent implements OnInit {
     const startIso = this.customStartDate() ? `${this.customStartDate()}T00:00:00Z` : undefined;
     const endIso = this.customEndDate() ? `${this.customEndDate()}T23:59:59Z` : undefined;
 
-    this.analyticsService.downloadSalesReportPdf(startIso, endIso).subscribe({
+    this.analyticsService.downloadSalesReportPdf(startIso, endIso, this.selectedOutletId() || undefined).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -146,3 +211,7 @@ export class BusinessAnalyticsComponent implements OnInit {
     });
   }
 }
+
+
+
+

@@ -92,7 +92,7 @@
   <!-- ========================================== -->
   <!-- 2. RIGHT SIDE: ACTIVE CART & ORDER SUMMARY -->
   <!-- ========================================== -->
-  <div class="w-full lg:w-96 flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs h-full overflow-hidden transition-colors"
+  <div class="w-full lg:w-96 xl:w-[26rem] flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs h-full overflow-hidden transition-colors"
        [ngClass]="{'hidden lg:flex': mobileTab() === 'MENU'}">
     
     <!-- Mobile Back to Menu Button -->
@@ -103,17 +103,41 @@
       <span class="text-xs font-black text-slate-800 dark:text-white">Cart View</span>
     </div>
 
+    <!-- Admin Outlet Selector (Only visible for Admins) -->
+    @if (isAdmin()) {
+      <div class="px-3 py-2 bg-indigo-50/80 dark:bg-indigo-950/50 border-b border-indigo-100 dark:border-indigo-900/60 flex items-center justify-between gap-2 shrink-0">
+        <div class="flex items-center gap-1.5 text-xs font-bold text-indigo-900 dark:text-indigo-200">
+          <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+          </svg>
+          <span class="truncate">Active Outlet:</span>
+        </div>
+        <div class="flex-1 max-w-[240px]">
+          <app-custom-select
+            [options]="outletOptions()"
+            [selected]="selectedOutletId()"
+            (selectedChange)="onOutletChange($event)"
+            [serverSearch]="true"
+            [loading]="outletsLoading()"
+            (searchChange)="searchOutlets($event)"
+            placeholder="Select outlet..."
+            searchPlaceholder="Search outlet by name or code..."
+          ></app-custom-select>
+        </div>
+      </div>
+    }
+
     <!-- Order Channel Switcher (Takeaway vs Dine-In vs Active Tabs) -->
-    <div class="p-3 border-b border-slate-100 dark:border-slate-800 flex gap-2 bg-slate-50/70 dark:bg-slate-850 dark:bg-slate-900 shrink-0">
+    <div class="p-2.5 border-b border-slate-100 dark:border-slate-800 flex gap-2 bg-slate-50/70 dark:bg-slate-850 dark:bg-slate-900 shrink-0">
       <button (click)="orderType.set('TAKE_AWAY'); selectedTable.set(null); tableActiveOrder.set(null)"
-              class="flex-1 py-2 rounded-xl font-bold text-xs transition-all border flex items-center justify-center gap-1.5 cursor-pointer"
+              class="flex-1 py-1.5 rounded-xl font-bold text-xs transition-all border flex items-center justify-center gap-1.5 cursor-pointer"
               [ngClass]="orderType() === 'TAKE_AWAY' && !tableActiveOrder() ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750'">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
         <span>Takeaway</span>
       </button>
 
       <button (click)="openTableSelection()"
-              class="flex-1 py-2 rounded-xl font-bold text-xs transition-all border flex items-center justify-center gap-1.5 cursor-pointer"
+              class="flex-1 py-1.5 rounded-xl font-bold text-xs transition-all border flex items-center justify-center gap-1.5 cursor-pointer"
               [ngClass]="orderType() === 'DINE_IN' && !tableActiveOrder() ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750'">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
         <span>Dine-In</span>
@@ -126,7 +150,7 @@
 
       <!-- Active Running Tabs selector -->
       <button (click)="openRunningTabsModal()"
-              class="py-2 px-2.5 rounded-xl font-bold text-xs transition-all border flex items-center justify-center gap-1 cursor-pointer shrink-0"
+              class="py-1.5 px-2.5 rounded-xl font-bold text-xs transition-all border flex items-center justify-center gap-1 cursor-pointer shrink-0"
               [ngClass]="tableActiveOrder() ? 'bg-amber-500 text-white border-amber-500 shadow-sm' : 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 border-slate-200 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-slate-750'"
               title="View ongoing active tabs and append items">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
@@ -172,7 +196,14 @@
             @for (prevItem of existingOrder.items; track prevItem.id) {
               <div class="pt-1 first:pt-0 flex justify-between text-[11px]">
                 <span><strong class="text-slate-800 dark:text-slate-200">{{ prevItem.quantity }}x</strong> {{ prevItem.itemName }}</span>
-                <span class="font-bold text-slate-700 dark:text-slate-300">₹{{ prevItem.totalPrice | number:'1.2-2' }}</span>
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold text-slate-700 dark:text-slate-300">₹{{ prevItem.totalPrice | number:'1.2-2' }}</span>
+                    @if (existingOrder.status !== 'SERVED' && existingOrder.kitchenStatus !== 'SERVED' && existingOrder.status !== 'BILLED' && existingOrder.status !== 'PAID' && existingOrder.status !== 'CANCELLED') {
+                      <button (click)="voidExistingItem(prevItem.id)" class="text-slate-400 hover:text-rose-500 cursor-pointer" title="Void item">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      </button>
+                    }
+                  </div>
               </div>
             }
           </div>
@@ -181,10 +212,10 @@
     }
 
     <!-- Cart Header -->
-    <div class="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 shrink-0">
+    <div class="px-3.5 py-2 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 shrink-0">
       <div>
-        <h2 class="text-sm font-black text-slate-900 dark:text-white">Current Order</h2>
-        <span class="text-[11px] text-slate-400 dark:text-slate-500 font-medium">{{ cart().length }} dish(es) selected</span>
+        <h2 class="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Current Order</h2>
+        <span class="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{{ cartCount() }} item(s) • {{ cart().length }} dish(es)</span>
       </div>
       @if (cart().length > 0) {
         <button (click)="clearCart()" class="text-xs font-bold text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 cursor-pointer">Clear</button>
@@ -192,7 +223,7 @@
     </div>
 
     <!-- Cart Items List -->
-    <div class="flex-1 overflow-y-auto p-3 space-y-2 pos-menu-scroll bg-slate-50/20 dark:bg-slate-950/40">
+    <div class="flex-1 overflow-y-auto p-2.5 space-y-1.5 pos-menu-scroll bg-slate-50/20 dark:bg-slate-950/40">
       @if (cart().length === 0) {
         <div class="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-12">
           <svg class="w-12 h-12 mb-3 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
@@ -201,34 +232,41 @@
         </div>
       } @else {
         @for (item of cart(); track item.itemId) {
-          <div class="p-3 bg-slate-50/80 dark:bg-slate-800/70 rounded-xl border border-slate-100 dark:border-slate-700/80 space-y-1.5 shadow-2xs">
-            <div class="flex items-center justify-between">
-              <div class="flex-1 min-w-0 pr-2">
-                <h4 class="font-bold text-slate-800 dark:text-slate-100 text-xs truncate">{{ item.name }}</h4>
-                <p class="text-blue-600 dark:text-blue-400 font-black text-xs mt-0.5">₹{{ (item.price * item.quantity) | number:'1.2-2' }}</p>
-              </div>
-              <div class="flex items-center gap-1.5">
-                <div class="flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-0.5 shadow-2xs">
-                  <button (click)="updateQuantity(item.itemId, -1)" class="w-6 h-6 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-md font-bold text-xs cursor-pointer">-</button>
-                  <span class="font-black text-slate-900 dark:text-white w-4 text-center text-xs">{{ item.quantity }}</span>
-                  <button (click)="updateQuantity(item.itemId, 1)" class="w-6 h-6 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-md font-bold text-xs cursor-pointer">+</button>
+          <div class="p-2.5 bg-slate-50/80 dark:bg-slate-800/70 rounded-xl border border-slate-100 dark:border-slate-700/80 space-y-1.5 shadow-2xs hover:border-slate-200 dark:hover:border-slate-600 transition-colors">
+            <div class="flex items-center justify-between gap-1">
+              <div class="flex-1 min-w-0 pr-1.5">
+                <h4 class="font-bold text-slate-800 dark:text-slate-100 text-xs truncate" [title]="item.name">{{ item.name }}</h4>
+                <div class="flex items-baseline gap-2 mt-0.5">
+                  <p class="text-blue-600 dark:text-blue-400 font-black text-xs">₹{{ (item.price * item.quantity) | number:'1.2-2' }}</p>
+                  @if (item.quantity > 1) {
+                    <span class="text-[10px] text-slate-400 font-medium">(₹{{ item.price | number:'1.2-2' }} ea)</span>
+                  }
                 </div>
-                <button (click)="removeItem(item.itemId)" class="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer" title="Remove item">
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <div class="flex items-center gap-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-0.5 shadow-2xs">
+                  <button (click)="updateQuantity(item.itemId, -1)" class="w-5 h-5 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 rounded font-bold text-xs cursor-pointer">-</button>
+                  <span class="font-black text-slate-900 dark:text-white w-4 text-center text-xs">{{ item.quantity }}</span>
+                  <button (click)="updateQuantity(item.itemId, 1)" class="w-5 h-5 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 rounded font-bold text-xs cursor-pointer">+</button>
+                </div>
+                <button (click)="removeItem(item.itemId)" class="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer" title="Remove item">
                   <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
               </div>
             </div>
 
-            <!-- Notes line -->
-            <div class="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100 dark:border-slate-700">
+            <!-- Notes Section Under Item As Label -->
+            <div class="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100/80 dark:border-slate-700/60">
               @if (item.notes) {
-                <span class="text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.2 rounded truncate max-w-[180px]">Note: {{ item.notes }}</span>
+                <span class="text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.2 rounded truncate max-w-[200px]">Note: {{ item.notes }}</span>
+                <button (click)="openNoteModal(item)" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-bold text-[10px] cursor-pointer">
+                  Edit Note
+                </button>
               } @else {
-                <span class="text-slate-400 dark:text-slate-500">No instructions</span>
+                <button (click)="openNoteModal(item)" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-bold text-[10px] cursor-pointer flex items-center gap-1">
+                  <span>+ Add Note</span>
+                </button>
               }
-              <button (click)="openNoteModal(item)" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-bold text-[10px] cursor-pointer">
-                {{ item.notes ? 'Edit Note' : '+ Add Note' }}
-              </button>
             </div>
           </div>
         }
@@ -236,7 +274,9 @@
     </div>
 
     <!-- Checkout Footer -->
-    <div class="p-3.5 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 shadow-[0_-4px_10px_-5px_rgba(0,0,0,0.05)] space-y-2.5 shrink-0">
+    <div class="p-3 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 shadow-[0_-4px_10px_-5px_rgba(0,0,0,0.05)] space-y-2 shrink-0">
+
+      <!-- Financial Breakdown Lines -->
       <div class="space-y-1 text-xs text-slate-600 dark:text-slate-300">
         @if (tableActiveOrder(); as existingOrder) {
           <div class="flex justify-between text-amber-700 dark:text-amber-400 font-medium">
@@ -249,8 +289,77 @@
           </div>
           <div class="flex justify-between text-slate-500 dark:text-slate-400">
             <span>{{ taxName() }} ({{ taxRate() * 100 }}%)</span>
-            <span>₹{{ ((existingTabSubtotal() + cartSubtotal()) * taxRate()) | number:'1.2-2' }}</span>
+            <span>₹{{ projectedCombinedTax() | number:'1.2-2' }}</span>
           </div>
+
+          <!-- Compact Discount Line -->
+          <div class="flex justify-between items-center">
+            <div class="flex items-center gap-1.5">
+              <span class="text-slate-500 dark:text-slate-400">Discount</span>
+              @if (activeDiscountLabel()) {
+                <span class="text-[10px] font-bold text-rose-600 dark:text-rose-400">{{ activeDiscountLabel() }}</span>
+              }
+              <button type="button" 
+                      (click)="showDiscountBox.set(!showDiscountBox())"
+                      class="text-[10px] font-bold px-1.5 py-0.2 rounded transition-all cursor-pointer flex items-center gap-0.5"
+                      [ngClass]="projectedCombinedDiscount() > 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 hover:bg-rose-200' : 'bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-slate-200'">
+                <span>{{ projectedCombinedDiscount() > 0 ? 'Edit' : '+ Add' }}</span>
+                <span class="text-[9px]">{{ showDiscountBox() ? '▲' : '▼' }}</span>
+              </button>
+              @if (projectedCombinedDiscount() > 0) {
+                <button type="button" (click)="setCartDiscountPercent(0)" class="text-[10px] text-slate-400 hover:text-rose-500 cursor-pointer" title="Clear discount">✕</button>
+              }
+            </div>
+            @if (projectedCombinedDiscount() > 0) {
+              <span class="font-bold text-rose-600 dark:text-rose-400">-₹{{ projectedCombinedDiscount() | number:'1.2-2' }}</span>
+            } @else {
+              <span class="text-slate-400 dark:text-slate-500 text-[11px]">₹0.00</span>
+            }
+          </div>
+
+          <!-- Quick Discount Inline Bar (only visible when toggled) -->
+          @if (showDiscountBox()) {
+            <div class="p-1.5 bg-slate-50 dark:bg-slate-800/90 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 text-[10px] my-1">
+              <div class="flex items-center gap-1 flex-1">
+                <button type="button" (click)="setCartDiscountPercent(0)"
+                        class="px-1.5 py-0.5 rounded font-black cursor-pointer transition-all"
+                        [ngClass]="isCartPercentActive(0) ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-2xs' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-100'">
+                  0%
+                </button>
+                <button type="button" (click)="setCartDiscountPercent(5)"
+                        class="px-1.5 py-0.5 rounded font-bold cursor-pointer transition-all"
+                        [ngClass]="isCartPercentActive(5) ? 'bg-rose-600 text-white shadow-2xs' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 border border-slate-200 dark:border-slate-600'">
+                  5%
+                </button>
+                <button type="button" (click)="setCartDiscountPercent(10)"
+                        class="px-1.5 py-0.5 rounded font-bold cursor-pointer transition-all"
+                        [ngClass]="isCartPercentActive(10) ? 'bg-rose-600 text-white shadow-2xs' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 border border-slate-200 dark:border-slate-600'">
+                  10%
+                </button>
+                <button type="button" (click)="setCartDiscountPercent(15)"
+                        class="px-1.5 py-0.5 rounded font-bold cursor-pointer transition-all"
+                        [ngClass]="isCartPercentActive(15) ? 'bg-rose-600 text-white shadow-2xs' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 border border-slate-200 dark:border-slate-600'">
+                  15%
+                </button>
+                <button type="button" (click)="setCartDiscountPercent(20)"
+                        class="px-1.5 py-0.5 rounded font-bold cursor-pointer transition-all"
+                        [ngClass]="isCartPercentActive(20) ? 'bg-rose-600 text-white shadow-2xs' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 border border-slate-200 dark:border-slate-600'">
+                  20%
+                </button>
+              </div>
+              <div class="flex items-center gap-0.5 shrink-0 pl-1 border-l border-slate-200 dark:border-slate-700">
+                <span class="text-slate-400 font-bold">₹</span>
+                <input type="number"
+                       min="0"
+                       [ngModel]="cartDiscount()"
+                       (ngModelChange)="setCartDiscountAmount($event)"
+                       placeholder="0"
+                       class="w-14 py-0.5 px-1 text-right text-[11px] font-black text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
+                <button type="button" (click)="showDiscountBox.set(false)" class="p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" title="Done">✕</button>
+              </div>
+            </div>
+          }
+
           <div class="flex justify-between text-sm font-black text-slate-900 dark:text-white pt-1 border-t border-slate-100 dark:border-slate-800">
             <span>Projected Total Bill</span>
             <span class="text-base text-emerald-600 dark:text-emerald-400">₹{{ projectedCombinedTotal() | number:'1.2-2' }}</span>
@@ -264,6 +373,75 @@
             <span class="text-slate-500 dark:text-slate-400">{{ taxName() }} ({{ taxRate() * 100 }}%)</span>
             <span class="font-bold text-slate-800 dark:text-slate-100">₹{{ cartTax() | number:'1.2-2' }}</span>
           </div>
+
+          <!-- Compact Discount Line -->
+          <div class="flex justify-between items-center">
+            <div class="flex items-center gap-1.5">
+              <span class="text-slate-500 dark:text-slate-400">Discount</span>
+              @if (activeDiscountLabel()) {
+                <span class="text-[10px] font-bold text-rose-600 dark:text-rose-400">{{ activeDiscountLabel() }}</span>
+              }
+              <button type="button" 
+                      (click)="showDiscountBox.set(!showDiscountBox())"
+                      class="text-[10px] font-bold px-1.5 py-0.2 rounded transition-all cursor-pointer flex items-center gap-0.5"
+                      [ngClass]="cartDiscountAmount() > 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 hover:bg-rose-200' : 'bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-slate-200'">
+                <span>{{ cartDiscountAmount() > 0 ? 'Edit' : '+ Add' }}</span>
+                <span class="text-[9px]">{{ showDiscountBox() ? '▲' : '▼' }}</span>
+              </button>
+              @if (cartDiscountAmount() > 0) {
+                <button type="button" (click)="setCartDiscountPercent(0)" class="text-[10px] text-slate-400 hover:text-rose-500 cursor-pointer" title="Clear discount">✕</button>
+              }
+            </div>
+            @if (cartDiscountAmount() > 0) {
+              <span class="font-bold text-rose-600 dark:text-rose-400">-₹{{ cartDiscountAmount() | number:'1.2-2' }}</span>
+            } @else {
+              <span class="text-slate-400 dark:text-slate-500 text-[11px]">₹0.00</span>
+            }
+          </div>
+
+          <!-- Quick Discount Inline Bar (only visible when toggled) -->
+          @if (showDiscountBox()) {
+            <div class="p-1.5 bg-slate-50 dark:bg-slate-800/90 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 text-[10px] my-1">
+              <div class="flex items-center gap-1 flex-1">
+                <button type="button" (click)="setCartDiscountPercent(0)"
+                        class="px-1.5 py-0.5 rounded font-black cursor-pointer transition-all"
+                        [ngClass]="isCartPercentActive(0) ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-2xs' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-100'">
+                  0%
+                </button>
+                <button type="button" (click)="setCartDiscountPercent(5)"
+                        class="px-1.5 py-0.5 rounded font-bold cursor-pointer transition-all"
+                        [ngClass]="isCartPercentActive(5) ? 'bg-rose-600 text-white shadow-2xs' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 border border-slate-200 dark:border-slate-600'">
+                  5%
+                </button>
+                <button type="button" (click)="setCartDiscountPercent(10)"
+                        class="px-1.5 py-0.5 rounded font-bold cursor-pointer transition-all"
+                        [ngClass]="isCartPercentActive(10) ? 'bg-rose-600 text-white shadow-2xs' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 border border-slate-200 dark:border-slate-600'">
+                  10%
+                </button>
+                <button type="button" (click)="setCartDiscountPercent(15)"
+                        class="px-1.5 py-0.5 rounded font-bold cursor-pointer transition-all"
+                        [ngClass]="isCartPercentActive(15) ? 'bg-rose-600 text-white shadow-2xs' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 border border-slate-200 dark:border-slate-600'">
+                  15%
+                </button>
+                <button type="button" (click)="setCartDiscountPercent(20)"
+                        class="px-1.5 py-0.5 rounded font-bold cursor-pointer transition-all"
+                        [ngClass]="isCartPercentActive(20) ? 'bg-rose-600 text-white shadow-2xs' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 border border-slate-200 dark:border-slate-600'">
+                  20%
+                </button>
+              </div>
+              <div class="flex items-center gap-0.5 shrink-0 pl-1 border-l border-slate-200 dark:border-slate-700">
+                <span class="text-slate-400 font-bold">₹</span>
+                <input type="number"
+                       min="0"
+                       [ngModel]="cartDiscount()"
+                       (ngModelChange)="setCartDiscountAmount($event)"
+                       placeholder="0"
+                       class="w-14 py-0.5 px-1 text-right text-[11px] font-black text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
+                <button type="button" (click)="showDiscountBox.set(false)" class="p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" title="Done">✕</button>
+              </div>
+            </div>
+          }
+
           <div class="flex justify-between text-sm font-black text-slate-900 dark:text-white pt-1 border-t border-slate-100 dark:border-slate-800">
             <span>Grand Total</span>
             <span class="text-base text-blue-600 dark:text-blue-400">₹{{ cartTotal() | number:'1.2-2' }}</span>
@@ -274,7 +452,7 @@
       <div class="flex gap-2">
         <button (click)="placeOrder()" 
                 [disabled]="cart().length === 0 || isProcessing() || isQuickBilling()"
-                class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:cursor-not-allowed text-white rounded-xl font-black text-xs transition-all shadow-md shadow-blue-600/20 flex justify-center items-center gap-1.5 cursor-pointer">
+                class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:cursor-not-allowed text-white rounded-xl font-black text-xs transition-all shadow-md shadow-blue-600/20 flex justify-center items-center gap-1.5 cursor-pointer">
           @if (isProcessing()) {
             <div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
             <span>Processing...</span>
@@ -290,7 +468,7 @@
         <!-- Quick Bill & Pay Button -->
         <button (click)="openQuickBillModal()"
                 [disabled]="(cart().length === 0 && !tableActiveOrder()) || isProcessing() || isQuickBilling()"
-                class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:cursor-not-allowed text-white rounded-xl font-black text-xs transition-all shadow-md shadow-emerald-600/20 flex justify-center items-center gap-1.5 cursor-pointer"
+                class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:cursor-not-allowed text-white rounded-xl font-black text-xs transition-all shadow-md shadow-emerald-600/20 flex justify-center items-center gap-1.5 cursor-pointer"
                 title="Collect payment now, finalize bill and send to kitchen">
           <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
@@ -299,7 +477,7 @@
         </button>
 
         <button (click)="goToBilling()"
-                class="px-3.5 py-3 bg-slate-900 hover:bg-black dark:bg-slate-800 dark:hover:bg-slate-750 text-white rounded-xl font-bold text-xs flex items-center justify-center transition-all cursor-pointer shadow-xs"
+                class="px-3 py-2.5 bg-slate-900 hover:bg-black dark:bg-slate-800 dark:hover:bg-slate-750 text-white rounded-xl font-bold text-xs flex items-center justify-center transition-all cursor-pointer shadow-xs"
                 title="Go to Orders & Billing">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
         </button>
@@ -556,7 +734,14 @@
                 <div class="pt-2.5 border-t border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-between">
                   <div>
                     <span class="text-[10px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 block">Running Bill</span>
-                    <span class="text-base font-black text-slate-900 dark:text-white">₹{{ tab.subTotal | number:'1.2-2' }}</span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-base font-black text-slate-900 dark:text-white">₹{{ tab.subTotal | number:'1.2-2' }}</span>
+                      @if (tab.discountAmount > 0) {
+                        <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded">
+                          Disc: -₹{{ tab.discountAmount | number:'1.2-2' }}
+                        </span>
+                      }
+                    </div>
                   </div>
 
                   <button class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs shadow-xs group-hover:scale-102 transition-all flex items-center gap-1.5 cursor-pointer">
@@ -632,7 +817,7 @@
         <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between text-xs">
           <div class="flex items-center gap-2">
             <span class="font-bold text-slate-500 dark:text-slate-400">Target:</span>
-            <span class="px-2.5 py-0.5 rounded-lg font-black uppercase text-[11px]"
+              <span class="px-2.5 py-1 rounded-lg font-black shadow-xs flex items-center gap-1.5"
                   [ngClass]="orderType() === 'DINE_IN' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-200 border border-blue-200 dark:border-blue-700' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-200 dark:border-amber-700'">
               {{ orderType() === 'DINE_IN' ? ('🍽 ' + (selectedTable()?.tableNumber || tableActiveOrder()?.tableNumber || '?')) : '🛍 Takeaway' }}
             </span>
@@ -654,17 +839,53 @@
             <span class="font-bold">₹{{ quickBillTax() | number:'1.2-2' }}</span>
           </div>
 
-          <!-- Discount Input Field -->
-          <div class="pt-2 border-t border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between text-xs">
-            <label class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-              <span>🏷️ Discount (₹):</span>
-            </label>
-            <input type="number" 
-                   min="0"
-                   [max]="quickBillSubtotal() + quickBillTax()"
-                   [(ngModel)]="quickBillDiscount"
-                   class="w-28 p-1.5 text-right font-black text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-xs"
-                   placeholder="0.00" />
+          <!-- Discount Input Field & Presets -->
+          <div class="pt-2 border-t border-slate-200/80 dark:border-slate-700/80 space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <label class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <span>🏷️ Discount:</span>
+                @if (quickBillDiscountAmount() > 0) {
+                  <span class="text-[10px] px-1.5 py-0.5 rounded font-black bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
+                    -₹{{ quickBillDiscountAmount() | number:'1.2-2' }}
+                  </span>
+                }
+              </label>
+              <div class="flex items-center gap-1">
+                <span class="text-[11px] text-slate-400 font-medium">₹</span>
+                <input type="number" 
+                       min="0"
+                       [max]="quickBillSubtotal() + quickBillTax()"
+                       [ngModel]="quickBillDiscount()"
+                       (ngModelChange)="setQuickBillDiscountAmount($event)"
+                       class="w-24 p-1.5 text-right font-black text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-xs"
+                       placeholder="0.00" />
+              </div>
+            </div>
+
+            <!-- Quick Discount Presets in Modal -->
+            <div class="flex items-center gap-1 text-[10px] font-bold">
+              <button type="button" (click)="setQuickBillDiscountPercent(0)"
+                      class="flex-1 py-1 rounded-lg transition-all cursor-pointer text-center"
+                      [ngClass]="quickBillDiscount() === 0 ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-2xs' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'">
+                0%
+              </button>
+              <button type="button" (click)="setQuickBillDiscountPercent(5)"
+                      class="flex-1 py-1 rounded-lg transition-all cursor-pointer bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-center">
+                5%
+              </button>
+              <button type="button" (click)="setQuickBillDiscountPercent(10)"
+                      class="flex-1 py-1 rounded-lg transition-all cursor-pointer bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-center">
+                10%
+              </button>
+              <button type="button" (click)="setQuickBillDiscountPercent(15)"
+                      class="flex-1 py-1 rounded-lg transition-all cursor-pointer bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-center">
+                15%
+              </button>
+              <button type="button" (click)="setQuickBillDiscountPercent(20)"
+                      class="flex-1 py-1 rounded-lg transition-all cursor-pointer bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-center">
+                20%
+              </button>
+            </div>
           </div>
 
           <!-- Grand Total Highlight -->
@@ -711,7 +932,8 @@
               <label class="text-xs font-bold text-slate-700 dark:text-slate-200">Amount Tendered (₹):</label>
               <input type="number" 
                      min="0"
-                     [(ngModel)]="quickBillAmountTendered"
+                     [ngModel]="quickBillAmountTendered()"
+                     (ngModelChange)="quickBillAmountTendered.set($event)"
                      class="w-32 p-2 text-right font-black text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm" />
             </div>
 
@@ -785,3 +1007,4 @@
     </div>
   </div>
 }
+

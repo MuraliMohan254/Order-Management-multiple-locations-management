@@ -1,15 +1,16 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { AlertService } from '../../services/alert.service';
 import { MenuService } from '../../services/menu.service';
 import { CategoryResponse, ItemResponse } from '../../models/menu.models';
+import { CustomSelectComponent, SelectOption } from '../../shared/components/custom-select';
 
 @Component({
   selector: 'app-menu-management',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, CustomSelectComponent],
   templateUrl: './menu-management.html'
 })
 export class MenuManagementComponent implements OnInit {
@@ -20,6 +21,15 @@ export class MenuManagementComponent implements OnInit {
   categories = signal<CategoryResponse[]>([]);
   items = signal<ItemResponse[]>([]);
   selectedCategory = signal<CategoryResponse | null>(null);
+
+  categoryOptions = computed<SelectOption[]>(() => {
+    return this.categories().map(c => ({
+      value: c.id,
+      label: c.name,
+      badge: c.active ? 'Active' : 'Inactive',
+      icon: '📁'
+    }));
+  });
   
   isLoadingCategories = signal(false);
   isLoadingItems = signal(false);

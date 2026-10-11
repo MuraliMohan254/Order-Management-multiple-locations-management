@@ -9,12 +9,19 @@ export class TableService {
   private http = inject(HttpClient);
   private baseUrl = `${environment.apiUrl}/tables`;
 
-  getTables(): Observable<TableResponse[]> {
-    return this.http.get<TableResponse[]>(this.baseUrl);
+  getTables(outletId?: string): Observable<TableResponse[]> {
+    let params = new HttpParams();
+    if (outletId && outletId.trim() && outletId !== 'all') {
+      params = params.set('outletId', outletId.trim());
+    }
+    return this.http.get<TableResponse[]>(this.baseUrl, { params });
   }
 
-  createTable(tableNumber: string): Observable<TableResponse> {
-    const params = new HttpParams().set('tableNumber', tableNumber);
+  createTable(tableNumber: string, outletId?: string): Observable<TableResponse> {
+    let params = new HttpParams().set('tableNumber', tableNumber);
+    if (outletId && outletId.trim() && outletId !== 'all') {
+      params = params.set('outletId', outletId.trim());
+    }
     return this.http.post<TableResponse>(this.baseUrl, null, { params });
   }
 }

@@ -12,6 +12,7 @@ import { CustomerQrOrderComponent } from './components/customer-qr-order/custome
 import { KitchenDisplayComponent } from './components/kitchen-display/kitchen-display';
 import { BusinessAnalyticsComponent } from './components/business-analytics/business-analytics';
 import { UserManagementComponent } from './components/user-management/user-management';
+import { OutletManagement } from './components/outlet-management/outlet-management';
 
 export const routes: Routes = [
   { 
@@ -75,6 +76,10 @@ export const routes: Routes = [
       {
         path: 'users',
         component: UserManagementComponent
+      },
+      {
+        path: 'outlets',
+        component: OutletManagement
       }
     ]
   },

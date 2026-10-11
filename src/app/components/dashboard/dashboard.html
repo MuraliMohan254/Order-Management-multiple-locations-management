@@ -17,7 +17,7 @@
     </div>
 
     <!-- Actions: Refresh & PDF Export -->
-    <div class="flex items-center gap-2.5 self-end sm:self-center">
+    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
       <button (click)="loadMetrics()" 
               class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all shadow-xs cursor-pointer"
               title="Refresh Analytics">
@@ -66,50 +66,70 @@
   </div>
 
   <!-- ========================================== -->
-  <!-- 2. DATE RANGE PRESETS & PICKER -->
+  <!-- 2. DATE RANGE PRESETS & PICKER & OUTLET -->
   <!-- ========================================== -->
-  <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-3 transition-colors">
-    
-    <!-- Presets -->
-    <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold">
+  <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col xl:flex-row justify-between items-stretch xl:items-center gap-3 transition-colors">
+      <!-- Outlet Filter -->
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <label class="text-xs font-bold text-slate-500 shrink-0">Outlet:</label>
+        <div class="w-full sm:w-60">
+          <app-custom-select
+            [options]="outletOptions()"
+            [selected]="selectedOutletId()"
+            (selectedChange)="onOutletChange($event)"
+            [serverSearch]="true"
+            [loading]="outletsLoading()"
+            (searchChange)="searchOutlets($event)"
+            placeholder="Consolidated (All Outlets)"
+            searchPlaceholder="Search outlet by name or code...">
+          </app-custom-select>
+        </div>
+      </div>
+      
+      <!-- Presets -->
+    <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold overflow-x-auto max-w-full scrollbar-none py-1">
       <button (click)="setPreset('TODAY')" 
-              class="px-3.5 py-1.5 rounded-lg transition-all cursor-pointer"
+              class="px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0"
               [ngClass]="activePreset() === 'TODAY' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
         Today
       </button>
       <button (click)="setPreset('WEEK')" 
-              class="px-3.5 py-1.5 rounded-lg transition-all cursor-pointer"
+              class="px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0"
               [ngClass]="activePreset() === 'WEEK' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
         Last 7 Days
       </button>
       <button (click)="setPreset('MONTH')" 
-              class="px-3.5 py-1.5 rounded-lg transition-all cursor-pointer"
+              class="px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0"
               [ngClass]="activePreset() === 'MONTH' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
         Last 30 Days
       </button>
       <button (click)="setPreset('CUSTOM')" 
-              class="px-3.5 py-1.5 rounded-lg transition-all cursor-pointer"
+              class="px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0"
               [ngClass]="activePreset() === 'CUSTOM' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
         Custom Range
       </button>
     </div>
 
     <!-- Custom Range Inputs -->
-    <div class="flex items-center gap-2 w-full md:w-auto">
-      <div class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5">
-        <span class="text-slate-500 dark:text-slate-400">From:</span>
-        <input type="date" 
-               [ngModel]="customStartDate()" 
-               (ngModelChange)="customStartDate.set($event)"
-               class="bg-transparent font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
-        <span class="text-slate-500 dark:text-slate-400">To:</span>
-        <input type="date" 
-               [ngModel]="customEndDate()" 
-               (ngModelChange)="customEndDate.set($event)"
-               class="bg-transparent font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full xl:w-auto">
+      <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5">
+        <div class="flex items-center gap-1.5 flex-1 min-w-[110px]">
+          <span class="text-slate-500 dark:text-slate-400 shrink-0 font-medium">From:</span>
+          <input type="date" 
+                 [ngModel]="customStartDate()" 
+                 (ngModelChange)="customStartDate.set($event)"
+                 class="bg-transparent font-bold text-slate-800 dark:text-slate-100 focus:outline-none w-full min-w-0">
+        </div>
+        <div class="flex items-center gap-1.5 flex-1 min-w-[110px]">
+          <span class="text-slate-500 dark:text-slate-400 shrink-0 font-medium">To:</span>
+          <input type="date" 
+                 [ngModel]="customEndDate()" 
+                 (ngModelChange)="customEndDate.set($event)"
+                 class="bg-transparent font-bold text-slate-800 dark:text-slate-100 focus:outline-none w-full min-w-0">
+        </div>
       </div>
       <button (click)="applyCustomRange()" 
-              class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer">
+              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer text-center">
         Filter
       </button>
     </div>
@@ -337,3 +357,4 @@
 
   }
 </div>
+

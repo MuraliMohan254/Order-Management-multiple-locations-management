@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { PosService } from '../../services/pos/pos.service';
 import { AlertService } from '../../services/alert.service';
+import { CustomSelectComponent, SelectOption } from '../../shared/components/custom-select';
 
 @Component({
   selector: 'app-system-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CustomSelectComponent],
   templateUrl: './system-settings.html',
   styleUrls: ['./system-settings.css']
 })
@@ -28,6 +29,12 @@ export class SystemSettingsComponent implements OnInit {
   thermalPrintingEnabled = signal<boolean>(false);
   thermalPaperSize = signal<string>('80mm');
   printerName = signal<string>(''); // 0%
+  restaurantName = signal<string>('WildBar');
+
+  paperSizeOptions: SelectOption[] = [
+    { value: '80mm', label: '80mm (Standard POS)', icon: '📄', badge: 'Standard' },
+    { value: '58mm', label: '58mm (Compact POS)', icon: '🧾', badge: 'Compact' }
+  ];
 
   ngOnInit() {
     this.loadConfig();
@@ -38,6 +45,7 @@ export class SystemSettingsComponent implements OnInit {
     this.posService.getAppConfig().subscribe({
       next: (cfg) => {
         if (cfg) {
+          if (cfg.restaurantName) this.restaurantName.set(cfg.restaurantName);
           if (cfg.kitchenWorkflowEnabled !== undefined) {
             this.kitchenWorkflowEnabled.set(cfg.kitchenWorkflowEnabled);
             this.initialKitchenWorkflowEnabled = cfg.kitchenWorkflowEnabled;
@@ -81,6 +89,7 @@ export class SystemSettingsComponent implements OnInit {
     }
 
     const payload = {
+      restaurantName: this.restaurantName() || 'WildBar',
       kitchenWorkflowEnabled: this.kitchenWorkflowEnabled(),
       taxRate: this.taxRate() / 100,
       taxName: this.taxName(),

@@ -3,18 +3,46 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AlertService } from '../../services/alert.service';
 import { PosService } from '../../services/pos/pos.service';
+import { AuthService } from '../../services/auth.service';
+import { OutletService, Outlet } from '../../services/outlet/outlet';
 import { OrderResponse } from '../../models/pos/pos.models';
+import { CustomSelectComponent, SelectOption } from '../../shared/components/custom-select';
 
 @Component({
   selector: 'app-kitchen-display',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CustomSelectComponent],
   templateUrl: './kitchen-display.html',
   styleUrls: ['./kitchen-display.css']
 })
 export class KitchenDisplayComponent implements OnInit, OnDestroy {
   private posService = inject(PosService);
   private alertService = inject(AlertService);
+  private authService = inject(AuthService);
+  private outletService = inject(OutletService);
+
+  isAdmin = computed(() => this.authService.isAdmin());
+  outlets = signal<Outlet[]>([]);
+  outletsLoading = signal<boolean>(false);
+  selectedOutletId = signal<string>('all');
+
+  outletOptions = computed<SelectOption[]>(() => {
+    const list: SelectOption[] = [
+      { value: 'all', label: 'All Outlets (Consolidated)', icon: '🏢', badge: 'All' }
+    ];
+    this.outlets().forEach(o => {
+      if (o.id) {
+        list.push({
+          value: o.id,
+          label: o.name,
+          sublabel: o.code ? `Code: ${o.code}` : undefined,
+          badge: o.code || undefined,
+          icon: '📍'
+        });
+      }
+    });
+    return list;
+  });
 
   orders = signal<OrderResponse[]>([]);
   isLoading = signal(true);
@@ -67,9 +95,28 @@ export class KitchenDisplayComponent implements OnInit, OnDestroy {
   volume = signal(0.8);
 
   ngOnInit() {
+    if (this.isAdmin()) {
+      this.searchOutlets('');
+    }
     this.loadActiveOrders(true);
     this.startClock();
     this.startPolling();
+  }
+
+  searchOutlets(query: string = '') {
+    this.outletsLoading.set(true);
+    this.outletService.getActiveOutlets(query, 50).subscribe({
+      next: (data) => {
+        this.outlets.set(data || []);
+        this.outletsLoading.set(false);
+      },
+      error: () => this.outletsLoading.set(false)
+    });
+  }
+
+  onOutletChange(newOutletId: string) {
+    this.selectedOutletId.set(newOutletId);
+    this.loadActiveOrders(true);
   }
 
   toggleSound() {
@@ -100,7 +147,8 @@ export class KitchenDisplayComponent implements OnInit, OnDestroy {
 
     // Active kitchen statuses: CONFIRMED, PREPARING, READY, plus BILLED and PAID (for pre-paid/express orders)
     const statuses = ['CONFIRMED', 'PREPARING', 'READY', 'BILLED', 'PAID'];
-    this.posService.getOrders(statuses).subscribe({
+    const outletId = this.isAdmin() && this.selectedOutletId() !== 'all' ? this.selectedOutletId() : undefined;
+    this.posService.getOrders(statuses, outletId).subscribe({
       next: (data) => {
         // Exclude orders where kitchen preparation is already SERVED or order is CANCELLED
         const activeKitchenOrders = data.filter(o => {

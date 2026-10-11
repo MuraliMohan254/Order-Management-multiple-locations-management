@@ -78,6 +78,7 @@ export class CustomerQrOrderComponent implements OnInit, OnDestroy {
 
   taxRate = signal<number>(0.05);
   taxName = signal<string>('GST');
+  restaurantName = signal<string>('WildBar');
 
   cartEstimatedTax = computed(() => {
     return this.cartSubtotal() * this.taxRate();
@@ -93,6 +94,7 @@ export class CustomerQrOrderComponent implements OnInit, OnDestroy {
         if (cfg) {
           if (cfg.taxRate !== undefined) this.taxRate.set(Number(cfg.taxRate));
           if (cfg.taxName) this.taxName.set(cfg.taxName);
+          if (cfg.restaurantName) this.restaurantName.set(cfg.restaurantName);
         }
       },
       error: () => {}

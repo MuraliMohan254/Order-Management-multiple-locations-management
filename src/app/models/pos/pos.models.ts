@@ -27,6 +27,10 @@ export interface OrderResponse {
   discountAmount: number;
   grandTotal: number;
   createdAt?: string;
+  outletId?: string;
+  outletName?: string;
+  settledById?: number;
+  settledBy?: string;
   items?: OrderItemDetailResponse[];
 }
 
@@ -46,6 +50,8 @@ export interface TableResponse {
   tableNumber: string;
   qrToken: string;
   status: 'AVAILABLE' | 'OCCUPIED' | string;
+  outletId?: string;
+  outletName?: string;
 }
 
 export interface PaymentResponse {
@@ -54,6 +60,8 @@ export interface PaymentResponse {
   amountPaid: number;
   paymentMethod: string;
   paymentStatus: string;
+  settledById?: number;
+  settledBy?: string;
 }
 
 export interface KitchenTicketResponse {

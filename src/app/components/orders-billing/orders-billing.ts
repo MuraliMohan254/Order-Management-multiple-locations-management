@@ -6,19 +6,48 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { AlertService } from '../../services/alert.service';
 import { BillingService } from '../../services/billing/billing.service';
 import { PosService } from '../../services/pos/pos.service';
+import { AuthService } from '../../services/auth.service';
+import { OutletService, Outlet } from '../../services/outlet/outlet';
 import { OrderResponse } from '../../models/pos/pos.models';
 import { InfiniteScrollDirective } from '../../shared/directives/infinite-scroll.directive';
+import { CustomSelectComponent, SelectOption } from '../../shared/components/custom-select';
 
 @Component({
   selector: 'app-orders-billing',
   standalone: true,
-  imports: [CommonModule, FormsModule, InfiniteScrollDirective],
+  imports: [CommonModule, FormsModule, InfiniteScrollDirective, CustomSelectComponent],
   templateUrl: './orders-billing.html'
 })
 export class OrdersBillingComponent implements OnInit, OnDestroy {
   private billingService = inject(BillingService);
   private posService = inject(PosService);
   private alertService = inject(AlertService);
+  private authService = inject(AuthService);
+  private outletService = inject(OutletService);
+
+  // Admin Outlet Filtering State
+  isAdmin = computed(() => this.authService.isAdmin());
+  outlets = signal<Outlet[]>([]);
+  outletsLoading = signal<boolean>(false);
+  selectedOutletFilter = signal<string>('all');
+
+  outletOptions = computed<SelectOption[]>(() => {
+    const list: SelectOption[] = [
+      { value: 'all', label: 'All Outlets (Consolidated)', icon: '🏢', badge: 'All' }
+    ];
+    this.outlets().forEach(o => {
+      if (o.id) {
+        list.push({
+          value: o.id,
+          label: o.name,
+          sublabel: o.code ? `Code: ${o.code}` : undefined,
+          badge: o.code || undefined,
+          icon: '📍'
+        });
+      }
+    });
+    return list;
+  });
 
   // Backend Paginated Orders List
   orders = signal<OrderResponse[]>([]);
@@ -60,11 +89,13 @@ export class OrdersBillingComponent implements OnInit, OnDestroy {
   taxRate = signal<number>(0.05);
   taxName = signal<string>('GST');
   defaultDiscountPercentage = signal<number>(0);
+  restaurantName = signal<string>('WildBar');
 
   ngOnInit() {
     this.posService.getAppConfig().subscribe({
       next: (cfg) => {
         if (cfg) {
+          if (cfg.restaurantName) this.restaurantName.set(cfg.restaurantName);
           if (cfg.taxRate !== undefined) this.taxRate.set(Number(cfg.taxRate));
           if (cfg.taxName) this.taxName.set(cfg.taxName);
             if (cfg.defaultDiscountPercentage !== undefined && cfg.defaultDiscountPercentage > 0) {
@@ -74,6 +105,10 @@ export class OrdersBillingComponent implements OnInit, OnDestroy {
       },
       error: () => {}
     });
+
+    if (this.isAdmin()) {
+      this.searchOutlets('');
+    }
 
     // Debounced Backend Search (350ms)
     this.searchSubscription = this.searchSubject.pipe(
@@ -86,6 +121,23 @@ export class OrdersBillingComponent implements OnInit, OnDestroy {
 
     // Initial backend fetch
     this.resetAndLoadOrders();
+  }
+
+  onOutletFilterChange(outletId: string) {
+    this.selectedOutletFilter.set(outletId);
+    this.selectedOrder.set(null);
+    this.resetAndLoadOrders();
+  }
+
+  searchOutlets(query: string = '') {
+    this.outletsLoading.set(true);
+    this.outletService.getActiveOutlets(query, 50).subscribe({
+      next: (data) => {
+        this.outlets.set(data || []);
+        this.outletsLoading.set(false);
+      },
+      error: () => this.outletsLoading.set(false)
+    });
   }
 
   ngOnDestroy() {
@@ -133,10 +185,12 @@ export class OrdersBillingComponent implements OnInit, OnDestroy {
 
     const statuses = this.getQueryStatuses();
     const search = this.searchQuery();
+    const outletId = this.isAdmin() && this.selectedOutletFilter() !== 'all' ? this.selectedOutletFilter() : undefined;
 
     this.billingService.getPagedOrders({
       statuses,
       search,
+      outletId,
       page,
       size: this.pageSize(),
       sortBy: 'createdAt',
@@ -295,6 +349,11 @@ export class OrdersBillingComponent implements OnInit, OnDestroy {
     const order = this.selectedOrder();
     if (!order) return;
 
+    if (order.status === 'SERVED' || order.kitchenStatus === 'SERVED' || order.status === 'BILLED' || order.status === 'PAID' || order.status === 'CANCELLED') {
+      this.alertService.warning('Cannot void items once an order is served, billed, or paid.');
+      return;
+    }
+
     const confirmed = await this.alertService.confirm({
       title: 'Void Item?',
       text: 'Are you sure you want to remove this item from the order?',
@@ -316,6 +375,11 @@ export class OrdersBillingComponent implements OnInit, OnDestroy {
   async cancelEntireOrder() {
     const order = this.selectedOrder();
     if (!order) return;
+
+    if (order.status === 'SERVED' || order.kitchenStatus === 'SERVED' || order.status === 'BILLED' || order.status === 'PAID' || order.status === 'CANCELLED') {
+      this.alertService.warning('Cannot cancel an order that is served, billed, or paid.');
+      return;
+    }
 
     const confirmed = await this.alertService.confirm({
       title: `Cancel Order ${order.orderNumber}?`,

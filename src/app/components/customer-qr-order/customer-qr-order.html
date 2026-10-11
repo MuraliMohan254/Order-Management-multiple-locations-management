@@ -34,7 +34,7 @@
               WB
             </div>
             <div>
-              <h1 class="text-base font-black tracking-tight text-slate-900 dark:text-white leading-tight">WildBar</h1>
+              <h1 class="text-base font-black tracking-tight text-slate-900 dark:text-white leading-tight">{{ restaurantName() }}</h1>
               <div class="flex items-center gap-2 mt-0.5">
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-black bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                   <span class="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400"></span>
@@ -267,7 +267,7 @@
                 } @else if (order.status === 'READY') {
                   Your food is ready and on its way to Table {{ order.tableNumber || tableInfo()?.tableNumber }}!
                 } @else if (order.status === 'SERVED') {
-                  Food served! Enjoy your meal at WildBar.
+                  Food served! Enjoy your meal at {{ restaurantName() }}.
                 } @else if (order.status === 'BILLED') {
                   Bill generated. Please settle with the cashier.
                 }

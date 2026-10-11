@@ -51,6 +51,11 @@ export class AuthService {
     return decoded?.role || 'USER';
   }
 
+  isAdmin(): boolean {
+    const role = (this.getUserRole() || '').toUpperCase();
+    return role === 'ADMIN' || role === 'ROLE_ADMIN' || role === 'SUPER_ADMIN';
+  }
+
   login(credentials: { username: string; password: string }): Observable<any> {
     return this.http.post<any>(`${environment.apiUrl}/login`, credentials).pipe(
       tap(response => {

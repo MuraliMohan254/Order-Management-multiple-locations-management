@@ -8,14 +8,17 @@ import { AlertService } from '../../../services/alert.service';
 import { PosService } from '../../../services/pos/pos.service';
 import { MenuService } from '../../../services/menu.service';
 import { BillingService } from '../../../services/billing/billing.service';
+import { AuthService } from '../../../services/auth.service';
+import { OutletService, Outlet } from '../../../services/outlet/outlet';
 import { CategoryResponse, ItemResponse } from '../../../models/menu.models';
 import { CartItem, OrderItemRequest, TableResponse, OrderResponse } from '../../../models/pos/pos.models';
 import { InfiniteScrollDirective } from '../../../shared/directives/infinite-scroll.directive';
+import { CustomSelectComponent, SelectOption } from '../../../shared/components/custom-select';
 
 @Component({
   selector: 'app-pos-terminal',
   standalone: true,
-  imports: [CommonModule, FormsModule, InfiniteScrollDirective],
+  imports: [CommonModule, FormsModule, InfiniteScrollDirective, CustomSelectComponent],
   templateUrl: './pos-terminal.html'
 })
 export class PosTerminalComponent implements OnInit, OnDestroy {
@@ -23,7 +26,25 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   private billingService = inject(BillingService);
   private menuService = inject(MenuService);
   private alertService = inject(AlertService);
+  private authService = inject(AuthService);
+  private outletService = inject(OutletService);
   private router = inject(Router);
+
+  // Admin Outlet Selection State
+  isAdmin = computed(() => this.authService.isAdmin());
+  outlets = signal<Outlet[]>([]);
+  outletsLoading = signal<boolean>(false);
+  selectedOutletId = signal<string>('');
+
+  outletOptions = computed<SelectOption[]>(() => {
+    return this.outlets().map(o => ({
+      value: o.id!,
+      label: o.name,
+      sublabel: o.code ? `Code: ${o.code}` : undefined,
+      badge: o.code || undefined,
+      icon: '📍'
+    }));
+  });
 
   // Menu State
   categories = signal<CategoryResponse[]>([]);
@@ -85,24 +106,132 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   taxName = signal<string>('GST');
   defaultDiscountPercentage = signal<number>(0);
 
+  // Cart Discount state
+  cartDiscountPercent = signal<number | null>(null);
+  cartCustomDiscountAmount = signal<number | null>(null);
+  cartDiscountUserModified = signal<boolean>(false);
+  showDiscountBox = signal<boolean>(false);
+
   cartTax = computed(() => {
     return this.cartSubtotal() * this.taxRate();
   });
 
+  cartDiscountAmount = computed(() => {
+    const gross = this.cartSubtotal() + this.cartTax();
+    if (gross <= 0) return 0;
+
+    // 1. If cashier entered a custom flat amount in ₹:
+    const customAmt = this.cartCustomDiscountAmount();
+    if (customAmt !== null) {
+      return Math.min(Math.max(0, customAmt), gross);
+    }
+
+    // 2. If cashier explicitly selected a percentage pill:
+    const percent = this.cartDiscountPercent();
+    if (percent !== null) {
+      if (percent <= 0) return 0;
+      return Math.min(Math.round(gross * (percent / 100)), gross);
+    }
+
+    // 3. Fallback to system default global discount:
+    if (!this.cartDiscountUserModified() && this.defaultDiscountPercentage() > 0) {
+      return Math.min(Math.round(gross * this.defaultDiscountPercentage()), gross);
+    }
+
+    return 0;
+  });
+
+  cartDiscount = computed(() => {
+    return this.cartDiscountAmount();
+  });
+
   cartTotal = computed(() => {
-    return this.cartSubtotal() + this.cartTax();
+    const gross = this.cartSubtotal() + this.cartTax();
+    return Math.max(0, gross - this.cartDiscountAmount());
   });
 
   existingTabSubtotal = computed(() => {
     return this.tableActiveOrder()?.subTotal || 0;
   });
 
-  projectedCombinedTotal = computed(() => {
-    const existing = this.existingTabSubtotal();
-    const newSub = this.cartSubtotal();
-    const sub = existing + newSub;
-    return sub + (sub * this.taxRate());
+  existingTabDiscount = computed(() => {
+    return this.tableActiveOrder()?.discountAmount || 0;
   });
+
+  projectedCombinedSubtotal = computed(() => {
+    return this.existingTabSubtotal() + this.cartSubtotal();
+  });
+
+  projectedCombinedTax = computed(() => {
+    return this.projectedCombinedSubtotal() * this.taxRate();
+  });
+
+  projectedCombinedDiscount = computed(() => {
+    const currentCartDisc = this.cartDiscountAmount();
+    if (currentCartDisc > 0) {
+      return currentCartDisc;
+    }
+    const tabDisc = this.existingTabDiscount();
+    if (tabDisc > 0) {
+      return tabDisc;
+    }
+    if (!this.cartDiscountUserModified() && this.defaultDiscountPercentage() > 0) {
+      const gross = this.projectedCombinedSubtotal() + this.projectedCombinedTax();
+      return Math.min(Math.round(gross * this.defaultDiscountPercentage()), gross);
+    }
+    return 0;
+  });
+
+  projectedCombinedTotal = computed(() => {
+    const gross = this.projectedCombinedSubtotal() + this.projectedCombinedTax();
+    return Math.max(0, gross - this.projectedCombinedDiscount());
+  });
+
+  setCartDiscountPercent(percent: number) {
+    this.cartDiscountUserModified.set(true);
+    this.cartCustomDiscountAmount.set(null);
+    this.cartDiscountPercent.set(percent);
+  }
+
+  setCartDiscountAmount(amount: any) {
+    this.cartDiscountUserModified.set(true);
+    this.cartDiscountPercent.set(null);
+    const val = Number(amount);
+    this.cartCustomDiscountAmount.set(isNaN(val) ? 0 : Math.max(0, val));
+  }
+
+  isCartPercentActive(percent: number): boolean {
+    if (this.cartCustomDiscountAmount() !== null) return false;
+    const p = this.cartDiscountPercent();
+    if (p !== null) return p === percent;
+    if (!this.cartDiscountUserModified() && this.defaultDiscountPercentage() > 0) {
+      return Math.round(this.defaultDiscountPercentage() * 100) === percent;
+    }
+    return percent === 0;
+  }
+
+  activeDiscountLabel = computed(() => {
+    const disc = this.tableActiveOrder() ? this.projectedCombinedDiscount() : this.cartDiscountAmount();
+    if (disc <= 0) return '';
+    if (this.cartCustomDiscountAmount() !== null) return '';
+    const p = this.cartDiscountPercent();
+    if (p !== null && p > 0) return `(${p}%)`;
+    if (!this.cartDiscountUserModified() && this.defaultDiscountPercentage() > 0) {
+      return `(${Math.round(this.defaultDiscountPercentage() * 100)}% Global)`;
+    }
+    return '';
+  });
+
+  resetCartDiscount() {
+    this.cartDiscountUserModified.set(false);
+    this.cartCustomDiscountAmount.set(null);
+    if (this.defaultDiscountPercentage() > 0) {
+      this.cartDiscountPercent.set(Math.round(this.defaultDiscountPercentage() * 100));
+    } else {
+      this.cartDiscountPercent.set(null);
+    }
+    this.showDiscountBox.set(false);
+  }
 
   // Quick Bill & Settle State
   showQuickBillModal = signal<boolean>(false);
@@ -122,9 +251,14 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
     return this.quickBillSubtotal() * this.taxRate();
   });
 
-  quickBillGrandTotal = computed(() => {
+  quickBillDiscountAmount = computed(() => {
     const discount = Math.max(0, this.quickBillDiscount() || 0);
-    const total = (this.quickBillSubtotal() + this.quickBillTax()) - discount;
+    const maxAllowed = this.quickBillSubtotal() + this.quickBillTax();
+    return Math.min(discount, maxAllowed);
+  });
+
+  quickBillGrandTotal = computed(() => {
+    const total = (this.quickBillSubtotal() + this.quickBillTax()) - this.quickBillDiscountAmount();
     return Math.max(0, total);
   });
 
@@ -134,14 +268,40 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
     return Math.max(0, tendered - grandTotal);
   });
 
+  setQuickBillDiscountPercent(percent: number) {
+    const base = this.quickBillSubtotal() + this.quickBillTax();
+    if (percent <= 0) {
+      this.quickBillDiscount.set(0);
+    } else {
+      const calculated = Math.round(base * (percent / 100));
+      this.quickBillDiscount.set(calculated);
+    }
+    if (this.quickBillPaymentMethod() === 'CASH') {
+      this.quickBillAmountTendered.set(this.quickBillGrandTotal());
+    }
+  }
+
+  setQuickBillDiscountAmount(amount: any) {
+    const val = Number(amount) || 0;
+    this.quickBillDiscount.set(Math.max(0, val));
+    if (this.quickBillPaymentMethod() === 'CASH') {
+      this.quickBillAmountTendered.set(this.quickBillGrandTotal());
+    }
+  }
+
   ngOnInit() {
     this.posService.getAppConfig().subscribe({
       next: (cfg) => {
         if (cfg) {
           if (cfg.taxRate !== undefined) this.taxRate.set(Number(cfg.taxRate));
           if (cfg.taxName) this.taxName.set(cfg.taxName);
-          if (cfg.defaultDiscountPercentage !== undefined && cfg.defaultDiscountPercentage > 0) {
-            this.defaultDiscountPercentage.set(Number(cfg.defaultDiscountPercentage));
+          if (cfg.defaultDiscountPercentage !== undefined && cfg.defaultDiscountPercentage !== null) {
+            const rawVal = Number(cfg.defaultDiscountPercentage);
+            const fraction = rawVal > 1 ? rawVal / 100 : rawVal;
+            this.defaultDiscountPercentage.set(fraction);
+            if (fraction > 0 && !this.cartDiscountUserModified()) {
+              this.cartDiscountPercent.set(Math.round(fraction * 100));
+            }
           }
         }
       },
@@ -178,6 +338,47 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
     });
 
     this.loadActiveCategories();
+
+    if (this.isAdmin()) {
+      this.searchOutlets('');
+    } else {
+      this.loadRunningOrders();
+    }
+  }
+
+  searchOutlets(query: string = '') {
+    this.outletsLoading.set(true);
+    this.outletService.getActiveOutlets(query, 50).subscribe({
+      next: (outletsList) => {
+        this.outlets.set(outletsList || []);
+        this.outletsLoading.set(false);
+        const currentSelected = this.selectedOutletId();
+        if (!currentSelected && outletsList && outletsList.length > 0) {
+          const saved = sessionStorage.getItem('admin_selected_pos_outlet');
+          if (saved && outletsList.some(o => o.id === saved)) {
+            this.selectedOutletId.set(saved);
+          } else if (outletsList[0].id) {
+            this.selectedOutletId.set(outletsList[0].id);
+            sessionStorage.setItem('admin_selected_pos_outlet', outletsList[0].id);
+          }
+        }
+        this.loadRunningOrders();
+      },
+      error: () => {
+        this.outletsLoading.set(false);
+        this.loadRunningOrders();
+      }
+    });
+  }
+
+  onOutletChange(newOutletId: string) {
+    this.selectedOutletId.set(newOutletId);
+    sessionStorage.setItem('admin_selected_pos_outlet', newOutletId);
+    this.cart.set([]);
+    this.selectedTable.set(null);
+    this.tableActiveOrder.set(null);
+    this.showExistingItems.set(false);
+    this.resetCartDiscount();
     this.loadRunningOrders();
   }
 
@@ -187,6 +388,8 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   }
 
   loadRunningOrdersPage(page: number, append: boolean = false) {
+    if (this.isLoadingRunningOrders() || this.isLoadingMoreRunningTabs()) return;
+
     if (append) {
       this.isLoadingMoreRunningTabs.set(true);
     } else {
@@ -196,11 +399,13 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
     const activeStatuses = ['SOFT_ORDER', 'CONFIRMED', 'PREPARING', 'READY', 'SERVED'];
     const orderType = this.runningTabsTypeFilter() === 'ALL' ? undefined : this.runningTabsTypeFilter();
     const search = this.runningTabsSearch();
+    const outletId = this.isAdmin() && this.selectedOutletId() ? this.selectedOutletId() : undefined;
 
     this.posService.getPagedOrders({
       statuses: activeStatuses,
       orderType,
       search,
+      outletId,
       page,
       size: this.runningTabsPageSize(),
       sortBy: 'createdAt',
@@ -327,17 +532,49 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
 
   clearCart() {
     this.cart.set([]);
+    this.resetCartDiscount();
     this.selectedTable.set(null);
     this.tableActiveOrder.set(null);
   }
 
+  removeItemFromCart(index: number) {
+    this.cart.update(items => items.filter((_, i) => i !== index));
+  }
+
   // --- Table Selection ---
+  async voidExistingItem(orderItemId: string) {
+    const order = this.tableActiveOrder();
+    if (!order) return;
+
+    if (order.status === 'SERVED' || order.kitchenStatus === 'SERVED' || order.status === 'BILLED' || order.status === 'PAID' || order.status === 'CANCELLED') {
+      this.alertService.warning('Cannot void items once an order is served, billed, or paid.');
+      return;
+    }
+
+    const confirmed = await this.alertService.confirm({
+      title: 'Void Item?',
+      text: 'Are you sure you want to remove this item from the order?',
+      confirmButtonText: 'Yes, void item',
+      isDestructive: true
+    });
+    if (!confirmed) return;
+
+    this.posService.voidOrderItem(order.id, orderItemId).subscribe({
+      next: (updatedOrder) => {
+        this.alertService.success('Item voided from order');
+        this.tableActiveOrder.set(updatedOrder);
+      },
+      error: () => this.alertService.error('Failed to void item')
+    });
+  }
+
   openTableSelection() {
     this.orderType.set('DINE_IN');
     this.showTableModal.set(true);
     this.isLoadingTables.set(true);
     
-    this.posService.getTables().subscribe({
+    const outletId = this.isAdmin() && this.selectedOutletId() ? this.selectedOutletId() : undefined;
+    this.posService.getTables(outletId).subscribe({
       next: (data) => {
         this.tables.set(data);
         this.isLoadingTables.set(false);
@@ -360,6 +597,14 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
     this.tableActiveOrder.set(order);
     this.showRunningTabsModal.set(false);
 
+    if (order.discountAmount > 0) {
+      this.cartCustomDiscountAmount.set(order.discountAmount);
+      this.cartDiscountPercent.set(null);
+      this.cartDiscountUserModified.set(true);
+    } else {
+      this.resetCartDiscount();
+    }
+
     if (order.orderType === 'DINE_IN') {
       this.orderType.set('DINE_IN');
       if (order.tableId) {
@@ -375,11 +620,13 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
       this.selectedTable.set(null);
     }
 
-    this.alertService.info(`Tab #${order.orderNumber} loaded (${order.items?.length || 0} items, ₹${order.subTotal.toFixed(2)}). New dishes will append to this bill.`);
+    const discInfo = order.discountAmount > 0 ? `, Discount: ₹${order.discountAmount.toFixed(2)}` : '';
+    this.alertService.info(`Tab #${order.orderNumber} loaded (${order.items?.length || 0} items, ₹${order.subTotal.toFixed(2)}${discInfo}). New dishes will append to this bill.`);
   }
 
   detachActiveTab() {
     this.tableActiveOrder.set(null);
+    this.resetCartDiscount();
     this.showExistingItems.set(false);
     this.alertService.info('Switched back to new order mode');
   }
@@ -428,10 +675,11 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
     }));
 
     const activeOrder = this.tableActiveOrder();
+    const outletId = this.isAdmin() && this.selectedOutletId() ? this.selectedOutletId() : undefined;
     const request$ = activeOrder
       ? this.posService.appendItemsToOrder(activeOrder.id, orderRequests)
       : (this.orderType() === 'TAKE_AWAY'
-          ? this.posService.createTakeAwayOrder(orderRequests)
+          ? this.posService.createTakeAwayOrder(orderRequests, outletId)
           : this.posService.createPosDineInOrder(this.selectedTable()!.id, orderRequests));
 
     request$.subscribe({
@@ -468,13 +716,20 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.quickBillDiscount.set(
-      this.defaultDiscountPercentage() > 0 
-        ? Math.round((this.quickBillSubtotal() + this.quickBillTax()) * this.defaultDiscountPercentage()) 
-        : 0
-    );
+    if (this.cartDiscountAmount() > 0) {
+      this.quickBillDiscount.set(this.cartDiscountAmount());
+    } else if (this.existingTabDiscount() > 0) {
+      this.quickBillDiscount.set(this.existingTabDiscount());
+    } else if (this.defaultDiscountPercentage() > 0) {
+      this.quickBillDiscount.set(
+        Math.round((this.quickBillSubtotal() + this.quickBillTax()) * this.defaultDiscountPercentage())
+      );
+    } else {
+      this.quickBillDiscount.set(0);
+    }
+
     this.quickBillPaymentMethod.set('CASH');
-    this.quickBillAmountTendered.set(Math.ceil(this.quickBillGrandTotal()));
+    this.quickBillAmountTendered.set(this.quickBillGrandTotal());
     this.showQuickBillModal.set(true);
   }
 
@@ -483,7 +738,7 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   }
 
   setExactCashTendered() {
-    this.quickBillAmountTendered.set(Math.ceil(this.quickBillGrandTotal()));
+    this.quickBillAmountTendered.set(this.quickBillGrandTotal());
   }
 
   confirmQuickBillAndPay() {
@@ -509,7 +764,7 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
     const activeOrder = this.tableActiveOrder();
 
     const completeBillAndSettlement = (orderId: string, orderNumber: string) => {
-      const discount = this.quickBillDiscount() || 0;
+      const discount = this.quickBillDiscountAmount();
       this.billingService.generateBill(orderId, discount).subscribe({
         next: (billedOrder) => {
           const finalAmount = billedOrder.grandTotal > 0 ? billedOrder.grandTotal : grandTotal;
@@ -518,16 +773,18 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
               this.isQuickBilling.set(false);
               this.showQuickBillModal.set(false);
               this.cart.set([]);
+              this.resetCartDiscount();
               this.selectedTable.set(null);
               this.tableActiveOrder.set(null);
               this.showExistingItems.set(false);
               this.loadRunningOrders();
 
+              const discountMsg = discount > 0 ? ` [Discount: -₹${discount.toFixed(2)}]` : '';
               const changeMsg = (method === 'CASH' && changeDueAmount > 0)
                 ? ` | Change Due: ₹${changeDueAmount.toFixed(2)}`
                 : '';
               this.alertService.success(
-                `Order #${orderNumber} billed & paid via ${method} (₹${finalAmount.toFixed(2)})${changeMsg}! Sent to kitchen queue.`,
+                `Order #${orderNumber} billed & paid via ${method} (₹${finalAmount.toFixed(2)})${discountMsg}${changeMsg}! Sent to kitchen queue.`,
                 'Payment Collected & Order Placed'
               );
             },
@@ -559,8 +816,9 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
         completeBillAndSettlement(activeOrder.id, activeOrder.orderNumber);
       }
     } else {
+      const outletId = this.isAdmin() && this.selectedOutletId() ? this.selectedOutletId() : undefined;
       const createOrder$ = this.orderType() === 'TAKE_AWAY'
-        ? this.posService.createTakeAwayOrder(orderRequests)
+        ? this.posService.createTakeAwayOrder(orderRequests, outletId)
         : this.posService.createPosDineInOrder(this.selectedTable()!.id, orderRequests);
 
       createOrder$.subscribe({
