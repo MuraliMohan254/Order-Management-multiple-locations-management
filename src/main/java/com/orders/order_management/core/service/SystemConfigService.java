@@ -70,6 +70,7 @@ public class SystemConfigService {
         if (newConfig.getRestaurantName() != null && !newConfig.getRestaurantName().isBlank()) {
             config.setRestaurantName(newConfig.getRestaurantName());
         }
+        config.setGstNumber(newConfig.getGstNumber());
         return repository.save(config);
     }
 }

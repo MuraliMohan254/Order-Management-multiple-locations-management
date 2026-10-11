@@ -669,15 +669,17 @@ public class TransactionService {
     }
 
     public Map<String, Object> getAppConfig() {
+        var cfg = configService.getConfig();
         return java.util.Map.of(
-                "taxRate", configService.getConfig().getTaxRate(),
-                "defaultDiscountPercentage", configService.getConfig().getDefaultDiscountPercentage(),
-                "kitchenWorkflowEnabled", configService.getConfig().isKitchenWorkflowEnabled(),
-                "taxName", configService.getConfig().getTaxName(),
-                "restaurantName", configService.getConfig().getRestaurantName() != null ? configService.getConfig().getRestaurantName() : "WildBar",
-                "thermalPrintingEnabled", configService.getConfig().isThermalPrintingEnabled(),
-                "thermalPaperSize", configService.getConfig().getThermalPaperSize() != null ? configService.getConfig().getThermalPaperSize() : "80mm",
-                "printerName", configService.getConfig().getPrinterName() != null ? configService.getConfig().getPrinterName() : ""
+                "taxRate", cfg.getTaxRate() != null ? cfg.getTaxRate() : new java.math.BigDecimal("0.05"),
+                "defaultDiscountPercentage", cfg.getDefaultDiscountPercentage() != null ? cfg.getDefaultDiscountPercentage() : java.math.BigDecimal.ZERO,
+                "kitchenWorkflowEnabled", cfg.isKitchenWorkflowEnabled(),
+                "taxName", cfg.getTaxName() != null ? cfg.getTaxName() : "GST",
+                "restaurantName", cfg.getRestaurantName() != null ? cfg.getRestaurantName() : "WildBar",
+                "thermalPrintingEnabled", cfg.isThermalPrintingEnabled(),
+                "thermalPaperSize", cfg.getThermalPaperSize() != null ? cfg.getThermalPaperSize() : "80mm",
+                "printerName", cfg.getPrinterName() != null ? cfg.getPrinterName() : "",
+                "gstNumber", cfg.getGstNumber() != null ? cfg.getGstNumber() : ""
         );
     }
 }

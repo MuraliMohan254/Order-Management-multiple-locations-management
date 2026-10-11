@@ -48,6 +48,9 @@ public class PrinterService {
         String restaurantTitle = config.getRestaurantName() != null && !config.getRestaurantName().isBlank()
                 ? config.getRestaurantName().toUpperCase() : "WILDBAR";
         sb.append(centerText("=== " + restaurantTitle + " ===", width)).append("\n");
+        if (config.getGstNumber() != null && !config.getGstNumber().isBlank()) {
+            sb.append(centerText("GSTIN: " + config.getGstNumber().trim(), width)).append("\n");
+        }
         sb.append(centerText("Order: " + order.getOrderNumber(), width)).append("\n");
         
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").withZone(ZoneId.systemDefault());
@@ -76,6 +79,9 @@ public class PrinterService {
         sb.append("-".repeat(width)).append("\n");
         sb.append(formatLine("GRAND TOTAL", order.getGrandTotal().toString(), width)).append("\n");
         sb.append("-".repeat(width)).append("\n");
+        if (config.getGstNumber() != null && !config.getGstNumber().isBlank()) {
+            sb.append(centerText("GST No: " + config.getGstNumber().trim(), width)).append("\n");
+        }
         sb.append(centerText("Thank you for visiting!", width)).append("\n");
         
         // Feed lines and cut

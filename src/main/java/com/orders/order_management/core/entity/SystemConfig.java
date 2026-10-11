@@ -62,6 +62,9 @@ public class SystemConfig {
     @Column(name = "restaurant_name")
     private String restaurantName = "WildBar";
 
+    @Column(name = "gst_number", length = 50)
+    private String gstNumber;
+
     @PrePersist
     public void onPrePersistTenant() {
         if (this.outlet == null) {
