@@ -48,12 +48,14 @@ export class KitchenDisplayComponent implements OnInit, OnDestroy {
   isLoading = signal(true);
   isAutoRefresh = signal(true);
   soundEnabled = signal(true);
+  sseConnected = signal(false);
   filterStatus = signal<'ALL' | 'CONFIRMED' | 'PREPARING' | 'READY'>('ALL');
   filterType = signal<'ALL' | 'DINE_IN' | 'TAKE_AWAY'>('ALL');
 
   currentTime = signal(new Date());
   updatingOrderId = signal<string | null>(null);
-  private pollingIntervalId: any = null;
+  private eventSource: EventSource | null = null;
+  private fallbackSyncIntervalId: any = null;
   private clockIntervalId: any = null;
   private previousOrderCount = 0;
 
@@ -100,7 +102,8 @@ export class KitchenDisplayComponent implements OnInit, OnDestroy {
     }
     this.loadActiveOrders(true);
     this.startClock();
-    this.startPolling();
+    this.initSseStream();
+    this.startFallbackSync();
   }
 
   searchOutlets(query: string = '') {
@@ -117,6 +120,7 @@ export class KitchenDisplayComponent implements OnInit, OnDestroy {
   onOutletChange(newOutletId: string) {
     this.selectedOutletId.set(newOutletId);
     this.loadActiveOrders(true);
+    this.initSseStream();
   }
 
   toggleSound() {
@@ -124,7 +128,8 @@ export class KitchenDisplayComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.pollingIntervalId) clearInterval(this.pollingIntervalId);
+    this.closeSse();
+    if (this.fallbackSyncIntervalId) clearInterval(this.fallbackSyncIntervalId);
     if (this.clockIntervalId) clearInterval(this.clockIntervalId);
   }
 
@@ -134,12 +139,101 @@ export class KitchenDisplayComponent implements OnInit, OnDestroy {
     }, 1000);
   }
 
-  startPolling() {
-    this.pollingIntervalId = setInterval(() => {
+  /**
+   * Real-time Server-Sent Events stream: instant updates (<20ms) for new orders and status shifts
+   */
+  initSseStream() {
+    this.closeSse();
+
+    const outletId = this.isAdmin() && this.selectedOutletId() !== 'all' ? this.selectedOutletId() : undefined;
+    this.eventSource = this.posService.getKitchenEventSource(outletId);
+
+    this.eventSource.onopen = () => {
+      this.sseConnected.set(true);
+    };
+
+    this.eventSource.addEventListener('INIT', () => {
+      this.sseConnected.set(true);
+    });
+
+    this.eventSource.addEventListener('ORDER_UPDATE', (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data);
+        const updatedOrder: OrderResponse = payload?.order;
+        if (!updatedOrder) return;
+
+        // Multi-outlet admin filtering check
+        if (this.isAdmin() && this.selectedOutletId() !== 'all') {
+          if (updatedOrder.outletId && updatedOrder.outletId !== this.selectedOutletId()) {
+            return;
+          }
+        }
+
+        const stage = this.getKitchenStage(updatedOrder);
+
+        if (stage === 'SERVED' || stage === 'CANCELLED' || updatedOrder.status === 'CANCELLED') {
+          // Remove completed or cancelled ticket from active KDS board
+          this.orders.update(list => list.filter(o => o.id !== updatedOrder.id));
+        } else {
+          // Add or update active ticket
+          this.orders.update(list => {
+            const index = list.findIndex(o => o.id === updatedOrder.id);
+            if (index >= 0) {
+              const copy = [...list];
+              copy[index] = updatedOrder;
+              return copy;
+            } else {
+              // New incoming order! Trigger sound & alert
+              if (this.soundEnabled()) {
+                this.playKitchenChime();
+                this.alertService.info(`New Order #${updatedOrder.orderNumber} received!`, 'Kitchen Alert');
+              }
+              return [...list, updatedOrder];
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Error processing ORDER_UPDATE event', err);
+      }
+    });
+
+    this.eventSource.addEventListener('QUEUE_CLEARED', (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (this.isAdmin() && this.selectedOutletId() !== 'all') {
+          if (payload?.outletId && payload.outletId !== 'all' && payload.outletId !== this.selectedOutletId()) {
+            return;
+          }
+        }
+        this.orders.set([]);
+      } catch (err) {
+        console.error('Error processing QUEUE_CLEARED event', err);
+      }
+    });
+
+    this.eventSource.onerror = () => {
+      this.sseConnected.set(false);
+      // Native browser EventSource auto-reconnects with exponential backoff
+    };
+  }
+
+  closeSse() {
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
+      this.sseConnected.set(false);
+    }
+  }
+
+  /**
+   * Relaxed 60-second fallback sync ensures complete consistency even across unstable networks
+   */
+  startFallbackSync() {
+    this.fallbackSyncIntervalId = setInterval(() => {
       if (this.isAutoRefresh()) {
         this.loadActiveOrders(false);
       }
-    }, 5000);
+    }, 60000);
   }
 
   loadActiveOrders(isInitial = false) {

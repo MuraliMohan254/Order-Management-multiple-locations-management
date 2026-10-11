@@ -306,8 +306,11 @@
                   <span class="font-bold text-slate-800 dark:text-slate-200">{{ order.taxAmount | currency:'INR':'symbol':'1.2-2' }}</span>
                 </div>
                 @if (order.discountAmount > 0) {
-                  <div class="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
-                    <span>Discount</span>
+                  <div class="flex justify-between items-center text-emerald-600 dark:text-emerald-400 font-bold">
+                    <span class="flex items-center gap-1.5">
+                      <span>Discount</span>
+                      <span class="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">Promo Applied</span>
+                    </span>
                     <span>-{{ order.discountAmount | currency:'INR':'symbol':'1.2-2' }}</span>
                   </div>
                 }
@@ -423,6 +426,15 @@
                   <span>Estimated Tax ({{ taxName() }} {{ taxRate() * 100 }}%)</span>
                   <span class="font-bold text-slate-900 dark:text-white">{{ cartEstimatedTax() | currency:'INR':'symbol':'1.2-2' }}</span>
                 </div>
+                @if (cartDiscountAmount() > 0) {
+                  <div class="flex justify-between items-center text-emerald-600 dark:text-emerald-400 font-bold">
+                    <span class="flex items-center gap-1.5">
+                      <span>Discount ({{ (defaultDiscountPercentage() * 100).toFixed(0) }}%)</span>
+                      <span class="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">Promo Applied</span>
+                    </span>
+                    <span>-{{ cartDiscountAmount() | currency:'INR':'symbol':'1.2-2' }}</span>
+                  </div>
+                }
                 <div class="flex justify-between text-base font-black text-slate-900 dark:text-white pt-2 border-t border-slate-200 dark:border-slate-700">
                   <span>Grand Total</span>
                   <span>{{ cartEstimatedTotal() | currency:'INR':'symbol':'1.2-2' }}</span>

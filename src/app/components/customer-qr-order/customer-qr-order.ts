@@ -79,13 +79,24 @@ export class CustomerQrOrderComponent implements OnInit, OnDestroy {
   taxRate = signal<number>(0.05);
   taxName = signal<string>('GST');
   restaurantName = signal<string>('WildBar');
+  defaultDiscountPercentage = signal<number>(0);
 
   cartEstimatedTax = computed(() => {
     return this.cartSubtotal() * this.taxRate();
   });
 
-  cartEstimatedTotal = computed(() => {
+  cartGross = computed(() => {
     return this.cartSubtotal() + this.cartEstimatedTax();
+  });
+
+  cartDiscountAmount = computed(() => {
+    const pct = this.defaultDiscountPercentage();
+    if (pct <= 0) return 0;
+    return Math.round(this.cartGross() * pct * 100) / 100;
+  });
+
+  cartEstimatedTotal = computed(() => {
+    return Math.max(0, this.cartGross() - this.cartDiscountAmount());
   });
 
   ngOnInit() {
@@ -95,6 +106,11 @@ export class CustomerQrOrderComponent implements OnInit, OnDestroy {
           if (cfg.taxRate !== undefined) this.taxRate.set(Number(cfg.taxRate));
           if (cfg.taxName) this.taxName.set(cfg.taxName);
           if (cfg.restaurantName) this.restaurantName.set(cfg.restaurantName);
+          if (cfg.defaultDiscountPercentage !== undefined && cfg.defaultDiscountPercentage !== null) {
+            const rawVal = Number(cfg.defaultDiscountPercentage);
+            const fraction = rawVal > 1 ? rawVal / 100 : rawVal;
+            this.defaultDiscountPercentage.set(fraction);
+          }
         }
       },
       error: () => {}

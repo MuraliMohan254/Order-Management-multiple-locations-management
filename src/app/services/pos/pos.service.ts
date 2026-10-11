@@ -163,4 +163,13 @@ export class PosService {
   clearKitchen(): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/kitchen/clear`, {});
   }
+
+  getKitchenEventSource(outletId?: string): EventSource {
+    const token = sessionStorage.getItem('jwt_token') || '';
+    let url = `${this.baseUrl}/kitchen/stream?token=${encodeURIComponent(token)}`;
+    if (outletId && outletId.trim() && outletId !== 'all') {
+      url += `&outletId=${encodeURIComponent(outletId.trim())}`;
+    }
+    return new EventSource(url);
+  }
 }
