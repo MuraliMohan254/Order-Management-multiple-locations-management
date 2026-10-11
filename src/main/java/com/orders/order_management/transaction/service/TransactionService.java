@@ -18,7 +18,6 @@ import com.orders.order_management.transaction.dto.TableResponse;
 import com.orders.order_management.transaction.entity.Order;
 import com.orders.order_management.transaction.entity.OrderItem;
 import com.orders.order_management.transaction.entity.Payment;
-import com.orders.order_management.transaction.service.PrinterService;
 import com.orders.order_management.transaction.entity.RestaurantTable;
 import com.orders.order_management.transaction.repository.OrderItemRepository;
 import com.orders.order_management.transaction.repository.OrderRepository;
