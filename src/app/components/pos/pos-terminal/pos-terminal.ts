@@ -105,6 +105,16 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   taxRate = signal<number>(0.05);
   taxName = signal<string>('GST');
   defaultDiscountPercentage = signal<number>(0);
+  restaurantName = signal<string>('WildBar');
+  gstNumber = signal<string>('');
+  thermalPrintingEnabled = signal<boolean>(false);
+  thermalPaperSize = signal<string>('80mm');
+  showReceiptModal = signal<boolean>(false);
+  receiptOrder = signal<OrderResponse | null>(null);
+
+  printReceipt() {
+    window.print();
+  }
 
   // Cart Discount state
   cartDiscountPercent = signal<number | null>(null);
@@ -295,6 +305,10 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
         if (cfg) {
           if (cfg.taxRate !== undefined) this.taxRate.set(Number(cfg.taxRate));
           if (cfg.taxName) this.taxName.set(cfg.taxName);
+          if (cfg.restaurantName) this.restaurantName.set(cfg.restaurantName);
+          if (cfg.gstNumber) this.gstNumber.set(cfg.gstNumber);
+          if (cfg.thermalPrintingEnabled !== undefined) this.thermalPrintingEnabled.set(cfg.thermalPrintingEnabled);
+          if (cfg.thermalPaperSize) this.thermalPaperSize.set(cfg.thermalPaperSize);
           if (cfg.defaultDiscountPercentage !== undefined && cfg.defaultDiscountPercentage !== null) {
             const rawVal = Number(cfg.defaultDiscountPercentage);
             const fraction = rawVal > 1 ? rawVal / 100 : rawVal;
@@ -769,7 +783,7 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
         next: (billedOrder) => {
           const finalAmount = billedOrder.grandTotal > 0 ? billedOrder.grandTotal : grandTotal;
           this.billingService.settlePayment(orderId, method, finalAmount).subscribe({
-            next: () => {
+            next: (payment) => {
               this.isQuickBilling.set(false);
               this.showQuickBillModal.set(false);
               this.cart.set([]);
@@ -779,6 +793,10 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
               this.showExistingItems.set(false);
               this.loadRunningOrders();
 
+              if (payment && payment.settledBy) {
+                billedOrder.settledBy = payment.settledBy;
+              }
+
               const discountMsg = discount > 0 ? ` [Discount: -₹${discount.toFixed(2)}]` : '';
               const changeMsg = (method === 'CASH' && changeDueAmount > 0)
                 ? ` | Change Due: ₹${changeDueAmount.toFixed(2)}`
@@ -787,6 +805,15 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
                 `Order #${orderNumber} billed & paid via ${method} (₹${finalAmount.toFixed(2)})${discountMsg}${changeMsg}! Sent to kitchen queue.`,
                 'Payment Collected & Order Placed'
               );
+
+              // Auto-print receipt if thermal printing is enabled in System Settings
+              if (this.thermalPrintingEnabled()) {
+                this.receiptOrder.set(billedOrder);
+                this.showReceiptModal.set(true);
+                setTimeout(() => {
+                  this.printReceipt();
+                }, 350);
+              }
             },
             error: (payErr) => {
               this.isQuickBilling.set(false);

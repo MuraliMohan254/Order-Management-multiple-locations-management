@@ -190,3 +190,44 @@
 :where(.dark, [data-theme="dark"]) .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: #64748b;
 }
+
+/* ========================================================
+   Global Thermal Receipt Print Styles (80mm / 58mm POS)
+   ======================================================== */
+@media print {
+  /* Hide all interactive app elements, navigation, modal chrome */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Make only the thermal receipt container visible */
+  #thermal-receipt,
+  #thermal-receipt * {
+    visibility: visible !important;
+  }
+
+  /* Position thermal receipt at origin with exact POS paper dimensions */
+  #thermal-receipt {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 80mm !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 8px 12px !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+    font-family: monospace, 'Courier New', Courier !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  @page {
+    margin: 4mm;
+    size: auto;
+  }
+}

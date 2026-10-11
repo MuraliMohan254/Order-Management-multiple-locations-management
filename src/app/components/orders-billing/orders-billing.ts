@@ -91,6 +91,8 @@ export class OrdersBillingComponent implements OnInit, OnDestroy {
   defaultDiscountPercentage = signal<number>(0);
   restaurantName = signal<string>('WildBar');
   gstNumber = signal<string>('');
+  thermalPrintingEnabled = signal<boolean>(false);
+  thermalPaperSize = signal<string>('80mm');
 
   ngOnInit() {
     this.posService.getAppConfig().subscribe({
@@ -98,6 +100,8 @@ export class OrdersBillingComponent implements OnInit, OnDestroy {
         if (cfg) {
           if (cfg.restaurantName) this.restaurantName.set(cfg.restaurantName);
           if (cfg.gstNumber) this.gstNumber.set(cfg.gstNumber);
+          if (cfg.thermalPrintingEnabled !== undefined) this.thermalPrintingEnabled.set(cfg.thermalPrintingEnabled);
+          if (cfg.thermalPaperSize) this.thermalPaperSize.set(cfg.thermalPaperSize);
           if (cfg.taxRate !== undefined) this.taxRate.set(Number(cfg.taxRate));
           if (cfg.taxName) this.taxName.set(cfg.taxName);
           if (cfg.defaultDiscountPercentage !== undefined && cfg.defaultDiscountPercentage > 0) {
@@ -263,6 +267,9 @@ export class OrdersBillingComponent implements OnInit, OnDestroy {
           next: () => {
             this.alertService.success(`Payment of ₹${amountToPay.toFixed(2)} settled via ${this.paymentMethod()}!`);
             this.showReceiptModal.set(true);
+            if (this.thermalPrintingEnabled()) {
+              setTimeout(() => { this.printReceipt(); }, 350);
+            }
             this.resetAndLoadOrders();
             this.isProcessing.set(false);
           },
@@ -291,6 +298,9 @@ export class OrdersBillingComponent implements OnInit, OnDestroy {
         this.alertService.success(`Bill generated for ${updatedOrder.orderNumber}`);
         this.selectedOrder.set(updatedOrder);
         this.showReceiptModal.set(true);
+        if (this.thermalPrintingEnabled()) {
+          setTimeout(() => { this.printReceipt(); }, 350);
+        }
         this.resetAndLoadOrders(); 
         this.isProcessing.set(false);
       },

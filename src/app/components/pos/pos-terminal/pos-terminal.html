@@ -1008,3 +1008,94 @@
   </div>
 }
 
+<!-- ========================================== -->
+<!-- THERMAL RECEIPT MODAL & PRINT VIEW -->
+<!-- ========================================== -->
+@if (showReceiptModal() && receiptOrder(); as order) {
+  <div class="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
+      
+      <!-- Receipt Header -->
+      <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800">
+        <h3 class="font-black text-sm text-slate-900 dark:text-white">Receipt Preview</h3>
+        <button (click)="showReceiptModal.set(false)" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Thermal Paper Body -->
+      <div class="p-6 font-mono text-xs text-slate-800 bg-white space-y-3" id="thermal-receipt">
+        <div class="text-center border-b border-dashed border-slate-300 pb-3">
+          <h2 class="text-base font-black tracking-widest uppercase">{{ restaurantName() }}</h2>
+          <p class="text-[10px] text-slate-500 mt-0.5">Order Management System</p>
+          @if (gstNumber()) {
+            <p class="text-[11px] font-bold text-slate-800 tracking-wider mt-1">GSTIN: {{ gstNumber() }}</p>
+          }
+          <div class="text-[10px] text-slate-400 mt-2">
+            Order #{{ order.orderNumber }}<br>
+            {{ order.orderType }} {{ order.tableNumber ? ('• ' + order.tableNumber) : '' }}
+          </div>
+        </div>
+
+        <!-- Items Table -->
+        <div class="divide-y divide-dashed divide-slate-200">
+          @for (item of order.items; track item.id) {
+            <div class="py-1.5 flex justify-between">
+              <div>
+                <span>{{ item.quantity }}x {{ item.itemName }}</span>
+              </div>
+              <span class="font-bold">₹{{ item.totalPrice | number:'1.2-2' }}</span>
+            </div>
+          }
+        </div>
+
+        <!-- Calculations -->
+        <div class="border-t border-dashed border-slate-300 pt-2 space-y-1">
+          <div class="flex justify-between">
+            <span>Subtotal:</span>
+            <span>₹{{ order.subTotal | number:'1.2-2' }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>{{ taxName() }} ({{ taxRate() * 100 }}%):</span>
+            <span>₹{{ order.taxAmount | number:'1.2-2' }}</span>
+          </div>
+          @if (order.discountAmount > 0) {
+            <div class="flex justify-between text-emerald-600">
+              <span>Discount:</span>
+              <span>-₹{{ order.discountAmount | number:'1.2-2' }}</span>
+            </div>
+          }
+          <div class="flex justify-between text-sm font-black pt-1.5 border-t border-slate-800">
+            <span>TOTAL:</span>
+            <span>₹{{ order.grandTotal | number:'1.2-2' }}</span>
+          </div>
+          @if (order.settledBy) {
+            <div class="flex justify-between text-[11px] text-slate-600 pt-1 border-t border-dashed border-slate-200">
+              <span>Settled By:</span>
+              <span class="font-bold">{{ order.settledBy }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="text-center text-[10px] text-slate-400 border-t border-dashed border-slate-300 pt-3">
+          @if (gstNumber()) {
+            <p class="font-bold text-slate-700 mb-1">GSTIN: {{ gstNumber() }}</p>
+          }
+          Thank you for dining with {{ restaurantName() }}!<br>
+          Visit us again soon.
+        </div>
+      </div>
+
+      <!-- Print Button -->
+      <div class="p-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 flex gap-2">
+        <button (click)="showReceiptModal.set(false)" class="flex-1 py-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl font-bold text-xs text-slate-700 dark:text-slate-200 cursor-pointer">Close</button>
+        <button (click)="printReceipt()" class="flex-1 py-2.5 bg-slate-900 dark:bg-blue-600 hover:bg-black dark:hover:bg-blue-500 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          <span>Print Receipt</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+}
+
