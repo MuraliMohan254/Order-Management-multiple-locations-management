@@ -90,17 +90,19 @@ export class OrdersBillingComponent implements OnInit, OnDestroy {
   taxName = signal<string>('GST');
   defaultDiscountPercentage = signal<number>(0);
   restaurantName = signal<string>('WildBar');
+  gstNumber = signal<string>('');
 
   ngOnInit() {
     this.posService.getAppConfig().subscribe({
       next: (cfg) => {
         if (cfg) {
           if (cfg.restaurantName) this.restaurantName.set(cfg.restaurantName);
+          if (cfg.gstNumber) this.gstNumber.set(cfg.gstNumber);
           if (cfg.taxRate !== undefined) this.taxRate.set(Number(cfg.taxRate));
           if (cfg.taxName) this.taxName.set(cfg.taxName);
-            if (cfg.defaultDiscountPercentage !== undefined && cfg.defaultDiscountPercentage > 0) {
-              this.defaultDiscountPercentage.set(Number(cfg.defaultDiscountPercentage));
-            }
+          if (cfg.defaultDiscountPercentage !== undefined && cfg.defaultDiscountPercentage > 0) {
+            this.defaultDiscountPercentage.set(Number(cfg.defaultDiscountPercentage));
+          }
         }
       },
       error: () => {}
@@ -288,6 +290,7 @@ export class OrdersBillingComponent implements OnInit, OnDestroy {
       next: (updatedOrder) => {
         this.alertService.success(`Bill generated for ${updatedOrder.orderNumber}`);
         this.selectedOrder.set(updatedOrder);
+        this.showReceiptModal.set(true);
         this.resetAndLoadOrders(); 
         this.isProcessing.set(false);
       },

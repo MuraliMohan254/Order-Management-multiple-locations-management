@@ -74,7 +74,14 @@
               <span class="absolute right-4 top-3.5 text-slate-400 font-bold">%</span>
             </div>
           </div>
-          <div class="sm:col-span-2">
+          <div>
+            <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">GST Number (GSTIN)</label>
+            <input type="text" [ngModel]="gstNumber()" (ngModelChange)="gstNumber.set($event)"
+                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all uppercase"
+                   placeholder="e.g. 29AAAAA0000A1Z5">
+            <p class="text-xs text-slate-500 mt-2">Printed on thermal receipts and customer bills.</p>
+          </div>
+          <div>
             <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Default Global Discount (%)</label>
             <div class="relative">
               <input type="number" [ngModel]="defaultDiscountPercentage()" (ngModelChange)="defaultDiscountPercentage.set($event)" min="0" max="100" step="1"

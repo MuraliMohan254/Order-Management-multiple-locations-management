@@ -152,8 +152,8 @@ export class PosService {
     return this.http.get<OrderResponse>(`${environment.apiUrl}/public/orders/${orderId}`);
   }
 
-  getAppConfig(): Observable<{ taxRate: number; taxName: string; restaurantName: string; defaultDiscountPercentage: number; kitchenWorkflowEnabled: boolean; thermalPrintingEnabled: boolean; thermalPaperSize: string; printerName: string | null; }> {
-    return this.http.get<{ taxRate: number; taxName: string; restaurantName: string; defaultDiscountPercentage: number; kitchenWorkflowEnabled: boolean; thermalPrintingEnabled: boolean; thermalPaperSize: string; printerName: string | null; }>(`${environment.apiUrl}/public/config`);
+  getAppConfig(): Observable<{ taxRate: number; taxName: string; restaurantName: string; defaultDiscountPercentage: number; kitchenWorkflowEnabled: boolean; thermalPrintingEnabled: boolean; thermalPaperSize: string; printerName: string | null; gstNumber?: string; }> {
+    return this.http.get<{ taxRate: number; taxName: string; restaurantName: string; defaultDiscountPercentage: number; kitchenWorkflowEnabled: boolean; thermalPrintingEnabled: boolean; thermalPaperSize: string; printerName: string | null; gstNumber?: string; }>(`${environment.apiUrl}/public/config`);
   }
 
   updateAppConfig(config: any): Observable<any> {

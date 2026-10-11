@@ -30,6 +30,7 @@ export class SystemSettingsComponent implements OnInit {
   thermalPaperSize = signal<string>('80mm');
   printerName = signal<string>(''); // 0%
   restaurantName = signal<string>('WildBar');
+  gstNumber = signal<string>('');
 
   paperSizeOptions: SelectOption[] = [
     { value: '80mm', label: '80mm (Standard POS)', icon: '📄', badge: 'Standard' },
@@ -46,6 +47,7 @@ export class SystemSettingsComponent implements OnInit {
       next: (cfg) => {
         if (cfg) {
           if (cfg.restaurantName) this.restaurantName.set(cfg.restaurantName);
+          if (cfg.gstNumber !== undefined) this.gstNumber.set(cfg.gstNumber || '');
           if (cfg.kitchenWorkflowEnabled !== undefined) {
             this.kitchenWorkflowEnabled.set(cfg.kitchenWorkflowEnabled);
             this.initialKitchenWorkflowEnabled = cfg.kitchenWorkflowEnabled;
@@ -96,7 +98,8 @@ export class SystemSettingsComponent implements OnInit {
       defaultDiscountPercentage: this.defaultDiscountPercentage() / 100,
       thermalPrintingEnabled: this.thermalPrintingEnabled(),
       thermalPaperSize: this.thermalPaperSize(),
-      printerName: this.printerName() || null
+      printerName: this.printerName() || null,
+      gstNumber: this.gstNumber() ? this.gstNumber().trim().toUpperCase() : null
     };
 
     this.posService.updateAppConfig(payload).subscribe({

@@ -1,0 +1,35 @@
+/* ========================================================
+   Printable QR Card Print Styles
+   ======================================================== */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  #printable-qr-card,
+  #printable-qr-card * {
+    visibility: visible !important;
+  }
+
+  #printable-qr-card {
+    position: fixed !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    box-shadow: none !important;
+    border: 2px solid #000000 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 24px !important;
+    max-width: 90mm !important;
+    width: 90mm !important;
+    text-align: center !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  @page {
+    margin: 10mm;
+    size: auto;
+  }
+}
