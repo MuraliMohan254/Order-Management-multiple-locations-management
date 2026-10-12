@@ -11,7 +11,7 @@ import { BillingService } from '../../../services/billing/billing.service';
 import { AuthService } from '../../../services/auth.service';
 import { OutletService, Outlet } from '../../../services/outlet/outlet';
 import { CategoryResponse, ItemResponse } from '../../../models/menu.models';
-import { CartItem, OrderItemRequest, TableResponse, OrderResponse } from '../../../models/pos/pos.models';
+import { CartItem, OrderItemRequest, TableResponse, OrderResponse, OrderItemDetailResponse } from '../../../models/pos/pos.models';
 import { InfiniteScrollDirective } from '../../../shared/directives/infinite-scroll.directive';
 import { CustomSelectComponent, SelectOption } from '../../../shared/components/custom-select';
 
@@ -111,9 +111,83 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   thermalPaperSize = signal<string>('80mm');
   showReceiptModal = signal<boolean>(false);
   receiptOrder = signal<OrderResponse | null>(null);
+  receiptType = signal<'BILL' | 'KOT_NEW' | 'KOT_ALL'>('BILL');
+  kotItems = signal<OrderItemDetailResponse[]>([]);
+  kotBatchNumber = signal<number>(1);
+  kotTimestamp = signal<Date>(new Date());
+
+  kotTotalQuantity = computed(() => {
+    return this.kotItems().reduce((sum, item) => sum + item.quantity, 0);
+  });
 
   printReceipt() {
     window.print();
+  }
+
+  getMaxBatch(order?: OrderResponse | null): number {
+    if (!order || !order.items || order.items.length === 0) return 1;
+    let max = 1;
+    for (const item of order.items) {
+      if (item.batchNumber && item.batchNumber > max) {
+        max = item.batchNumber;
+      }
+    }
+    return max;
+  }
+
+  getNewestItems(order?: OrderResponse | null): OrderItemDetailResponse[] {
+    if (!order || !order.items || order.items.length === 0) return [];
+    const maxBatch = this.getMaxBatch(order);
+    return order.items.filter(i => (i.batchNumber || 1) === maxBatch);
+  }
+
+  openKotReceipt(order: OrderResponse, type: 'KOT_NEW' | 'KOT_ALL' = 'KOT_NEW', specificItems?: OrderItemDetailResponse[]) {
+    this.receiptOrder.set(order);
+    const maxBatch = this.getMaxBatch(order);
+    this.kotBatchNumber.set(maxBatch);
+    this.kotTimestamp.set(new Date());
+    this.receiptType.set(type);
+
+    if (specificItems && specificItems.length > 0) {
+      this.kotItems.set(specificItems);
+    } else if (type === 'KOT_NEW') {
+      const newest = this.getNewestItems(order);
+      this.kotItems.set(newest.length > 0 ? newest : (order.items || []));
+    } else {
+      this.kotItems.set(order.items || []);
+    }
+
+    this.showReceiptModal.set(true);
+    if (this.thermalPrintingEnabled()) {
+      setTimeout(() => {
+        this.printReceipt();
+      }, 350);
+    }
+  }
+
+  openCustomerBillReceipt(order: OrderResponse) {
+    this.receiptOrder.set(order);
+    this.receiptType.set('BILL');
+    this.showReceiptModal.set(true);
+    if (this.thermalPrintingEnabled()) {
+      setTimeout(() => {
+        this.printReceipt();
+      }, 350);
+    }
+  }
+
+  switchToReceiptType(type: 'BILL' | 'KOT_NEW' | 'KOT_ALL') {
+    const order = this.receiptOrder();
+    if (!order) return;
+    this.receiptType.set(type);
+    if (type === 'KOT_NEW') {
+      const newest = this.getNewestItems(order);
+      this.kotItems.set(newest.length > 0 ? newest : (order.items || []));
+      this.kotBatchNumber.set(this.getMaxBatch(order));
+    } else if (type === 'KOT_ALL') {
+      this.kotItems.set(order.items || []);
+      this.kotBatchNumber.set(this.getMaxBatch(order));
+    }
   }
 
   // Cart Discount state
@@ -699,9 +773,16 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
     request$.subscribe({
       next: (res) => {
         if (activeOrder) {
+          const maxBatch = this.getMaxBatch(res);
+          const newest = (res.items || []).filter(i => (i.batchNumber || 1) === maxBatch);
           this.alertService.success(`Added ${orderRequests.length} item(s) to Tab #${res.orderNumber}! Sent to kitchen.`, 'Tab Updated');
+          // Open KOT ticket specifically for newly appended items
+          this.openKotReceipt(res, 'KOT_NEW', newest.length > 0 ? newest : undefined);
         } else {
           this.alertService.success(`Order #${res.orderNumber} sent to kitchen!`, 'Order Placed');
+          if (this.thermalPrintingEnabled()) {
+            this.openKotReceipt(res, 'KOT_ALL');
+          }
         }
         this.cart.set([]); 
         this.selectedTable.set(null);

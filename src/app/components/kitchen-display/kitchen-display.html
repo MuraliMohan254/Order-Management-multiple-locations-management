@@ -216,6 +216,13 @@
                       RUNNING TAB
                     </span>
                   }
+
+                  <!-- Multi-Round / Appended Items Badge -->
+                  @if (getMaxBatch(order) > 1) {
+                    <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-500 text-white shadow-2xs animate-pulse flex items-center gap-1">
+                      <span>⚡</span> ADD-ON (Round {{ getMaxBatch(order) }})
+                    </span>
+                  }
                 </div>
                 <div class="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
                   #{{ order.orderNumber }}
@@ -230,22 +237,67 @@
             </div>
 
             <!-- Items List -->
-            <div class="p-3.5 sm:p-4 flex-1 overflow-y-auto space-y-2.5 min-h-[140px] max-h-[300px] bg-slate-50/50 dark:bg-transparent">
-              @for (item of order.items; track item.id) {
-                <div class="flex items-start gap-2.5 bg-white dark:bg-slate-900/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/50 shadow-2xs">
-                  <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-black text-sm sm:text-base flex items-center justify-center shrink-0 border border-slate-200 dark:border-transparent">
-                    {{ item.quantity }}
-                  </span>
-                  <div class="flex-1 min-w-0">
-                    <span class="font-bold text-slate-800 dark:text-white text-sm sm:text-base leading-snug block">{{ item.itemName }}</span>
-                    @if (item.notes) {
-                      <div class="mt-1 text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-700/50 flex items-center gap-1">
-                        <span>⚠</span>
-                        <span class="font-semibold">{{ item.notes }}</span>
+            <div class="p-3.5 sm:p-4 flex-1 overflow-y-auto space-y-2.5 min-h-[140px] max-h-[320px] bg-slate-50/50 dark:bg-transparent">
+              @if (getOrderRounds(order).length > 1) {
+                <!-- Multi-Round Partitioned Display (Distinguishes Original vs Newly Appended Items) -->
+                @for (round of getOrderRounds(order); track round) {
+                  <div class="space-y-1.5">
+                    <div class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center justify-between"
+                         [ngClass]="round === getMaxBatch(order) ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700/80 shadow-2xs' : 'bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300/60 dark:border-slate-700/60'">
+                      <div class="flex items-center gap-1.5">
+                        <span>{{ round === 1 ? 'Round 1 (Initial Order)' : ('Round ' + round + ' (⚡ Add-on Items)') }}</span>
+                      </div>
+                      @if (round === getMaxBatch(order)) {
+                        <span class="px-1.5 py-0.5 bg-amber-500 text-white rounded text-[9px] font-black animate-pulse">PREPARE NOW</span>
+                      }
+                    </div>
+
+                    @for (item of getItemsForRound(order, round); track item.id) {
+                      <div class="flex items-start gap-2.5 p-2.5 rounded-xl border transition-all"
+                           [ngClass]="isItemNew(order, item) ? 'bg-amber-50/90 dark:bg-amber-950/40 border-amber-400 dark:border-amber-600 shadow-2xs ring-1 ring-amber-400/30' : 'bg-white dark:bg-slate-900/60 border-slate-200/80 dark:border-slate-700/50'">
+                        <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg font-black text-sm sm:text-base flex items-center justify-center shrink-0 border"
+                              [ngClass]="isItemNew(order, item) ? 'bg-amber-500 text-white border-amber-600 shadow-xs' : 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white border-slate-200 dark:border-transparent'">
+                          {{ item.quantity }}
+                        </span>
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center justify-between gap-1">
+                            <span class="font-bold text-sm sm:text-base leading-snug block"
+                                  [ngClass]="isItemNew(order, item) ? 'text-amber-950 dark:text-amber-100 font-black' : 'text-slate-800 dark:text-white'">
+                              {{ item.itemName }}
+                            </span>
+                            @if (isItemNew(order, item)) {
+                              <span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500 text-white shrink-0 tracking-wider">NEW</span>
+                            }
+                          </div>
+                          @if (item.notes) {
+                            <div class="mt-1 text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-700/50 flex items-center gap-1">
+                              <span>⚠</span>
+                              <span class="font-semibold">{{ item.notes }}</span>
+                            </div>
+                          }
+                        </div>
                       </div>
                     }
                   </div>
-                </div>
+                }
+              } @else {
+                <!-- Single Round Standard Display -->
+                @for (item of order.items; track item.id) {
+                  <div class="flex items-start gap-2.5 bg-white dark:bg-slate-900/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/50 shadow-2xs">
+                    <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-black text-sm sm:text-base flex items-center justify-center shrink-0 border border-slate-200 dark:border-transparent">
+                      {{ item.quantity }}
+                    </span>
+                    <div class="flex-1 min-w-0">
+                      <span class="font-bold text-slate-800 dark:text-white text-sm sm:text-base leading-snug block">{{ item.itemName }}</span>
+                      @if (item.notes) {
+                        <div class="mt-1 text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-700/50 flex items-center gap-1">
+                          <span>⚠</span>
+                          <span class="font-semibold">{{ item.notes }}</span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
               }
             </div>
 

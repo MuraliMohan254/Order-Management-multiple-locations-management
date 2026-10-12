@@ -12,6 +12,8 @@ export interface OrderItemDetailResponse {
   unitPrice: number;
   totalPrice: number;
   notes?: string;
+  batchNumber?: number;
+  createdAt?: string;
 }
 
 export interface OrderResponse {

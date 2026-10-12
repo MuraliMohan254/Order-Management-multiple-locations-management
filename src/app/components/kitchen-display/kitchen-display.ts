@@ -5,7 +5,7 @@ import { AlertService } from '../../services/alert.service';
 import { PosService } from '../../services/pos/pos.service';
 import { AuthService } from '../../services/auth.service';
 import { OutletService, Outlet } from '../../services/outlet/outlet';
-import { OrderResponse } from '../../models/pos/pos.models';
+import { OrderResponse, OrderItemDetailResponse } from '../../models/pos/pos.models';
 import { CustomSelectComponent, SelectOption } from '../../shared/components/custom-select';
 
 @Component({
@@ -63,6 +63,32 @@ export class KitchenDisplayComponent implements OnInit, OnDestroy {
     if (order.kitchenStatus) return order.kitchenStatus;
     if (order.status && order.status !== 'BILLED' && order.status !== 'PAID') return order.status;
     return 'CONFIRMED';
+  }
+
+  getMaxBatch(order: OrderResponse): number {
+    if (!order.items || order.items.length === 0) return 1;
+    let max = 1;
+    for (const item of order.items) {
+      if (item.batchNumber && item.batchNumber > max) {
+        max = item.batchNumber;
+      }
+    }
+    return max;
+  }
+
+  getOrderRounds(order: OrderResponse): number[] {
+    if (!order.items || order.items.length === 0) return [1];
+    const rounds = Array.from(new Set(order.items.map(i => i.batchNumber || 1)));
+    return rounds.sort((a, b) => a - b);
+  }
+
+  getItemsForRound(order: OrderResponse, round: number): OrderItemDetailResponse[] {
+    return (order.items || []).filter(i => (i.batchNumber || 1) === round);
+  }
+
+  isItemNew(order: OrderResponse, item: OrderItemDetailResponse): boolean {
+    const maxBatch = this.getMaxBatch(order);
+    return maxBatch > 1 && (item.batchNumber || 1) === maxBatch;
   }
 
   filteredOrders = computed(() => {
@@ -179,6 +205,22 @@ export class KitchenDisplayComponent implements OnInit, OnDestroy {
           this.orders.update(list => {
             const index = list.findIndex(o => o.id === updatedOrder.id);
             if (index >= 0) {
+              const prevOrder = list[index];
+              const prevMaxBatch = this.getMaxBatch(prevOrder);
+              const newMaxBatch = this.getMaxBatch(updatedOrder);
+              const itemsAdded = (updatedOrder.items?.length || 0) > (prevOrder.items?.length || 0);
+
+              if (newMaxBatch > prevMaxBatch || itemsAdded) {
+                if (this.soundEnabled()) {
+                  this.playKitchenChime();
+                }
+                const tableInfo = updatedOrder.orderType === 'DINE_IN' ? (updatedOrder.tableNumber || 'Table') : 'Takeaway';
+                this.alertService.warning(
+                  `⚡ New items added to ${tableInfo} (#${updatedOrder.orderNumber}) - Round ${newMaxBatch}!`,
+                  'Running Tab Add-On'
+                );
+              }
+
               const copy = [...list];
               copy[index] = updatedOrder;
               return copy;
