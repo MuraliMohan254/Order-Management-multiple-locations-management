@@ -22,4 +22,5 @@ public class KitchenTicketResponse {
     private String notes;
     private Instant orderTime;
     private String status;
+    private Integer batchNumber;
 }

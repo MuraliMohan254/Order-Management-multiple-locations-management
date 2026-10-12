@@ -156,6 +156,13 @@ public class TransactionService {
     private void appendItemsToOrder(Order order, List<OrderItemRequest> requests) {
         BigDecimal runningSubTotal = order.getSubTotal();
 
+        int nextBatch = 1;
+        if (order.getItems() != null && !order.getItems().isEmpty()) {
+            nextBatch = order.getItems().stream()
+                    .mapToInt(oi -> oi.getBatchNumber() != null ? oi.getBatchNumber() : 1)
+                    .max().orElse(1) + 1;
+        }
+
         for (OrderItemRequest req : requests) {
             Item item = itemRepository.findById(req.getItemId())
                     .orElseThrow(() -> new IllegalArgumentException("Item not found"));
@@ -169,6 +176,7 @@ public class TransactionService {
                     .unitPrice(item.getPrice())
                     .totalPrice(lineTotal)
                     .notes(req.getNotes())
+                    .batchNumber(nextBatch)
                     .build();
 
             order.addOrderItem(orderItem);
@@ -306,6 +314,8 @@ public class TransactionService {
                         .unitPrice(oi.getUnitPrice())
                         .totalPrice(oi.getTotalPrice())
                         .notes(oi.getNotes())
+                        .batchNumber(oi.getBatchNumber() != null ? oi.getBatchNumber() : 1)
+                        .createdAt(oi.getCreatedAt())
                         .build()).toList()
                 : Collections.emptyList();
 
@@ -491,6 +501,7 @@ public class TransactionService {
                         .notes(oi.getNotes())
                         .orderTime(oi.getCreatedAt())
                         .status(oi.getOrder() != null && oi.getOrder().getKitchenStatus() != null ? oi.getOrder().getKitchenStatus() : (oi.getOrder() != null && oi.getOrder().getStatus() != null ? oi.getOrder().getStatus().name() : ""))
+                        .batchNumber(oi.getBatchNumber() != null ? oi.getBatchNumber() : 1)
                         .build())
                 .toList();
     }
@@ -672,6 +683,13 @@ public class TransactionService {
             throw new IllegalStateException("Source order is finalized and cannot be merged.");
         }
 
+        int nextBatch = 1;
+        if (targetOrder.getItems() != null && !targetOrder.getItems().isEmpty()) {
+            nextBatch = targetOrder.getItems().stream()
+                    .mapToInt(oi -> oi.getBatchNumber() != null ? oi.getBatchNumber() : 1)
+                    .max().orElse(1) + 1;
+        }
+
         // Copy all items from sourceOrder into targetOrder
         for (OrderItem sourceItem : sourceOrder.getItems()) {
             OrderItem newItem = OrderItem.builder()
@@ -680,6 +698,7 @@ public class TransactionService {
                     .unitPrice(sourceItem.getUnitPrice())
                     .totalPrice(sourceItem.getTotalPrice())
                     .notes(sourceItem.getNotes())
+                    .batchNumber(nextBatch)
                     .build();
             targetOrder.addOrderItem(newItem);
         }

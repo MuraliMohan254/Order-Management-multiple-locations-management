@@ -10,7 +10,8 @@ import java.math.BigDecimal;
 @Table(name = "order_items", indexes = {
     @Index(name = "idx_order_items_order_id", columnList = "order_id"),
     @Index(name = "idx_order_items_item_id", columnList = "item_id"),
-    @Index(name = "idx_order_items_item_order", columnList = "item_id, order_id")
+    @Index(name = "idx_order_items_item_order", columnList = "item_id, order_id"),
+    @Index(name = "idx_order_items_order_batch", columnList = "order_id, batch_number")
 })
 @Getter
 @Setter
@@ -38,4 +39,8 @@ public class OrderItem extends BaseEntity {
 
     @Column(length = 255)
     private String notes;
+
+    @Column(name = "batch_number", nullable = false)
+    @Builder.Default
+    private Integer batchNumber = 1;
 }

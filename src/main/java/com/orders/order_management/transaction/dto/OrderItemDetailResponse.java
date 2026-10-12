@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 
 @Data
@@ -20,4 +21,6 @@ public class OrderItemDetailResponse {
     private BigDecimal unitPrice;
     private BigDecimal totalPrice;
     private String notes;
+    private Integer batchNumber;
+    private Instant createdAt;
 }

@@ -80,7 +80,8 @@ CREATE TABLE public.order_items (
     total_price numeric(15,2) NOT NULL,
     unit_price numeric(15,2) NOT NULL,
     item_id uuid NOT NULL,
-    order_id uuid NOT NULL
+    order_id uuid NOT NULL,
+    batch_number integer DEFAULT 1 NOT NULL
 );
 
 
@@ -380,6 +381,8 @@ CREATE INDEX idx_order_items_item_order ON public.order_items USING btree (item_
 --
 
 CREATE INDEX idx_order_items_order_id ON public.order_items USING btree (order_id);
+
+CREATE INDEX idx_order_items_order_batch ON public.order_items USING btree (order_id, batch_number);
 
 
 --
