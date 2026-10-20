@@ -9,8 +9,11 @@ target/
 # Electron builds & distributions
 electron-pos/release/
 electron-pos/dist/
+electron-pos/jre/
 electron-pos/backend-jar/*.jar
 electron-pos/*.log
+electron-pos/*jre*.zip
+electron-pos/temp-*
 
 # Database backups & audit logs (keep local only)
 *.dump

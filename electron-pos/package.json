@@ -4,15 +4,18 @@
   "description": "WildBar POS Desktop Terminal with Direct Wi-Fi Thermal Printing",
   "main": "main.js",
   "scripts": {
+    "ensure-jre": "node ensure-jre.js",
     "copy-dist": "node copy-dist.js",
+    "prepare-build": "node ensure-jre.js && node copy-dist.js",
     "generate-icon": "powershell -ExecutionPolicy Bypass -File ./generate-icon.ps1",
     "start": "electron .",
     "dev": "electron . --dev",
-    "build-pos": "npm run copy-dist && electron .",
-    "pack": "electron-builder --dir",
-    "dist": "npm run copy-dist && electron-builder --win",
-    "dist:portable": "npm run copy-dist && electron-builder --win portable",
-    "dist:installer": "npm run copy-dist && electron-builder --win nsis"
+    "build-pos": "npm run prepare-build && electron .",
+    "pack": "npm run prepare-build && electron-builder --dir && node post-pack.js",
+    "build:portable": "npm run prepare-build && electron-builder --dir && node post-pack.js",
+    "dist": "npm run prepare-build && electron-builder --win && node post-pack.js",
+    "dist:portable": "npm run prepare-build && electron-builder --win portable && node post-pack.js",
+    "dist:installer": "npm run prepare-build && electron-builder --win nsis && node post-pack.js"
   },
   "build": {
     "appId": "com.wildbar.pos",
@@ -39,6 +42,11 @@
       {
         "from": "backend-jar",
         "to": "backend-jar",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "jre",
+        "to": "jre",
         "filter": ["**/*"]
       }
     ],

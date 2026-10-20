@@ -133,6 +133,56 @@ function findJarFile(jarDir) {
   return null;
 }
 
+function findJavaExecutable(configuredPath) {
+  if (configuredPath && configuredPath !== 'java') {
+    if (fs.existsSync(configuredPath)) return configuredPath;
+  }
+
+  const candidatePaths = [];
+
+  // 1. Embedded or portable JRE (jre/bin/java.exe)
+  if (process.env.PORTABLE_EXECUTABLE_DIR) {
+    candidatePaths.push(path.join(process.env.PORTABLE_EXECUTABLE_DIR, 'jre', 'bin', 'java.exe'));
+  }
+  if (app && app.isPackaged) {
+    candidatePaths.push(path.join(path.dirname(process.execPath), 'jre', 'bin', 'java.exe'));
+    if (process.resourcesPath) {
+      candidatePaths.push(path.join(process.resourcesPath, 'jre', 'bin', 'java.exe'));
+    }
+  }
+  candidatePaths.push(path.join(__dirname, 'jre', 'bin', 'java.exe'));
+
+  // 2. Standard Windows Java installation folders
+  const roots = [
+    'C:\\Program Files\\Eclipse Adoptium',
+    'C:\\Program Files\\Java',
+    'C:\\Program Files\\Amazon Corretto',
+    'C:\\Program Files\\Zulu',
+    'C:\\Program Files\\BellSoft',
+    'C:\\Program Files\\Microsoft'
+  ];
+
+  for (const root of roots) {
+    if (fs.existsSync(root)) {
+      try {
+        const subdirs = fs.readdirSync(root);
+        for (const sub of subdirs) {
+          candidatePaths.push(path.join(root, sub, 'bin', 'java.exe'));
+        }
+      } catch (_) {}
+    }
+  }
+
+  for (const p of candidatePaths) {
+    if (p && fs.existsSync(p)) {
+      console.log(`[BackendRunner] ✓ Discovered Java runtime at: ${p}`);
+      return p;
+    }
+  }
+
+  return 'java';
+}
+
 function checkPortAlive(port) {
   return new Promise((resolve) => {
     const req = http.get(`http://127.0.0.1:${port}/api/v1/public/config`, { timeout: 1500 }, (res) => {
@@ -231,7 +281,7 @@ async function startBackendIfConfigured(onStatusUpdate) {
   console.log(`[BackendRunner] Found backend JAR: ${jarPath}`);
   if (onStatusUpdate) onStatusUpdate('Starting local database and backend server...');
 
-  const javaCmd = localCfg.javaPath || 'java';
+  const javaCmd = findJavaExecutable(localCfg.javaPath);
   const jvmArgs = localCfg.jvmArgs || ['-Xmx512m'];
   const args = [...jvmArgs, '-jar', jarPath, `--server.port=${port}`];
 
@@ -243,6 +293,13 @@ async function startBackendIfConfigured(onStatusUpdate) {
   try {
     console.log(`[BackendRunner] Logging backend output to: ${logFilePath}`);
     logStream = fs.createWriteStream(logFilePath, { flags: 'a' });
+    logStream.write(`\n================================================================\n`);
+    logStream.write(`[${new Date().toISOString()}] Launching WildBar Backend Service\n`);
+    logStream.write(`Java Executable: ${javaCmd}\n`);
+    logStream.write(`Backend JAR: ${jarPath}\n`);
+    logStream.write(`Target Port: ${port}\n`);
+    logStream.write(`Working Directory: ${path.dirname(jarPath)}\n`);
+    logStream.write(`================================================================\n`);
     logStream.on('error', (err) => {
       console.error('[BackendRunner] Log stream error:', err);
     });
@@ -276,9 +333,15 @@ async function startBackendIfConfigured(onStatusUpdate) {
 
     backendProcess.on('error', (err) => {
       console.error('[BackendRunner] Failed to launch Java process:', err);
+      if (logStream) {
+        logStream.write(`[${new Date().toISOString()}] [FATAL] Failed to start Java process: ${err.message}\n`);
+        if (err.code === 'ENOENT') {
+          logStream.write(`[HINT] Java runtime was not found at "${javaCmd}". Please install Java 17+ (e.g. Eclipse Adoptium Temurin 17) or configure "javaPath" in config.json.\n`);
+        }
+      }
       if (onStatusUpdate) {
         if (err.code === 'ENOENT') {
-          onStatusUpdate('Java runtime not found in PATH. Please install Java 17+ or configure javaPath in config.json.');
+          onStatusUpdate('Java runtime not found! Please install Java 17+ or configure javaPath.');
         } else {
           onStatusUpdate(`Backend launch error: ${err.message}`);
         }
@@ -287,6 +350,9 @@ async function startBackendIfConfigured(onStatusUpdate) {
 
     backendProcess.on('exit', (code, signal) => {
       console.log(`[BackendRunner] Java process exited with code ${code}, signal ${signal}`);
+      if (logStream && code !== null && code !== 0) {
+        logStream.write(`[${new Date().toISOString()}] [EXIT] Java process exited with code ${code}, signal ${signal}\n`);
+      }
       backendProcess = null;
     });
 

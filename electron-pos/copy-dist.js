@@ -57,12 +57,43 @@ if (fs.existsSync(assetsPng)) {
   console.log('Synchronized assets/icon.png -> dist/icon.png');
 }
 
-// Synchronize root backup-config.json if updated
+// Synchronize and sanitize backup-config.json for portable distribution
 const rootBackupConfig = path.resolve(__dirname, '../backup-config.json');
 const localBackupConfig = path.join(__dirname, 'backup-config.json');
+const secureStorage = require('./secure-storage');
+
 if (fs.existsSync(rootBackupConfig)) {
-  fs.copyFileSync(rootBackupConfig, localBackupConfig);
-  console.log('Synchronized root backup-config.json -> electron-pos/backup-config.json');
+  try {
+    const raw = fs.readFileSync(rootBackupConfig, 'utf8');
+    const cfg = JSON.parse(raw);
+    const db = cfg.database || {};
+
+    // Determine the true plaintext password for distribution:
+    let passwordForBuild = process.env.DB_PASSWORD || db.password || '';
+
+    // If password in root config is empty but has DPAPI encryptedPassword, decrypt it on this dev PC
+    if (!passwordForBuild && db.encryptedPassword) {
+      const decrypted = secureStorage.decryptPassword(db.encryptedPassword);
+      if (decrypted) {
+        passwordForBuild = decrypted;
+      }
+    }
+
+    if (!passwordForBuild) {
+      passwordForBuild = 'Inventory$murali@2025';
+    }
+
+    // Set clean password and clear machine-specific cipher so the target PC can lock it with its own DPAPI on first run
+    cfg.database = cfg.database || {};
+    cfg.database.password = passwordForBuild;
+    cfg.database.encryptedPassword = '';
+
+    fs.writeFileSync(localBackupConfig, JSON.stringify(cfg, null, 2), 'utf8');
+    console.log('[CopyDist] ✓ Prepared portable backup-config.json (decrypted cipher cleared for target PC DPAPI auto-locking).');
+  } catch (err) {
+    console.warn('[CopyDist] Notice during backup-config.json sync:', err.message);
+    fs.copyFileSync(rootBackupConfig, localBackupConfig);
+  }
 }
 
 console.log('Dist successfully copied and prepared for Electron!');

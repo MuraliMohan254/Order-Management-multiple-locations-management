@@ -75,6 +75,7 @@ function decryptPassword(cipher) {
   if (cipher.startsWith('enc:dpapi:') || /^[0-9a-fA-F]{100,}$/.test(cipher)) {
     const dec = decryptWithPowerShellDpapi(cipher);
     if (dec) return dec;
+    return null;
   }
 
   return cipher;
@@ -86,25 +87,26 @@ function decryptPassword(cipher) {
  * writes the encrypted cipher to config, and WIPES the plaintext password from disk!
  */
 function resolveAndSecurePassword(config, configFilePath) {
-  if (!config) return '';
+  if (!config) return 'Inventory$murali@2025';
   const db = config.database || {};
 
-  // 1. Already encrypted
+  // 1. Try decrypting existing cipher
   if (db.encryptedPassword) {
     const dec = decryptPassword(db.encryptedPassword);
     if (dec) return dec;
+    console.warn('[SecureStorage] Encrypted password was created on a different machine and cannot be decrypted on this PC.');
   }
 
-  // 2. Plaintext password found -> Automatically migrate to encrypted storage and wipe plaintext!
+  // 2. Plaintext password found -> Automatically migrate to encrypted storage for THIS machine
   if (db.password && db.password !== 'PROMPT_ONCE') {
     const plain = db.password;
     try {
       const cipher = encryptPassword(plain);
       if (cipher && cipher !== plain && configFilePath && fs.existsSync(configFilePath)) {
         db.encryptedPassword = cipher;
-        db.password = ''; // Wipe plaintext from file!
+        db.password = ''; // Wipe plaintext from file
         fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2), 'utf8');
-        console.log(`[SecureStorage] ✓ Automatically encrypted database password in ${path.basename(configFilePath)} and wiped plaintext from disk.`);
+        console.log(`[SecureStorage] ✓ Automatically encrypted database password for this machine in ${path.basename(configFilePath)}.`);
       }
     } catch (e) {
       console.warn('[SecureStorage] Notice during password encryption migration:', e.message);
@@ -112,7 +114,8 @@ function resolveAndSecurePassword(config, configFilePath) {
     return plain;
   }
 
-  return '';
+  // 3. Default fallback password if copied between systems
+  return 'Inventory$murali@2025';
 }
 
 module.exports = {
