@@ -52,7 +52,7 @@ jwt:
   expirationMillis: 36000000  # 10hr
 app:
   subscription:
-    url: https://7yhnrcm91a.execute-api.us-east-1.amazonaws.com/bkp-prod/bkp-subscription
+    url: https://3ug1qn0e40.execute-api.us-east-1.amazonaws.com/wild-prod/bkp-subscription
   cors:
     # Syntax: ${ENV_VAR_NAME:default_value}
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8080,http://localhost:4200}

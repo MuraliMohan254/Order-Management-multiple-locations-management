@@ -73,12 +73,12 @@ public class AuthController {
         );
 
         //B. Check subscription
-//        SubscriptionCheckResult subscriptionCheckResult = subscriptionService.checkSubscription();
-//
-//        // STRICT CHECK: If locked, block login completely
-//        if (subscriptionCheckResult.isExpired()) {
-//            throw new DisabledException("Subscription Expired on: " + subscriptionCheckResult.getExpiry_date()+" Please Renew!!");
-//        }
+        SubscriptionCheckResult subscriptionCheckResult = subscriptionService.checkSubscription();
+
+        // STRICT CHECK: If locked, block login completely
+        if (subscriptionCheckResult.isExpired()) {
+            throw new DisabledException("Subscription Expired on: " + subscriptionCheckResult.getExpiry_date()+" Please Renew!!");
+        }
         // C. Fetch the User Entity
         User user = userRepository.findByUsername(req.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found")); // Should verify via auth, but good safety
@@ -101,7 +101,7 @@ public class AuthController {
                 user.getOutlet() != null ? user.getOutlet().getId() : null
         );
         // If you updated JwtService to accept email/fullName, pass 'user' here instead of req.getUsername()
-        return new AuthResponse(jwtToken, "ACTIVE", "26-05-2100","26-05-2100");
+        return new AuthResponse(jwtToken,  subscriptionCheckResult.getSubscription(), subscriptionCheckResult.getExpiry_date(),subscriptionCheckResult.getNotify_date());
     }
 
     // 1. Fetch All Users
