@@ -57,4 +57,12 @@ if (fs.existsSync(assetsPng)) {
   console.log('Synchronized assets/icon.png -> dist/icon.png');
 }
 
+// Synchronize root backup-config.json if updated
+const rootBackupConfig = path.resolve(__dirname, '../backup-config.json');
+const localBackupConfig = path.join(__dirname, 'backup-config.json');
+if (fs.existsSync(rootBackupConfig)) {
+  fs.copyFileSync(rootBackupConfig, localBackupConfig);
+  console.log('Synchronized root backup-config.json -> electron-pos/backup-config.json');
+}
+
 console.log('Dist successfully copied and prepared for Electron!');
