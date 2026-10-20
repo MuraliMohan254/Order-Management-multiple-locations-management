@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Starting WildBar POS...</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-app-region: drag;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: transparent;
+    }
+
+    .window-card {
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 50% 0%, #1e293b 0%, #0b0f19 75%, #050811 100%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Ambient lighting effect */
+    .ambient-glow {
+      position: absolute;
+      top: -60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 280px;
+      height: 160px;
+      background: radial-gradient(ellipse, rgba(16, 185, 129, 0.25) 0%, rgba(59, 130, 246, 0.15) 50%, transparent 80%);
+      pointer-events: none;
+      filter: blur(20px);
+    }
+
+    .main-body {
+      padding: 38px 40px 20px 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Brand Logo */
+    .logo-container {
+      position: relative;
+      width: 76px;
+      height: 76px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-aura {
+      position: absolute;
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.4) 0%, rgba(14, 165, 233, 0.2) 60%, transparent 80%);
+      animation: aura-pulse 3s ease-in-out infinite;
+    }
+
+    .logo-box {
+      position: relative;
+      width: 68px;
+      height: 68px;
+      background: linear-gradient(145deg, #1e293b, #0f172a);
+      border: 1.5px solid rgba(52, 211, 153, 0.45);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    }
+
+    .logo-box svg {
+      width: 36px;
+      height: 36px;
+      color: #34d399;
+      filter: drop-shadow(0 2px 8px rgba(52, 211, 153, 0.6));
+    }
+
+    /* Brand Titles */
+    .brand-title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: 3px;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 45%, #34d399 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .brand-subtitle {
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    /* Sleek Loading Progress Bar */
+    .progress-track {
+      width: 100%;
+      max-width: 360px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 9999px;
+      overflow: hidden;
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    .progress-indicator {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 40%;
+      border-radius: 9999px;
+      background: linear-gradient(90deg, #10b981, #06b6d4, #3b82f6);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.9);
+      animation: indeterminate 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    /* Dynamic Live Status */
+    .status-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: #e2e8f0;
+      font-weight: 500;
+      min-height: 24px;
+    }
+
+    .status-led {
+      width: 8px;
+      height: 8px;
+      background-color: #34d399;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #34d399;
+      animation: led-blink 1.2s ease-in-out infinite alternate;
+      flex-shrink: 0;
+    }
+
+    #status-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 360px;
+      color: #cbd5e1;
+    }
+
+    /* Footer Banner */
+    .footer-bar {
+      padding: 12px 24px;
+      background: rgba(0, 0, 0, 0.35);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      color: #64748b;
+      position: relative;
+      z-index: 1;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      background: rgba(52, 211, 153, 0.1);
+      color: #34d399;
+      border: 1px solid rgba(52, 211, 153, 0.25);
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 9.5px;
+    }
+
+    @keyframes indeterminate {
+      0% {
+        left: -40%;
+        width: 35%;
+      }
+      50% {
+        left: 25%;
+        width: 55%;
+      }
+      100% {
+        left: 105%;
+        width: 35%;
+      }
+    }
+
+    @keyframes aura-pulse {
+      0%, 100% {
+        transform: scale(0.92);
+        opacity: 0.45;
+      }
+      50% {
+        transform: scale(1.15);
+        opacity: 0.85;
+      }
+    }
+
+    @keyframes led-blink {
+      0% {
+        opacity: 0.35;
+        transform: scale(0.85);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1.15);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="window-card">
+    <div class="ambient-glow"></div>
+
+    <div class="main-body">
+      <!-- Animated Logo -->
+      <div class="logo-container">
+        <div class="logo-aura"></div>
+        <div class="logo-box">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 22h8" />
+            <path d="M12 11v11" />
+            <path d="m19 3-7 8-7-8Z" />
+            <path d="M6 3h12" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- App Branding -->
+      <h1 class="brand-title">WildBar POS</h1>
+      <p class="brand-subtitle">Order Management &amp; Billing Terminal</p>
+
+      <!-- Glowing Animated Progress Bar -->
+      <div class="progress-track">
+        <div class="progress-indicator"></div>
+      </div>
+
+      <!-- Dynamic Real-Time Backend Status -->
+      <div class="status-container">
+        <div class="status-led"></div>
+        <span id="status-text">Starting backend server and database...</span>
+      </div>
+    </div>
+
+    <!-- Bottom Status Bar -->
+    <div class="footer-bar">
+      <span class="status-pill">⚡ Standalone Desktop Engine</span>
+      <!-- <span>Spring Boot &bull; PostgreSQL &bull; Port 8089</span> -->
+    </div>
+  </div>
+
+  <script>
+    if (window.electronAPI && typeof window.electronAPI.onStartupStatus === 'function') {
+      window.electronAPI.onStartupStatus((status) => {
+        const el = document.getElementById('status-text');
+        if (el && status) {
+          el.textContent = status;
+        }
+      });
+    }
+  </script>
+</body>
+</html>

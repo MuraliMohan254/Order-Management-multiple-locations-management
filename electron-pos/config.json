@@ -1,0 +1,15 @@
+{
+  "mode": "standalone",
+  "remoteApiUrl": "https://api.yourwildbar.com",
+  "localBackend": {
+    "enabled": true,
+    "jarDirectory": "./backend-jar",
+    "port": 8089,
+    "javaPath": "java",
+    "jvmArgs": ["-Xmx512m"]
+  },
+  "printer": {
+    "defaultIp": "192.168.31.53",
+    "defaultPort": 9100
+  }
+}

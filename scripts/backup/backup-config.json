@@ -1,0 +1,30 @@
+﻿{
+    "database":  {
+                     "host":  "localhost",
+                     "port":  5432,
+                     "name":  "order_management",
+                     "username":  "postgres",
+                     "password":  "",
+                     "encryptedPassword":  "enc:dpapi:01000000d08c9ddf0115d1118c7a00c04fc297eb01000000b3c954fb28b4f242a22b37b185e6f6dd00000000020000000000106600000001000020000000e9b79faf665e74ec06ebe7d94276ff0e909cf2432def78df3683ebc7cf6d80ea000000000e800000000200002000000000cad6b50079122051b8b792b84a2509e2d8a9133617741a0899d996369f174c300000005dac08a4dacfac799c0fab9881583115ea14ca2e94240315c8e4dc9fc34b1363af51d4ce62d6f5d7c58e8db5efcc620c40000000425d4b04c1a80328b4dd683854c3df2290856a08ba5a049d9f8de37a4b0c4577425641425979324c5bd0af384875d0eb32cb5c6eeca62ace558e050bcdc353d3"
+                 },
+    "standalone":  {
+                       "enabled":  true,
+                       "backupDirectory":  "D:\\WildBar_Backups",
+                       "fallbackDirectory":  "%USERPROFILE%\\WildBar_Backups",
+                       "backupOnExit":  true,
+                       "backupOnLogin":  true,
+                       "backupOnLoginIntervalHours":  12,
+                       "cloudSyncDirectory":  ""
+                   },
+    "cloud":  {
+                  "dockerContainer":  "om_postgres",
+                  "backupDirectory":  "/var/backups/wildbar",
+                  "cronSchedule":  "0 2 * * *",
+                  "s3Bucket":  ""
+              },
+    "retention":  {
+                      "maxBackupsToKeep":  14,
+                      "retentionDays":  14,
+                      "deleteOldestWhenLimitReached":  true
+                  }
+}

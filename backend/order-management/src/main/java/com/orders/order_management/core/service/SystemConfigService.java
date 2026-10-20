@@ -1,0 +1,91 @@
+package com.orders.order_management.core.service;
+
+import com.orders.order_management.core.entity.Outlet;
+import com.orders.order_management.core.entity.SystemConfig;
+import com.orders.order_management.core.repository.SystemConfigRepository;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+
+@Service
+@RequiredArgsConstructor
+public class SystemConfigService {
+
+    private final SystemConfigRepository repository;
+
+    private Outlet createDefaultOutletRef() {
+        Outlet outlet = new Outlet();
+        outlet.setId("default-outlet-123");
+        return outlet;
+    }
+
+    @PostConstruct
+    public void initDefaultConfig() {
+        if (repository.count() == 0) {
+            SystemConfig config = SystemConfig.builder()
+                    .id(1L)
+                    .outlet(createDefaultOutletRef())
+                    .kitchenWorkflowEnabled(true)
+                    .taxRate(new BigDecimal("0.05"))
+                    .taxName("GST")
+                    .defaultDiscountPercentage(BigDecimal.ZERO)
+                    .thermalPrintingEnabled(false)
+                    .thermalPaperSize("80mm")
+                    .printerName(null)
+                    .restaurantName("WildBar")
+                    .quickBillPrintReceipt(true)
+                    .build();
+            repository.save(config);
+        }
+    }
+
+    @Cacheable(value = "systemConfig", key = "'global'")
+    public SystemConfig getConfig() {
+        return repository.findById(1L).orElseGet(() -> {
+            SystemConfig config = SystemConfig.builder()
+                    .id(1L)
+                    .outlet(createDefaultOutletRef())
+                    .kitchenWorkflowEnabled(true)
+                    .taxRate(new BigDecimal("0.05"))
+                    .taxName("GST")
+                    .defaultDiscountPercentage(BigDecimal.ZERO)
+                    .thermalPrintingEnabled(false)
+                    .thermalPaperSize("80mm")
+                    .printerName(null)
+                    .restaurantName("WildBar")
+                    .printerIp("192.168.31.53")
+                    .printerPort(9100)
+                    .quickBillPrintReceipt(true)
+                    .build();
+            return repository.save(config);
+        });
+    }
+
+    @CacheEvict(value = "systemConfig", allEntries = true)
+    public SystemConfig updateConfig(SystemConfig newConfig) {
+        SystemConfig config = repository.findById(1L).orElseGet(this::getConfig);
+        config.setKitchenWorkflowEnabled(newConfig.isKitchenWorkflowEnabled());
+        config.setTaxRate(newConfig.getTaxRate());
+        config.setTaxName(newConfig.getTaxName());
+        config.setDefaultDiscountPercentage(newConfig.getDefaultDiscountPercentage());
+        config.setThermalPrintingEnabled(newConfig.isThermalPrintingEnabled());
+        config.setThermalPaperSize(newConfig.getThermalPaperSize());
+        config.setPrinterName(newConfig.getPrinterName());
+        if (newConfig.getRestaurantName() != null && !newConfig.getRestaurantName().isBlank()) {
+            config.setRestaurantName(newConfig.getRestaurantName());
+        }
+        config.setGstNumber(newConfig.getGstNumber());
+        if (newConfig.getPrinterIp() != null && !newConfig.getPrinterIp().isBlank()) {
+            config.setPrinterIp(newConfig.getPrinterIp().trim());
+        }
+        if (newConfig.getPrinterPort() != null && newConfig.getPrinterPort() > 0) {
+            config.setPrinterPort(newConfig.getPrinterPort());
+        }
+        config.setQuickBillPrintReceipt(newConfig.getQuickBillPrintReceipt() != null ? newConfig.getQuickBillPrintReceipt() : true);
+        return repository.save(config);
+    }
+}

@@ -1,0 +1,625 @@
+<div class="space-y-6 font-sans text-slate-800 dark:text-slate-100 transition-colors duration-200">
+
+  <!-- ========================================== -->
+  <!-- 1. TOP HEADER & STRATEGIC CONTROLS -->
+  <!-- ========================================== -->
+  <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs transition-colors">
+    <div class="flex items-center gap-3">
+      <a routerLink="/dashboard" 
+         class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all shadow-xs"
+         title="Back to Operations Dashboard">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+      </a>
+
+      <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-black shadow-md shadow-indigo-600/20">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+        </svg>
+      </div>
+
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Executive Business Insights</h1>
+          <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 uppercase tracking-wider">
+            Owner Suite
+          </span>
+        </div>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">High-level financial KPIs, sales mix, kitchen SLA, and revenue drivers</p>
+      </div>
+    </div>
+
+    <!-- Actions & PDF Export -->
+    <div class="flex flex-wrap items-center gap-2.5 self-stretch xl:self-center">
+      <button (click)="loadInsights()" 
+              class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all shadow-xs cursor-pointer"
+              title="Refresh Insights">
+        <svg class="w-4 h-4" [ngClass]="{'animate-spin': isLoading()}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+      </button>
+
+      <button (click)="exportPdfReport()" 
+              [disabled]="isExportingPdf()"
+              class="px-4 py-2.5 bg-slate-900 hover:bg-black dark:bg-blue-600 dark:hover:bg-blue-500 text-white rounded-xl text-xs font-black transition-all shadow-md active:scale-98 flex items-center gap-2 disabled:opacity-50 cursor-pointer">
+        @if (isExportingPdf()) {
+          <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          <span>Generating PDF...</span>
+        } @else {
+          <svg class="w-4 h-4 text-rose-400 dark:text-rose-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          <span>Export Jasper PDF</span>
+        }
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 2. DATE RANGE PRESETS & PICKER & OUTLET -->
+  <!-- ========================================== -->
+  <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col xl:flex-row justify-between items-stretch xl:items-center gap-3 transition-colors">
+      <!-- Outlet Filter (Admin Only) -->
+      <div *ngIf="isAdmin()" class="flex items-center gap-2 w-full sm:w-auto">
+        <label class="text-xs font-bold text-slate-500 shrink-0">Outlet:</label>
+        <div class="w-full sm:w-60">
+          <app-custom-select
+            [options]="outletOptions()"
+            [selected]="selectedOutletId()"
+            (selectedChange)="onOutletChange($event)"
+            [serverSearch]="true"
+            [loading]="outletsLoading()"
+            (searchChange)="searchOutlets($event)"
+            placeholder="Consolidated (All Outlets)"
+            searchPlaceholder="Search outlet by name or code...">
+          </app-custom-select>
+        </div>
+      </div>
+
+      <!-- Presets -->
+    <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold overflow-x-auto max-w-full scrollbar-none py-1">
+      <button (click)="setPreset('TODAY')" 
+              class="px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0"
+              [ngClass]="activePreset() === 'TODAY' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+        Today
+      </button>
+      <button (click)="setPreset('WEEK')" 
+              class="px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0"
+              [ngClass]="activePreset() === 'WEEK' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+        Last 7 Days
+      </button>
+      <button (click)="setPreset('MONTH')" 
+              class="px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0"
+              [ngClass]="activePreset() === 'MONTH' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+        Last 30 Days
+      </button>
+      <button (click)="activePreset.set('CUSTOM')" 
+              class="px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0"
+              [ngClass]="activePreset() === 'CUSTOM' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+        Custom
+      </button>
+    </div>
+
+    <!-- Custom Range Pickers -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full xl:w-auto">
+      <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300">
+        <div class="flex items-center gap-1.5 flex-1 min-w-[110px]">
+          <span class="text-slate-400 shrink-0 font-medium">From:</span>
+          <input type="date" 
+                 [ngModel]="customStartDate()" 
+                 (ngModelChange)="customStartDate.set($event)"
+                 class="bg-transparent focus:outline-hidden font-medium text-slate-800 dark:text-slate-200 w-full min-w-0">
+        </div>
+        <div class="flex items-center gap-1.5 flex-1 min-w-[110px]">
+          <span class="text-slate-400 shrink-0 font-medium">To:</span>
+          <input type="date" 
+                 [ngModel]="customEndDate()" 
+                 (ngModelChange)="customEndDate.set($event)"
+                 class="bg-transparent focus:outline-hidden font-medium text-slate-800 dark:text-slate-200 w-full min-w-0">
+        </div>
+      </div>
+      <button (click)="applyCustomRange()" 
+              class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer text-center">
+        Apply
+      </button>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <!-- Loading Skeleton -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
+      @for (i of [1,2,3,4]; track i) {
+        <div class="h-32 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+      }
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-pulse">
+      <div class="h-72 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+      <div class="h-72 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+    </div>
+  } @else if (insightsData(); as d) {
+
+    <!-- ========================================== -->
+    <!-- 3. TOP FINANCIAL KPI SUMMARY -->
+    <!-- ========================================== -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <!-- Gross Sales -->
+      <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs relative overflow-hidden">
+        <div class="absolute -right-3 -top-3 w-20 h-20 bg-blue-500/10 dark:bg-blue-500/5 rounded-full pointer-events-none"></div>
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Gross Sales</span>
+          <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+        </div>
+        <div class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+          ₹{{ d.grossSales | number:'1.2-2' }}
+        </div>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Total revenue before discounts</p>
+      </div>
+
+      <!-- Net Sales & Discounts -->
+      <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs relative overflow-hidden">
+        <div class="absolute -right-3 -top-3 w-20 h-20 bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full pointer-events-none"></div>
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Net Realized Sales</span>
+          <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+        </div>
+        <div class="text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+          ₹{{ d.netSales | number:'1.2-2' }}
+        </div>
+        <div class="flex items-center gap-1.5 mt-1 text-[11px]">
+          <span class="text-amber-600 dark:text-amber-400 font-bold">Discounts: ₹{{ d.totalDiscounts | number:'1.2-2' }}</span>
+          <span class="text-slate-400">({{ d.discountRatePercent | number:'1.1-1' }}% margin effect)</span>
+        </div>
+      </div>
+
+      <!-- Average Order Value (AOV) -->
+      <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs relative overflow-hidden">
+        <div class="absolute -right-3 -top-3 w-20 h-20 bg-purple-500/10 dark:bg-purple-500/5 rounded-full pointer-events-none"></div>
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Average Order Value (AOV)</span>
+          <div class="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          </div>
+        </div>
+        <div class="text-2xl font-black text-purple-600 dark:text-purple-400 tracking-tight">
+          ₹{{ d.overallAov | number:'1.2-2' }}
+        </div>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Average ticket size per billed check</p>
+      </div>
+
+      <!-- Order Fulfillment & Conversion -->
+      <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs relative overflow-hidden">
+        <div class="absolute -right-3 -top-3 w-20 h-20 bg-sky-500/10 dark:bg-sky-500/5 rounded-full pointer-events-none"></div>
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Orders</span>
+          <div class="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          </div>
+        </div>
+        <div class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+          {{ d.totalOrders }}
+        </div>
+        <div class="flex items-center gap-2 mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+          <span class="text-emerald-600 dark:text-emerald-400 font-bold">{{ d.billedOrders }} Billed</span>
+          <span>•</span>
+          <span class="text-rose-500 font-bold">{{ d.cancelledOrders }} Cancelled</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 4. CHANNEL PROFITABILITY & KITCHEN SLA -->
+    <!-- ========================================== -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- Channel Dynamics: Dine-In vs Takeaway -->
+      <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 dark:text-white">Channel Revenue Contribution</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Comparison of Dine-In vs Takeaway spend & ticket sizes</p>
+            </div>
+            <div class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+            </div>
+          </div>
+
+          <!-- Split Progress Bar -->
+          <div class="space-y-1.5 mb-6">
+            <div class="flex justify-between text-xs font-bold">
+              <span class="text-blue-600 dark:text-blue-400">Dine-In ({{ dineInRevShare() }}%)</span>
+              <span class="text-emerald-600 dark:text-emerald-400">Takeaway ({{ takeAwayRevShare() }}%)</span>
+            </div>
+            <div class="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
+              <div class="bg-blue-600 dark:bg-blue-500 h-full transition-all duration-500" [style.width.%]="dineInRevShare()"></div>
+              <div class="bg-emerald-500 dark:bg-emerald-400 h-full transition-all duration-500" [style.width.%]="takeAwayRevShare()"></div>
+            </div>
+          </div>
+
+          <!-- 2 Stat Cards -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="p-4 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40">
+              <div class="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Dine-In</div>
+              <div class="text-lg font-black text-slate-900 dark:text-white mt-1">₹{{ d.dineInRevenue | number:'1.2-2' }}</div>
+              <div class="flex flex-col text-[11px] text-slate-500 dark:text-slate-400 mt-2 space-y-0.5">
+                <span>Orders: <strong class="text-slate-800 dark:text-slate-200">{{ d.dineInCount }}</strong></span>
+                <span>Avg Ticket: <strong class="text-blue-600 dark:text-blue-400">₹{{ d.dineInAov | number:'1.2-2' }}</strong></span>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40">
+              <div class="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">Takeaway</div>
+              <div class="text-lg font-black text-slate-900 dark:text-white mt-1">₹{{ d.takeAwayRevenue | number:'1.2-2' }}</div>
+              <div class="flex flex-col text-[11px] text-slate-500 dark:text-slate-400 mt-2 space-y-0.5">
+                <span>Orders: <strong class="text-slate-800 dark:text-slate-200">{{ d.takeAwayCount }}</strong></span>
+                <span>Avg Ticket: <strong class="text-emerald-600 dark:text-emerald-400">₹{{ d.takeAwayAov | number:'1.2-2' }}</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 text-xs text-slate-600 dark:text-slate-300 flex items-center gap-2 border border-slate-200/60 dark:border-slate-700/60">
+          <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>
+            @if (d.takeAwayAov > d.dineInAov) {
+              Takeaway orders have a <strong>{{ ((d.takeAwayAov - d.dineInAov) / d.dineInAov * 100) | number:'1.0-0' }}% higher average spend</strong> per ticket than dine-in tables.
+            } @else {
+              Dine-in guests spend <strong>{{ ((d.dineInAov - d.takeAwayAov) / (d.takeAwayAov || 1) * 100) | number:'1.0-0' }}% more</strong> per ticket than takeaway orders.
+            }
+          </span>
+        </div>
+      </div>
+
+      <!-- Kitchen Speed of Service & SLA Benchmark -->
+      <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 dark:text-white">Kitchen Turnaround & SLA Rate</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Fulfillment speed measured from order placement to completion</p>
+            </div>
+            <div class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+          </div>
+
+          <!-- Average Turnaround Big Stat -->
+          <div class="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 mb-5">
+            <div>
+              <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Average Kitchen Turnaround</span>
+              <div class="text-2xl font-black text-slate-900 dark:text-white mt-0.5">
+                {{ d.averageTurnaroundMinutes | number:'1.1-1' }} <span class="text-sm font-bold text-slate-500">mins</span>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">On-Time SLA Rate</span>
+              <div class="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+                {{ d.onTimeServiceRate | number:'1.1-1' }}%
+              </div>
+            </div>
+          </div>
+
+          <!-- Speed Distribution 3-Tier -->
+          <div class="space-y-3">
+            <div class="text-xs font-bold text-slate-700 dark:text-slate-300">Order Speed Breakdown:</div>
+            
+            <div class="grid grid-cols-3 gap-3 text-center">
+              <div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
+                <div class="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">Fast (≤15m)</div>
+                <div class="text-lg font-black text-slate-900 dark:text-white mt-1">{{ d.fastServiceCount }}</div>
+                <div class="text-[10px] text-slate-500 dark:text-slate-400">Quick turnaround</div>
+              </div>
+
+              <div class="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800">
+                <div class="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase">Standard (15-25m)</div>
+                <div class="text-lg font-black text-slate-900 dark:text-white mt-1">{{ d.standardServiceCount }}</div>
+                <div class="text-[10px] text-slate-500 dark:text-slate-400">Within threshold</div>
+              </div>
+
+              <div class="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800">
+                <div class="text-[11px] font-bold text-rose-700 dark:text-rose-400 uppercase">Delayed (&gt;25m)</div>
+                <div class="text-lg font-black text-slate-900 dark:text-white mt-1">{{ d.delayedServiceCount }}</div>
+                <div class="text-[10px] text-slate-500 dark:text-slate-400">Kitchen bottleneck</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 text-[11px] text-slate-500 dark:text-slate-400">
+          * SLA target is delivery within 25 minutes from POS order creation.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 5. RUSH HOUR & PEAK DEMAND TRAFFIC (24H) -->
+    <!-- ========================================== -->
+    <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+        <div>
+          <h2 class="text-base font-bold text-slate-900 dark:text-white">Peak Rush Hours & Demand Curve</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Hourly order density to optimize kitchen prep and staff allocation</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          @if (peakHour(); as ph) {
+            <div class="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-xs font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>
+              <span>Peak Volume: <strong>{{ ph.label }}</strong> ({{ ph.orderCount }} orders)</span>
+            </div>
+          }
+          @if (peakRevenueHour(); as prh) {
+            <div class="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span>Top Revenue: <strong>{{ prh.label }}</strong> (₹{{ prh.revenue | number:'1.0-0' }})</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- 24-Hour Bar Chart Grid -->
+      <div class="overflow-x-auto custom-scrollbar pb-2">
+        <div class="min-w-[700px] flex items-end gap-2 h-44 pt-6 px-2">
+          @for (h of d.hourlyTraffic; track h.hour) {
+            <div class="flex-1 flex flex-col items-center gap-1.5 group relative">
+              <!-- Tooltip on hover -->
+              <div class="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] rounded-lg py-1 px-2 pointer-events-none whitespace-nowrap z-20 shadow-md">
+                <span class="font-bold">{{ h.label }}:</span> {{ h.orderCount }} orders (₹{{ h.revenue | number:'1.0-0' }})
+              </div>
+
+              <!-- Bar -->
+              <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-t-md overflow-hidden flex flex-col justify-end h-32">
+                <div class="w-full bg-indigo-500 dark:bg-indigo-600 group-hover:bg-indigo-400 transition-all rounded-t-md"
+                     [style.height.%]="(h.orderCount / maxHourlyOrders()) * 100">
+                </div>
+              </div>
+
+              <!-- Hour Label -->
+              <span class="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate w-full text-center">
+                {{ h.label }}
+              </span>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 6. CATEGORY REVENUE & PAYMENT SPLITS -->
+    <!-- ========================================== -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Category Contribution (2 Columns Wide) -->
+      <div class="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-base font-bold text-slate-900 dark:text-white">Category Revenue Share</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Contribution of each food and beverage category to total sales</p>
+          </div>
+          <span class="text-xs font-bold text-slate-500">{{ d.categoryShares.length }} Categories</span>
+        </div>
+
+        <div class="space-y-3.5 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
+          @for (cat of d.categoryShares; track cat.categoryName) {
+            <div class="space-y-1">
+              <div class="flex justify-between items-center text-xs">
+                <span class="font-bold text-slate-800 dark:text-slate-200">{{ cat.categoryName }}</span>
+                <div class="flex items-center gap-3">
+                  <span class="text-[11px] text-slate-400">{{ cat.unitsSold }} sold</span>
+                  <span class="font-extrabold text-slate-900 dark:text-white">₹{{ cat.revenue | number:'1.2-2' }}</span>
+                  <span class="font-bold text-blue-600 dark:text-blue-400 w-12 text-right">{{ cat.percentageShare }}%</span>
+                </div>
+              </div>
+              <div class="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 rounded-full transition-all duration-300"
+                     [style.width.%]="cat.percentageShare"></div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Payment Method Breakdown (1 Column Wide) -->
+      <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 dark:text-white">Payment Splits</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Collections by settlement mode</p>
+            </div>
+            <div class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            @for (p of d.paymentSplits; track p.method) {
+              <div class="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+                <div class="flex justify-between items-center mb-1">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-black uppercase text-slate-800 dark:text-slate-200">{{ p.method }}</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold">
+                      {{ p.count }} txns
+                    </span>
+                  </div>
+                  <span class="text-xs font-black text-slate-900 dark:text-white">₹{{ p.totalAmount | number:'1.2-2' }}</span>
+                </div>
+                <div class="flex justify-between items-center text-[11px] text-slate-500 mb-1.5">
+                  <span>Share of total payments</span>
+                  <span class="font-bold text-slate-700 dark:text-slate-300">{{ p.percentageShare }}%</span>
+                </div>
+                <div class="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div class="h-full bg-emerald-500 rounded-full" [style.width.%]="p.percentageShare"></div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="mt-4 p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 text-xs text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40">
+          Digital payments (UPI + Cards) represent <strong>{{ (100 - (d.paymentSplits[2]?.percentageShare || 0)) | number:'1.0-0' }}%</strong> of all settled transactions.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 7. TOP EARNERS VS SLOW MOVERS -->
+    <!-- ========================================== -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- Top Revenue Engines -->
+      <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+              ★
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-slate-900 dark:text-white">Top 5 Revenue Engines</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Items generating the highest gross revenue</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-2.5">
+          @for (item of d.topEarners; track item.itemName; let idx = $index) {
+            <div class="p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 text-xs font-black flex items-center justify-center">
+                  {{ idx + 1 }}
+                </span>
+                <div>
+                  <div class="text-xs font-bold text-slate-900 dark:text-white">{{ item.itemName }}</div>
+                  <div class="text-[11px] text-slate-500 dark:text-slate-400">{{ item.totalSold }} units sold</div>
+                </div>
+              </div>
+              <div class="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                ₹{{ item.totalRevenue | number:'1.2-2' }}
+              </div>
+            </div>
+          } @empty {
+            <div class="py-8 text-center text-xs text-slate-400 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+              No top revenue items recorded for this period
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Slow Movers / Candidates for Pruning -->
+      <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+              !
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-slate-900 dark:text-white">Bottom Movers (Review / Reprice)</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Lowest revenue generators in current selection</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-2.5">
+          @for (item of d.slowMovers; track item.itemName; let idx = $index) {
+            <div class="p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-xs font-black flex items-center justify-center">
+                  {{ idx + 1 }}
+                </span>
+                <div>
+                  <div class="text-xs font-bold text-slate-900 dark:text-white">{{ item.itemName }}</div>
+                  <div class="text-[11px] text-slate-500 dark:text-slate-400">{{ item.totalSold }} units sold</div>
+                </div>
+              </div>
+              <div class="text-sm font-black text-slate-700 dark:text-slate-300">
+                ₹{{ item.totalRevenue | number:'1.2-2' }}
+              </div>
+            </div>
+          } @empty {
+            <div class="py-8 text-center text-xs text-slate-400 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+              No bottom moving items recorded for this period
+            </div>
+          }
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 8. TABLE SEATING & ASSET EFFICIENCY -->
+    <!-- ========================================== -->
+    <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-base font-bold text-slate-900 dark:text-white">Table Turnover & Seating Performance</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Order count and revenue generated across dining zones</p>
+        </div>
+        <div class="text-xs font-bold text-slate-500">{{ d.tableMetrics.length > 0 ? (d.tableMetrics.length + ' Active Tables') : 'No Active Tables' }}</div>
+      </div>
+
+      <div class="overflow-x-auto custom-scrollbar">
+        <table class="w-full text-left text-xs">
+          <thead>
+            <tr class="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
+              <th class="py-3 px-4">Table / Zone</th>
+              <th class="py-3 px-4 text-center">Turnover Frequency (Orders)</th>
+              <th class="py-3 px-4 text-right">Total Revenue</th>
+              <th class="py-3 px-4 text-right">Avg Revenue / Turn</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+            @for (t of d.tableMetrics; track t.tableNumber) {
+              <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                <td class="py-3.5 px-4 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                  {{ t.tableNumber }}
+                </td>
+                <td class="py-3.5 px-4 text-center">
+                  <span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[11px]">
+                    {{ t.orderCount }} turns
+                  </span>
+                </td>
+                <td class="py-3.5 px-4 text-right font-black text-slate-900 dark:text-white">
+                  ₹{{ t.totalRevenue | number:'1.2-2' }}
+                </td>
+                <td class="py-3.5 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                  ₹{{ (t.orderCount > 0 ? t.totalRevenue / t.orderCount : 0) | number:'1.2-2' }}
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="4" class="py-12 text-center text-slate-400 dark:text-slate-500">
+                  <div class="flex flex-col items-center justify-center gap-2.5">
+                    <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center text-slate-400 dark:text-slate-500">
+                      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 10h18M3 14h18m-9-4v8m-7 4h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-xs font-bold text-slate-700 dark:text-slate-300">No Table Turnover Data Available</p>
+                      <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">No billed dine-in table transactions recorded for this period.</p>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  }
+</div>
+
+
+
+

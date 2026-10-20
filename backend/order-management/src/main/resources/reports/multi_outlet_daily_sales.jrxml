@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" 
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" 
+              name="MultiOutletDailySalesReport" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+    
+    <parameter name="DATE_RANGE" class="java.lang.String"/>
+    <parameter name="GENERATED_AT" class="java.lang.String"/>
+    <parameter name="OUTLET_FILTER" class="java.lang.String"/>
+    <parameter name="RESTAURANT_NAME" class="java.lang.String"/>
+
+    <field name="dateGroup" class="java.lang.String"/>
+    <field name="dateSortKey" class="java.lang.String"/>
+    <field name="outletName" class="java.lang.String"/>
+    <field name="outletCode" class="java.lang.String"/>
+    <field name="orderCount" class="java.lang.Long"/>
+    <field name="totalRevenue" class="java.math.BigDecimal"/>
+    <field name="averageOrderValue" class="java.math.BigDecimal"/>
+    
+    <!-- Day level subtotals -->
+    <variable name="dayOrderCount" class="java.lang.Long" resetType="Group" resetGroup="DateGroup" calculation="Sum">
+        <variableExpression><![CDATA[$F{orderCount}]]></variableExpression>
+    </variable>
+    
+    <variable name="dayTotalRevenue" class="java.math.BigDecimal" resetType="Group" resetGroup="DateGroup" calculation="Sum">
+        <variableExpression><![CDATA[$F{totalRevenue}]]></variableExpression>
+    </variable>
+
+    <!-- Report level grand totals -->
+    <variable name="grandOrderCount" class="java.lang.Long" calculation="Sum">
+        <variableExpression><![CDATA[$F{orderCount}]]></variableExpression>
+    </variable>
+    
+    <variable name="grandTotalRevenue" class="java.math.BigDecimal" calculation="Sum">
+        <variableExpression><![CDATA[$F{totalRevenue}]]></variableExpression>
+    </variable>
+
+    <!-- Grouping by Date -->
+    <group name="DateGroup">
+        <groupExpression><![CDATA[$F{dateGroup}]]></groupExpression>
+        <groupHeader>
+            <band height="28">
+                <rectangle>
+                    <reportElement mode="Opaque" x="0" y="4" width="555" height="22" backcolor="#F1F5F9"/>
+                    <graphicElement><pen lineWidth="0.5" lineColor="#CBD5E1"/></graphicElement>
+                </rectangle>
+                <textField>
+                    <reportElement x="10" y="4" width="350" height="22" forecolor="#0F172A"/>
+                    <textElement verticalAlignment="Middle">
+                        <font size="10" isBold="true"/>
+                    </textElement>
+                    <textFieldExpression><![CDATA["Date: " + $F{dateGroup}]]></textFieldExpression>
+                </textField>
+            </band>
+        </groupHeader>
+        <groupFooter>
+            <band height="24">
+                <rectangle>
+                    <reportElement mode="Opaque" x="0" y="0" width="555" height="20" backcolor="#F8FAFC"/>
+                    <graphicElement><pen lineWidth="0.5" lineColor="#E2E8F0"/></graphicElement>
+                </rectangle>
+                <textField>
+                    <reportElement x="10" y="0" width="220" height="20" forecolor="#334155"/>
+                    <textElement verticalAlignment="Middle">
+                        <font size="9" isBold="true"/>
+                    </textElement>
+                    <textFieldExpression><![CDATA["Total for " + $F{dateGroup} + " (All Outlets):"]]></textFieldExpression>
+                </textField>
+                <textField>
+                    <reportElement x="230" y="0" width="90" height="20" forecolor="#0F172A"/>
+                    <textElement textAlignment="Center" verticalAlignment="Middle">
+                        <font size="9" isBold="true"/>
+                    </textElement>
+                    <textFieldExpression><![CDATA[$V{dayOrderCount} + " orders"]]></textFieldExpression>
+                </textField>
+                <textField pattern="₹#,##0.00">
+                    <reportElement x="425" y="0" width="120" height="20" forecolor="#059669"/>
+                    <textElement textAlignment="Right" verticalAlignment="Middle">
+                        <font size="9" isBold="true"/>
+                    </textElement>
+                    <textFieldExpression><![CDATA[$V{dayTotalRevenue}]]></textFieldExpression>
+                </textField>
+                <line>
+                    <reportElement x="0" y="21" width="555" height="1" forecolor="#CBD5E1"/>
+                </line>
+            </band>
+        </groupFooter>
+    </group>
+
+    <!-- Title Band -->
+    <title>
+        <band height="80">
+            <rectangle>
+                <reportElement mode="Opaque" x="-20" y="-20" width="595" height="85" backcolor="#0F172A"/>
+                <graphicElement><pen lineWidth="0.0"/></graphicElement>
+            </rectangle>
+            <textField>
+                <reportElement x="0" y="-10" width="555" height="26" forecolor="#FFFFFF"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font size="18" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[($P{RESTAURANT_NAME} != null ? $P{RESTAURANT_NAME} : "WildBar") + " Restaurant Management"]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement x="0" y="16" width="555" height="18" forecolor="#38BDF8"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font size="11" isBold="true"/>
+                </textElement>
+                <text><![CDATA[Multi-Outlet Daily Sales & Breakdown Report]]></text>
+            </staticText>
+            <textField>
+                <reportElement x="0" y="36" width="555" height="14" forecolor="#94A3B8"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font size="8"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Period: " + ($P{DATE_RANGE} != null ? $P{DATE_RANGE} : "Custom Range") + "  |  Filter: " + ($P{OUTLET_FILTER} != null ? $P{OUTLET_FILTER} : "Consolidated") + "  |  Generated: " + ($P{GENERATED_AT} != null ? $P{GENERATED_AT} : "")]]></textFieldExpression>
+            </textField>
+        </band>
+    </title>
+    
+    <!-- Column Headers -->
+    <columnHeader>
+        <band height="26">
+            <rectangle>
+                <reportElement mode="Opaque" x="0" y="0" width="555" height="24" backcolor="#1E293B"/>
+                <graphicElement><pen lineWidth="0.0"/></graphicElement>
+            </rectangle>
+            <staticText>
+                <reportElement x="10" y="0" width="220" height="24" forecolor="#FFFFFF"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Outlet Name & Code]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="230" y="0" width="90" height="24" forecolor="#FFFFFF"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Orders]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="320" y="0" width="105" height="24" forecolor="#FFFFFF"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Average Value]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="425" y="0" width="120" height="24" forecolor="#FFFFFF"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Total Sales]]></text>
+            </staticText>
+        </band>
+    </columnHeader>
+    
+    <!-- Detail Rows -->
+    <detail>
+        <band height="20">
+            <textField>
+                <reportElement x="15" y="0" width="215" height="18"/>
+                <textElement verticalAlignment="Middle">
+                    <font size="8"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{outletName} + " (" + $F{outletCode} + ")"]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="230" y="0" width="90" height="18"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font size="8"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{orderCount}]]></textFieldExpression>
+            </textField>
+            <textField pattern="₹#,##0.00">
+                <reportElement x="320" y="0" width="105" height="18"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle">
+                    <font size="8"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{averageOrderValue}]]></textFieldExpression>
+            </textField>
+            <textField pattern="₹#,##0.00">
+                <reportElement x="425" y="0" width="120" height="18" forecolor="#0F172A"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle">
+                    <font size="8" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{totalRevenue}]]></textFieldExpression>
+            </textField>
+            <line>
+                <reportElement x="10" y="19" width="535" height="1" forecolor="#F1F5F9"/>
+            </line>
+        </band>
+    </detail>
+    
+    <!-- Summary Band -->
+    <summary>
+        <band height="45">
+            <rectangle>
+                <reportElement mode="Opaque" x="0" y="10" width="555" height="30" backcolor="#0F172A"/>
+                <graphicElement><pen lineWidth="0.0"/></graphicElement>
+            </rectangle>
+            <staticText>
+                <reportElement x="10" y="10" width="220" height="30" forecolor="#FFFFFF"/>
+                <textElement verticalAlignment="Middle">
+                    <font size="10" isBold="true"/>
+                </textElement>
+                <text><![CDATA[PERIOD GRAND TOTAL (ALL OUTLETS)]]></text>
+            </staticText>
+            <textField>
+                <reportElement x="230" y="10" width="90" height="30" forecolor="#FFFFFF"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font size="10" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$V{grandOrderCount} + " total"]]></textFieldExpression>
+            </textField>
+            <textField pattern="₹#,##0.00">
+                <reportElement x="425" y="10" width="120" height="30" forecolor="#10B981"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle">
+                    <font size="11" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$V{grandTotalRevenue}]]></textFieldExpression>
+            </textField>
+        </band>
+    </summary>
+</jasperReport>

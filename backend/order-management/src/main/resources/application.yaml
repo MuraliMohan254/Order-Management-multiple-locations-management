@@ -1,0 +1,63 @@
+server:
+  port: ${PORT:8089}
+  forward-headers-strategy: framework
+  tomcat:
+    threads:
+      max: 250
+      min-spare: 25
+    accept-count: 100
+    max-connections: 10000
+    connection-timeout: 20000
+
+spring:
+  application:
+    name: order-management
+  
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    validate-on-migrate: false
+    # Locations of migrations
+    locations: classpath:db/migration
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/order_management}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:Inventory$murali@2025}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: OrderManagementPool
+      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:50}
+      minimum-idle: ${HIKARI_MIN_IDLE:15}
+      idle-timeout: 300000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      leak-detection-threshold: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        default_batch_fetch_size: 64
+    open-in-view: false
+
+api:
+  prefix: /api/v1
+jwt:
+  # Use a 256-bit+ Base64-encoded secret (example shown; replace in real apps)
+  secret: ${JWT_SECRET:yAhmxRTWRPeFvmZhr2hcd6om8rOm+5n3REZgiKt4EJY=}
+  expirationMillis: 36000000  # 10hr
+app:
+  subscription:
+    url: https://7yhnrcm91a.execute-api.us-east-1.amazonaws.com/bkp-prod/bkp-subscription
+  cors:
+    # Syntax: ${ENV_VAR_NAME:default_value}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8080,http://localhost:4200}
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

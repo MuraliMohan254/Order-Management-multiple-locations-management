@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+.angular/
+
+# Maven build outputs
+target/
+*.class
+
+# Electron builds & distributions
+electron-pos/release/
+electron-pos/dist/
+electron-pos/backend-jar/*.jar
+electron-pos/*.log
+
+# Database backups & audit logs (keep local only)
+*.dump
+backup_history.log
+
+# IDE & OS files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db

@@ -1,0 +1,66 @@
+{
+  "name": "wildbar-pos-desktop",
+  "version": "1.0.0",
+  "description": "WildBar POS Desktop Terminal with Direct Wi-Fi Thermal Printing",
+  "main": "main.js",
+  "scripts": {
+    "copy-dist": "node copy-dist.js",
+    "generate-icon": "powershell -ExecutionPolicy Bypass -File ./generate-icon.ps1",
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build-pos": "npm run copy-dist && electron .",
+    "pack": "electron-builder --dir",
+    "dist": "npm run copy-dist && electron-builder --win",
+    "dist:portable": "npm run copy-dist && electron-builder --win portable",
+    "dist:installer": "npm run copy-dist && electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "com.wildbar.pos",
+    "productName": "WildBar POS",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "thermal-printer.js",
+      "backend-runner.js",
+      "backup-manager.js",
+      "secure-storage.js",
+      "config.json",
+      "backup-config.json",
+      "splash.html",
+      "assets/**/*",
+      "dist/**/*"
+    ],
+    "extraResources": [
+      "config.json",
+      "backup-config.json",
+      {
+        "from": "backend-jar",
+        "to": "backend-jar",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "WildBar POS"
+    }
+  },
+  "author": "WildBar POS",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  }
+}

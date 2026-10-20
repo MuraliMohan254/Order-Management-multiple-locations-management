@@ -1,0 +1,233 @@
+/* You can add global styles to this file, and also import other style files */
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
+@import "sweetalert2/dist/sweetalert2.min.css";
+
+/* ========================================================
+   WildBar Enterprise SweetAlert2 System Styling
+   ======================================================== */
+
+/* Toasts (bottom-right notifications) */
+.swal2-popup.wildbar-toast {
+  border-radius: 1rem !important;
+  padding: 0.875rem 1.125rem !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  font-family: inherit !important;
+}
+
+:where(.dark, [data-theme="dark"]) .swal2-popup.wildbar-toast {
+  background-color: #1e293b !important;
+  border: 1px solid rgba(51, 65, 85, 0.9) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6) !important;
+}
+
+.wildbar-toast .swal2-icon {
+  margin: 0 0.75rem 0 0 !important;
+  transform: scale(0.85);
+}
+
+/* Light Theme Title and Subtitle Text */
+.wildbar-toast .swal2-title,
+.wildbar-toast-title {
+  font-size: 0.925rem !important;
+  font-weight: 700 !important;
+  margin: 0 !important;
+  line-height: 1.35 !important;
+  text-align: left !important;
+  color: #0f172a !important; /* Slate 900 */
+}
+
+.wildbar-toast .swal2-html-container,
+.wildbar-toast-html {
+  font-size: 0.825rem !important;
+  font-weight: 500 !important;
+  margin: 0.35rem 0 0 0 !important;
+  line-height: 1.45 !important;
+  text-align: left !important;
+  color: #334155 !important; /* Slate 700 - high contrast and visible */
+  opacity: 1 !important;
+}
+
+/* Dark Theme Title and Subtitle Text */
+:where(.dark, [data-theme="dark"]) .wildbar-toast .swal2-title,
+:where(.dark, [data-theme="dark"]) .wildbar-toast-title {
+  color: #f8fafc !important; /* Slate 50 */
+}
+
+:where(.dark, [data-theme="dark"]) .wildbar-toast .swal2-html-container,
+:where(.dark, [data-theme="dark"]) .wildbar-toast-html {
+  color: #e2e8f0 !important; /* Slate 200 - crystal clear high contrast */
+  opacity: 1 !important;
+}
+
+/* Bottom Progress Bar Line - Crisp, Vivid & High-Contrast */
+.wildbar-toast .swal2-timer-progress-bar-container {
+  overflow: hidden !important;
+  border-bottom-left-radius: 1rem !important;
+  border-bottom-right-radius: 1rem !important;
+}
+
+.wildbar-toast .swal2-timer-progress-bar {
+  height: 4px !important;
+  opacity: 1 !important;
+  background: #3b82f6 !important; /* Default Blue */
+}
+
+.wildbar-toast.wildbar-toast-success .swal2-timer-progress-bar {
+  background: #10b981 !important; /* Vivid Emerald 500 */
+}
+
+.wildbar-toast.wildbar-toast-error .swal2-timer-progress-bar {
+  background: #f43f5e !important; /* Vivid Rose 500 */
+}
+
+.wildbar-toast.wildbar-toast-warning .swal2-timer-progress-bar {
+  background: #f59e0b !important; /* Vivid Amber 500 */
+}
+
+.wildbar-toast.wildbar-toast-info .swal2-timer-progress-bar {
+  background: #0284c7 !important; /* Vivid Sky 500 */
+}
+
+/* Modals & Dialogs (Alert & Confirm popups) */
+.swal2-popup.wildbar-modal-popup {
+  border-radius: 1.25rem !important;
+  padding: 1.75rem 1.5rem !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  border: 1px solid rgba(226, 232, 240, 0.85) !important;
+  font-family: inherit !important;
+}
+
+:where(.dark, [data-theme="dark"]) .swal2-popup.wildbar-modal-popup {
+  border: 1px solid rgba(51, 65, 85, 0.85) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6) !important;
+}
+
+.wildbar-modal-popup .swal2-title {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  margin-top: 0.75rem !important;
+}
+
+.wildbar-modal-popup .swal2-html-container {
+  font-size: 0.925rem !important;
+  line-height: 1.5 !important;
+  margin-top: 0.5rem !important;
+}
+
+.wildbar-actions {
+  display: flex !important;
+  gap: 0.75rem !important;
+  margin-top: 1.5rem !important;
+}
+
+.wildbar-btn-confirm {
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  padding: 0.625rem 1.25rem !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  transition: transform 0.1s ease, filter 0.15s ease !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+.wildbar-btn-confirm:hover {
+  filter: brightness(1.05) !important;
+}
+
+.wildbar-btn-confirm:active {
+  transform: scale(0.98) !important;
+}
+
+.wildbar-btn-cancel {
+  border-radius: 0.75rem !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  padding: 0.625rem 1.25rem !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  transition: transform 0.1s ease, filter 0.15s ease !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+.wildbar-btn-cancel:hover {
+  filter: brightness(0.95) !important;
+}
+
+.wildbar-btn-cancel:active {
+  transform: scale(0.98) !important;
+}
+
+/* ========================================================
+   WildBar Custom Scrollbars
+   ======================================================== */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+:where(.dark, [data-theme="dark"]) .custom-scrollbar {
+  scrollbar-color: #475569 transparent;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+:where(.dark, [data-theme="dark"]) .custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #475569;
+}
+:where(.dark, [data-theme="dark"]) .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #64748b;
+}
+
+/* ========================================================
+   Global Thermal Receipt Print Styles (80mm / 58mm POS)
+   ======================================================== */
+@media print {
+  /* Hide all interactive app elements, navigation, modal chrome */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Make only the thermal receipt container visible */
+  #thermal-receipt,
+  #thermal-receipt * {
+    visibility: visible !important;
+  }
+
+  /* Position thermal receipt at origin with exact POS paper dimensions */
+  #thermal-receipt {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 80mm !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 8px 12px !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+    font-family: monospace, 'Courier New', Courier !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  @page {
+    margin: 4mm;
+    size: auto;
+  }
+}

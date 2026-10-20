@@ -1,0 +1,30 @@
+{
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "name": "order_management",
+    "username": "postgres",
+    "password": "Inventory$murali@2025",
+    "encryptedPassword": ""
+  },
+  "standalone": {
+    "enabled": true,
+    "backupDirectory": "D:\\WildBar_Backups",
+    "fallbackDirectory": "%USERPROFILE%\\WildBar_Backups",
+    "backupOnExit": true,
+    "backupOnLogin": true,
+    "backupOnLoginIntervalHours": 12,
+    "cloudSyncDirectory": ""
+  },
+  "cloud": {
+    "dockerContainer": "om_postgres",
+    "backupDirectory": "/var/backups/wildbar",
+    "cronSchedule": "0 2 * * *",
+    "s3Bucket": ""
+  },
+  "retention": {
+    "maxBackupsToKeep": 14,
+    "retentionDays": 14,
+    "deleteOldestWhenLimitReached": true
+  }
+}

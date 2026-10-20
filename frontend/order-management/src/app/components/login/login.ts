@@ -1,0 +1,72 @@
+import { Component, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
+import { AlertService } from '../../services/alert.service';
+import { AuthService } from '../../services/auth.service';
+import { SharedService } from '../../services/shared';
+
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  templateUrl: './login.html'
+})
+export class LoginComponent {
+  private fb = inject(FormBuilder);
+  private authService = inject(AuthService);
+  public sharedService = inject(SharedService);
+  private router = inject(Router);
+  private alertService = inject(AlertService);
+  
+  isLoading = signal(false);
+  showPassword = signal(false);
+  errorMessage = signal<string | null>(null);
+
+  loginForm = this.fb.nonNullable.group({
+    username: ['', [Validators.required, Validators.minLength(3)]],
+    password: ['', [Validators.required, Validators.minLength(5)]]
+  });
+
+  togglePasswordVisibility() {
+    this.showPassword.update(show => !show);
+  }
+
+  onSubmit() {
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }
+
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+    const { username, password } = this.loginForm.getRawValue();
+
+    // Connecting to actual backend auth service configured earlier
+    this.authService.login({ username, password }).subscribe({
+      next: () => {
+        this.alertService.success(`Welcome back to ${this.sharedService.appName}`, 'Login Successful');
+        
+        // Automated POS Backup Check: If cashier didn't close app overnight, backup triggers on morning login
+        if (typeof window !== 'undefined' && (window as any).electronAPI?.backupOnLogin) {
+          (window as any).electronAPI.backupOnLogin().catch((e: any) => console.warn('Background backup notice:', e));
+        }
+
+        const role = this.authService.getUserRole();
+        if (role === 'CASHIER') {
+          this.router.navigate(['/pos-sale']);
+        } else if (role === 'KITCHEN') {
+          this.router.navigate(['/kitchen']);
+        } else {
+          this.router.navigate(['/dashboard']);
+        }
+      },
+      error: (err) => {
+        this.isLoading.set(false);
+        const errorMsg = err.error?.message || 'Invalid username or password';
+        this.errorMessage.set(errorMsg);
+        this.alertService.error(errorMsg, 'Authentication Failed');
+      }
+    });
+  }
+}
