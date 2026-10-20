@@ -200,11 +200,12 @@ $dumpExitCode = $LASTEXITCODE
 
 $env:PGPASSWORD = ""
 
-if ($dumpExitCode -eq 0 -and (Test-Path $backupFullPath)) {
+if ($dumpExitCode -eq 0 -and (Test-Path $backupFullPath) -and (Get-Item $backupFullPath).Length -gt 0) {
     $sizeBytes = (Get-Item $backupFullPath).Length
     $sizeMB = [math]::Round($sizeBytes / 1MB, 2)
     Write-BackupLog "SUCCESS: Backup created ($sizeMB MB): $backupFileName" "SUCCESS"
 } else {
+    if (Test-Path $backupFullPath) { Remove-Item $backupFullPath -Force -ErrorAction SilentlyContinue }
     Write-BackupLog "ERROR: pg_dump failed with exit code $dumpExitCode" "ERROR"
     exit 1
 }

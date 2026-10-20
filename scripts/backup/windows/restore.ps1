@@ -124,7 +124,7 @@ if (-not $BackupFilePath -or -not (Test-Path $BackupFilePath)) {
 
     foreach ($dir in $searchDirs) {
         if (Test-Path $dir) {
-            $latest = Get-ChildItem -Path $dir -Filter "wildbar_${dbName}_*.dump" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            $latest = Get-ChildItem -Path $dir -Filter "wildbar_${dbName}_*.dump" | Where-Object { $_.Length -gt 0 } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
             if ($latest) {
                 $BackupFilePath = $latest.FullName
                 Write-RestoreLog "Found latest backup in ${dir}: $($latest.Name) (Modified: $($latest.LastWriteTime))"
